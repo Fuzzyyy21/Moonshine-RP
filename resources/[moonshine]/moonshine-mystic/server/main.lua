@@ -17,8 +17,10 @@ local function loadProfile(source, player)
     profile:Sync()
     TriggerEvent('mystic:server:profileLoaded', source, profile)
 
-    if not profile.race and MysticConfig.Awakening.onlyAtRitualPoint then
+    if not profile.race then
         profile:Notify('Du bist noch nicht erweckt. Suche einen Ritualpunkt auf.', 'info')
+    elseif profile:CanSwitchClass() then
+        profile:Notify('Deine Klasse ist noch frei waehlbar, bis du die erste Faehigkeit lernst.', 'info', 8000)
     end
 end
 
@@ -86,11 +88,10 @@ CreateThread(function()
     end
 end)
 
--- Punkte fuer Onlinezeit -----------------------------------------------------
+-- Onlinezeit: Klassen-XP und persoenliche Punkte -----------------------------
 
 CreateThread(function()
     local personalSeconds = math.max(1, MysticConfig.Points.minutesPerPersonalPoint) * 60
-    local skillSeconds    = math.max(1, MysticConfig.Points.minutesPerSkillPoint) * 60
 
     while true do
         Wait(60000)
@@ -99,24 +100,24 @@ CreateThread(function()
             local before = profile.secondsPlayed
             profile.secondsPlayed = before + 60
 
+            local changed = false
+
+            -- Klassenstufe steigt nur mit einer Klasse.
+            if profile.race and MysticConfig.Progression.xpPerMinute > 0 then
+                profile:AddXp(MysticConfig.Progression.xpPerMinute)
+                changed = true
+            end
+
             local gainedPersonal = math.floor(profile.secondsPlayed / personalSeconds)
                                  - math.floor(before / personalSeconds)
-            local gainedSkill    = math.floor(profile.secondsPlayed / skillSeconds)
-                                 - math.floor(before / skillSeconds)
 
             if gainedPersonal > 0 then
                 profile:AddPersonalPoints(gainedPersonal)
                 profile:Notify(('%d persoenliche(r) Punkt(e) erhalten.'):format(gainedPersonal), 'success')
+                changed = true
             end
 
-            if gainedSkill > 0 then
-                profile:AddSkillPoints(gainedSkill)
-                profile:Notify(('%d Skillpunkt(e) erhalten.'):format(gainedSkill), 'success')
-            end
-
-            if gainedPersonal > 0 or gainedSkill > 0 then
-                profile:Sync()
-            end
+            if changed then profile:Sync() end
         end
     end
 end)

@@ -26,18 +26,28 @@ exports('HasSkill', function(source, skillId)
     return profile ~= nil and profile:IsUnlocked(skillId)
 end)
 
-exports('GetModifiers', function(source)
+exports('GetSkillRank', function(source, skillId)
     local profile = Mystic.GetProfile(source)
-    return profile and profile:GetModifiers() or nil
+    return profile and profile:GetRank(skillId) or 0
 end)
 
-exports('AddSkillPoints', function(source, amount)
+exports('GetLevel', function(source)
+    local profile = Mystic.GetProfile(source)
+    return profile and profile:GetLevel() or 0
+end)
+
+exports('AddXp', function(source, amount)
     local profile = Mystic.GetProfile(source)
     if not profile then return false end
 
-    profile:AddSkillPoints(amount)
+    profile:AddXp(amount)
     profile:Sync()
     return true
+end)
+
+exports('GetModifiers', function(source)
+    local profile = Mystic.GetProfile(source)
+    return profile and profile:GetModifiers() or nil
 end)
 
 exports('AddPersonalPoints', function(source, amount)

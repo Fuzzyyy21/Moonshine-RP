@@ -77,6 +77,12 @@ RegisterNetEvent('mystic:client:awakened', function(raceName)
     AnimpostfxPlay('HeistCelebPass', 3000, false)
 end)
 
+RegisterNetEvent('mystic:client:levelUp', function(level)
+    MS.Notify(('Klassenstufe %d erreicht.'):format(level), 'success', 7000)
+    AnimpostfxPlay('SuccessNeutral', 2000, false)
+    PlaySoundFrontend(-1, 'RANK_UP', 'HUD_AWARDS', true)
+end)
+
 RegisterNetEvent('mystic:client:resetEffects', function()
     Mystic.Buffs = {}
     Mystic.Effects = {}

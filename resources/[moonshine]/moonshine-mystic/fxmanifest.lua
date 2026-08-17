@@ -12,6 +12,7 @@ dependency 'moonshine-core'
 shared_scripts {
     'shared/config.lua',
     'shared/races.lua',
+    'shared/progression.lua',
     'shared/skills.lua',
     'shared/perks.lua',
     'shared/items.lua',

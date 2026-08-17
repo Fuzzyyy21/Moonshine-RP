@@ -12,6 +12,7 @@ local function buildBar()
     for slot = 1, MysticConfig.SkillBar.slots do
         local skillId = profile and profile.skillbar and profile.skillbar[slot]
         local skill = skillId and Mystic.GetSkill(skillId) or nil
+        local rank = (skill and profile.ranks and profile.ranks[skill.id]) or 0
 
         slots[slot] = {
             slot     = slot,
@@ -19,7 +20,9 @@ local function buildBar()
             id       = skill and skill.id or nil,
             label    = skill and skill.label or nil,
             icon     = skill and skill.icon or nil,
-            cost     = skill and skill.cost or 0,
+            rank     = rank,
+            maxRank  = skill and skill.maxRank or 0,
+            cost     = skill and Mystic.GetEssenceCost(skill, math.max(1, rank)) or 0,
             cooldown = skill and profile.cooldowns and profile.cooldowns[skill.id] or 0,
         }
     end

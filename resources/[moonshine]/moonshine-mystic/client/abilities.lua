@@ -69,8 +69,13 @@ function Mystic.UseSkill(skillId)
         return
     end
 
-    local effect = skill.effect
-    local needsTarget = effect.kind == 'projectile' or effect.kind == 'curse'
+    local rank = (Mystic.Profile.ranks and Mystic.Profile.ranks[skillId]) or 0
+    if rank < 1 then return end
+
+    local effect = Mystic.ResolveEffect(skill, rank)
+    -- Flaechenflueche brauchen kein Ziel, gezielte schon.
+    local needsTarget = effect.kind == 'projectile'
+        or (effect.kind == 'curse' and not effect.radius)
         or effect.kind == 'heal_target' or effect.kind == 'revive_target'
         or (effect.kind == 'drain' and effect.single)
 
@@ -165,12 +170,12 @@ local function startTransform(effect)
     end)
 end
 
---- Wirkung beim Verursacher.
+--- Wirkung beim Verursacher. Der Server liefert die Werte der aktuellen Stufe.
 RegisterNetEvent('mystic:client:skillUsed', function(skillId, info)
     local skill = Mystic.GetSkill(skillId)
     if not skill then return end
 
-    local effect = skill.effect
+    local effect = (info and info.effect) or Mystic.ResolveEffect(skill, 1)
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
 
@@ -294,7 +299,7 @@ RegisterNetEvent('mystic:client:skillUsed', function(skillId, info)
 end)
 
 --- Wirkung, die umstehende Spieler sehen.
-RegisterNetEvent('mystic:client:skillVisual', function(casterServerId, skillId)
+RegisterNetEvent('mystic:client:skillVisual', function(casterServerId, skillId, resolvedEffect)
     local skill = Mystic.GetSkill(skillId)
     if not skill then return end
 
@@ -304,7 +309,7 @@ RegisterNetEvent('mystic:client:skillVisual', function(casterServerId, skillId)
     local coords = GetEntityCoords(casterPed)
     if #(GetEntityCoords(PlayerPedId()) - coords) > 90.0 then return end
 
-    local effect = skill.effect
+    local effect = resolvedEffect or Mystic.ResolveEffect(skill, 1)
 
     if effect.kind == 'aoe_damage' then
         AddExplosion(coords.x, coords.y, coords.z, effect.fire and 4 or 30, 0.0, true, false, 1.0)

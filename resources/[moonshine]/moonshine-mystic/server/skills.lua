@@ -1,4 +1,4 @@
---- Freischalten, Ausruesten und Einsetzen von Rassenskills.
+--- Skillstufen kaufen, Leiste belegen und Skills einsetzen.
 
 local MS = exports['moonshine-core']:GetCoreObject()
 
@@ -8,7 +8,6 @@ local function coordsOf(source)
     return GetEntityCoords(GetPlayerPed(source))
 end
 
---- Liegt der Punkt in einer Schutzzone?
 local function inSafeZone(coords)
     for _, zone in ipairs(MysticConfig.Combat.safeZones) do
         if #(coords - zone.coords) < zone.radius then return zone end
@@ -16,7 +15,6 @@ local function inSafeZone(coords)
 end
 
 --- Alle Spieler im Umkreis, ohne den Verursacher.
----@return table Liste aus { source, profile, distance }
 local function playersInRadius(coords, radius, exceptSource)
     local result = {}
 
@@ -26,11 +24,7 @@ local function playersInRadius(coords, radius, exceptSource)
         if target ~= exceptSource and MS.GetPlayer(target) then
             local distance = #(coords - coordsOf(target))
             if distance <= radius then
-                result[#result + 1] = {
-                    source   = target,
-                    profile  = Mystic.Profiles[target],
-                    distance = distance,
-                }
+                result[#result + 1] = { source = target, distance = distance }
             end
         end
     end
@@ -38,7 +32,6 @@ local function playersInRadius(coords, radius, exceptSource)
     return result
 end
 
---- Darf der Verursacher dieses Ziel treffen?
 local function canAffect(profile, targetSource)
     if MysticConfig.Combat.friendlyFireSameRace then return true end
 
@@ -47,37 +40,13 @@ local function canAffect(profile, targetSource)
     return targetProfile.race ~= profile.race
 end
 
---- Schickt eine Wirkung an den Client des Ziels.
 local function applyToTarget(targetSource, payload)
     TriggerClientEvent('mystic:client:applyEffect', targetSource, payload)
 end
 
--- Freischalten ---------------------------------------------------------------
+-- Stufen kaufen --------------------------------------------------------------
 
---- Prueft und bezahlt die Kosten eines Skills.
----@return boolean ok, string|nil fehlermeldung
-local function payUnlock(player, profile, skill)
-    if profile.skillPoints < skill.unlock.points then
-        return false, ('Dir fehlen Skillpunkte (%d benoetigt).'):format(skill.unlock.points)
-    end
-
-    for item, count in pairs(skill.unlock.stones) do
-        if not player:HasItem(item, count) then
-            return false, ('Dir fehlen Steine: %s'):format(Mystic.FormatStones(skill.unlock.stones))
-        end
-    end
-
-    for item, count in pairs(skill.unlock.stones) do
-        if not player:RemoveItem(item, count) then
-            return false, 'Die Steine konnten nicht entnommen werden.'
-        end
-    end
-
-    profile:AddSkillPoints(-skill.unlock.points)
-    return true
-end
-
-RegisterNetEvent('mystic:server:unlockSkill', function(skillId)
+RegisterNetEvent('mystic:server:upgradeSkill', function(skillId)
     local source = source
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)
@@ -87,32 +56,53 @@ RegisterNetEvent('mystic:server:unlockSkill', function(skillId)
     if not skill then return end
 
     if not profile.race or skill.race ~= profile.race then
-        profile:Notify('Dieser Skill gehoert nicht zu deiner Rasse.', 'error')
-        return
-    end
-
-    if profile:IsUnlocked(skillId) then return end
-
-    if not Mystic.MeetsRequirements(skill, profile.unlocked) then
-        profile:Notify('Du musst zuerst die vorherigen Skills freischalten.', 'error')
+        profile:Notify('Dieser Skill gehoert nicht zu deiner Klasse.', 'error')
         return
     end
 
     if not Mystic.IsNearRitualPoint(coordsOf(source)) then
-        profile:Notify('Skills lassen sich nur an einem Ritualpunkt einloesen.', 'error')
+        profile:Notify('Skillen geht nur an einem Ritualpunkt.', 'error')
         return
     end
 
-    local ok, message = payUnlock(player, profile, skill)
-    if not ok then
-        profile:Notify(message, 'error')
+    local currentRank = profile:GetRank(skillId)
+    local nextRank = currentRank + 1
+
+    if nextRank > skill.maxRank then
+        profile:Notify(('%s ist bereits auf Maximalstufe.'):format(skill.label), 'warning')
         return
     end
 
-    profile.unlocked[skillId] = true
+    if not Mystic.MeetsRequirements(skill, profile.ranks) then
+        profile:Notify('Du musst zuerst die vorherigen Faehigkeiten lernen.', 'error')
+        return
+    end
 
-    -- Aktive Skills wandern automatisch in den ersten freien Slot.
-    if not skill.passive then
+    local level = profile:GetLevel()
+    if level < (skill.level or 1) then
+        profile:Notify(('Dafuer brauchst du Klassenstufe %d (aktuell %d).'):format(skill.level, level), 'error')
+        return
+    end
+
+    local stoneName, stoneLabel = Mystic.GetClassStone(profile.race)
+    local price = Mystic.GetRankCost(skill, nextRank)
+
+    if not stoneName or not price then return end
+
+    if not player:HasItem(stoneName, price) then
+        profile:Notify(('Dir fehlen %d %s.'):format(price - player:GetItemCount(stoneName), stoneLabel), 'error')
+        return
+    end
+
+    if not player:RemoveItem(stoneName, price) then
+        profile:Notify('Die Steine konnten nicht entnommen werden.', 'error')
+        return
+    end
+
+    profile.ranks[skillId] = nextRank
+
+    -- Erste Stufe eines aktiven Skills wandert in den ersten freien Slot.
+    if currentRank == 0 and not skill.passive then
         for slot = 1, MysticConfig.SkillBar.slots do
             if not profile.skillbar[slot] then
                 profile.skillbar[slot] = skillId
@@ -121,10 +111,11 @@ RegisterNetEvent('mystic:server:unlockSkill', function(skillId)
         end
     end
 
+    profile:AddXp(MysticConfig.Progression.xpPerUnlock)
     profile:Save()
     profile:Sync()
-    profile:Notify(('%s freigeschaltet.'):format(skill.label), 'success')
-    TriggerEvent('mystic:server:skillUnlocked', source, skillId)
+    profile:Notify(('%s auf Stufe %d.'):format(skill.label, nextRank), 'success')
+    TriggerEvent('mystic:server:skillUpgraded', source, skillId, nextRank)
 end)
 
 RegisterNetEvent('mystic:server:setBarSlot', function(slot, skillId)
@@ -148,15 +139,21 @@ end)
 -- Einsetzen ------------------------------------------------------------------
 
 --- Wendet die Wirkung eines Skills auf andere Spieler an.
-local function applySkillEffects(profile, skill, casterCoords, targetSource)
-    local effect = skill.effect
-    local kind   = effect.kind
-    local hits   = 0
+---@param effect table bereits auf die Stufe aufgeloester Effekt
+local function applySkillEffects(profile, effect, casterCoords, targetSource)
+    local kind = effect.kind
+    local hits = 0
 
     if kind == 'drain' then
-        local targets = effect.single
-            and (targetSource and { { source = targetSource, distance = #(casterCoords - coordsOf(targetSource)) } } or {})
-            or playersInRadius(casterCoords, effect.radius or 6.0, profile.source)
+        local targets = {}
+
+        if effect.single then
+            if targetSource then
+                targets[1] = { source = targetSource, distance = #(casterCoords - coordsOf(targetSource)) }
+            end
+        else
+            targets = playersInRadius(casterCoords, effect.radius or 6.0, profile.source)
+        end
 
         local healed = 0
         for _, target in ipairs(targets) do
@@ -185,23 +182,29 @@ local function applySkillEffects(profile, skill, casterCoords, targetSource)
 
     elseif kind == 'projectile' then
         if targetSource and canAffect(profile, targetSource) then
-            local distance = #(casterCoords - coordsOf(targetSource))
-            if distance <= (effect.range or 60.0) then
-                applyToTarget(targetSource, {
-                    type = 'damage', amount = effect.damage, element = effect.element,
-                })
+            if #(casterCoords - coordsOf(targetSource)) <= (effect.range or 60.0) then
+                applyToTarget(targetSource, { type = 'damage', amount = effect.damage, element = effect.element })
                 hits = 1
             end
         end
 
     elseif kind == 'curse' then
-        if targetSource and canAffect(profile, targetSource) then
-            local distance = #(casterCoords - coordsOf(targetSource))
-            if distance <= (effect.range or 20.0) then
-                applyToTarget(targetSource, {
-                    type = 'curse', duration = effect.duration, slow = effect.slow,
-                    damageOverTime = effect.damageOverTime, disarm = effect.disarm,
-                })
+        local payload = {
+            type = 'curse', duration = effect.duration, slow = effect.slow,
+            damageOverTime = effect.damageOverTime, disarm = effect.disarm,
+        }
+
+        if effect.radius then
+            -- Flaechenfluch trifft alle im Umkreis.
+            for _, target in ipairs(playersInRadius(casterCoords, effect.radius, profile.source)) do
+                if canAffect(profile, target.source) then
+                    applyToTarget(target.source, payload)
+                    hits = hits + 1
+                end
+            end
+        elseif targetSource and canAffect(profile, targetSource) then
+            if #(casterCoords - coordsOf(targetSource)) <= (effect.range or 20.0) then
+                applyToTarget(targetSource, payload)
                 hits = 1
             end
         end
@@ -225,21 +228,15 @@ local function applySkillEffects(profile, skill, casterCoords, targetSource)
         end
 
     elseif kind == 'heal_target' then
-        if targetSource then
-            local distance = #(casterCoords - coordsOf(targetSource))
-            if distance <= (effect.range or 10.0) then
-                applyToTarget(targetSource, { type = 'heal', amount = effect.amount })
-                hits = 1
-            end
+        if targetSource and #(casterCoords - coordsOf(targetSource)) <= (effect.range or 10.0) then
+            applyToTarget(targetSource, { type = 'heal', amount = effect.amount })
+            hits = 1
         end
 
     elseif kind == 'revive_target' then
-        if targetSource then
-            local distance = #(casterCoords - coordsOf(targetSource))
-            if distance <= (effect.range or 6.0) then
-                applyToTarget(targetSource, { type = 'revive', health = effect.health or 120 })
-                hits = 1
-            end
+        if targetSource and #(casterCoords - coordsOf(targetSource)) <= (effect.range or 6.0) then
+            applyToTarget(targetSource, { type = 'revive', health = effect.health or 120 })
+            hits = 1
         end
     end
 
@@ -254,8 +251,9 @@ RegisterNetEvent('mystic:server:useSkill', function(skillId, targetServerId)
     local skill = Mystic.GetSkill(skillId)
     if not skill or skill.passive then return end
 
-    if skill.race ~= profile.race or not profile:IsUnlocked(skillId) then
-        profile:Notify('Diesen Skill beherrschst du nicht.', 'error')
+    local rank = profile:GetRank(skillId)
+    if skill.race ~= profile.race or rank < 1 then
+        profile:Notify('Diese Faehigkeit beherrschst du nicht.', 'error')
         return
     end
 
@@ -275,7 +273,7 @@ RegisterNetEvent('mystic:server:useSkill', function(skillId, targetServerId)
     end
 
     local mods = profile:GetModifiers()
-    local essenceCost = math.floor((skill.cost or 0) * mods.costMult)
+    local essenceCost = math.floor(Mystic.GetEssenceCost(skill, rank) * mods.costMult)
 
     if not profile:UseEssence(essenceCost) then
         local race = Mystic.GetRace(profile.race)
@@ -283,9 +281,8 @@ RegisterNetEvent('mystic:server:useSkill', function(skillId, targetServerId)
         return
     end
 
-    profile:SetCooldown(skillId, (skill.cooldown or 10) * mods.cooldownMult)
+    profile:SetCooldown(skillId, Mystic.GetCooldown(skill, rank) * mods.cooldownMult)
 
-    -- Ziel nur uebernehmen, wenn es wirklich existiert und in Reichweite ist.
     local targetSource = tonumber(targetServerId)
     if targetSource then
         if not MS.GetPlayer(targetSource)
@@ -294,24 +291,26 @@ RegisterNetEvent('mystic:server:useSkill', function(skillId, targetServerId)
         end
     end
 
-    local hits = applySkillEffects(profile, skill, casterCoords, targetSource)
+    local effect = Mystic.ResolveEffect(skill, rank)
+    local hits = applySkillEffects(profile, effect, casterCoords, targetSource)
 
-    -- Wirkung beim Verursacher (Animation, Buff, Sichtbarkeit, ...)
+    -- Wirkung beim Verursacher: der Client bekommt die aufgeloesten Werte mit.
     TriggerClientEvent('mystic:client:skillUsed', source, skillId, {
+        rank = rank,
+        effect = effect,
         targetServerId = targetSource,
         hits = hits,
     })
 
-    -- Umstehende sehen den Effekt.
     for _, nearby in ipairs(playersInRadius(casterCoords, 100.0, source)) do
-        TriggerClientEvent('mystic:client:skillVisual', nearby.source, source, skillId)
+        TriggerClientEvent('mystic:client:skillVisual', nearby.source, source, skillId, effect)
     end
 
+    profile:AddXp(MysticConfig.Progression.xpPerSkillCast + hits * MysticConfig.Progression.xpPerSkillHit)
     profile:Sync()
     TriggerEvent('mystic:server:skillUsed', source, skillId, targetSource, hits)
 end)
 
---- Der Client meldet abgelaufene Effekte oder Schaden aus Skills zurueck.
 RegisterNetEvent('mystic:server:reportDamage', function(amount)
     local source = source
     local profile = Mystic.Profiles[source]

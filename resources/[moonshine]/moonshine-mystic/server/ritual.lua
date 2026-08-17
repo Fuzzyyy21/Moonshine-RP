@@ -1,4 +1,4 @@
---- Ritualpunkte: Erweckung, Rassenwechsel und Meditation.
+--- Ritualpunkte: Erweckung, Klassenwechsel, Meditation und Steinumwandlung.
 
 local MS = exports['moonshine-core']:GetCoreObject()
 
@@ -16,50 +16,63 @@ RegisterNetEvent('mystic:server:awaken', function(raceName)
 
     local race = Mystic.GetRace(raceName)
     if not race then return end
+    if profile.race == raceName then return end
 
     if MysticConfig.Awakening.onlyAtRitualPoint and not atRitualPoint(source) then
         profile:Notify('Die Erweckung gelingt nur an einem Ritualpunkt.', 'error')
         return
     end
 
-    -- Rassenwechsel
-    if profile.race then
-        if not MysticConfig.Awakening.allowRaceChange then
-            profile:Notify('Deine Rasse laesst sich nicht mehr aendern.', 'error')
+    local isSwitch = profile.race ~= nil
+
+    if isSwitch then
+        if not profile:CanSwitchClass() then
+            profile:Notify('Mit der ersten gelernten Faehigkeit ist deine Klasse endgueltig.', 'error')
             return
         end
 
-        if profile.race == raceName then return end
+        -- Wechsel nach der ersten Faehigkeit kostet Steine (falls erlaubt).
+        if profile:GetTotalRanks() > 0 then
+            local stones = MysticConfig.Awakening.raceChangeStones
 
-        local stones = MysticConfig.Awakening.raceChangeStones
-        for item, count in pairs(stones) do
-            if not player:HasItem(item, count) then
-                profile:Notify(('Fuer den Wechsel brauchst du: %s'):format(Mystic.FormatStones(stones)), 'error')
-                return
+            for item, count in pairs(stones) do
+                if not player:HasItem(item, count) then
+                    profile:Notify(('Fuer den Wechsel brauchst du: %s'):format(Mystic.FormatStones(stones)), 'error')
+                    return
+                end
+            end
+
+            for item, count in pairs(stones) do
+                player:RemoveItem(item, count)
+            end
+
+            -- Gelernte Stufen verfallen, die Klassensteine gibt es zurueck.
+            local oldStone = Mystic.GetClassStone(profile.race)
+            local refund = 0
+
+            for skillId, rank in pairs(profile.ranks) do
+                local skill = Mystic.GetSkill(skillId)
+                if skill then refund = refund + Mystic.GetSpentStones(skill, rank) end
+            end
+
+            if oldStone and refund > 0 then
+                player:AddItem(oldStone, refund)
             end
         end
 
-        for item, count in pairs(stones) do
-            player:RemoveItem(item, count)
-        end
-
-        -- Rassenskills der alten Rasse verfallen, Punkte gibt es zurueck.
-        local refund = 0
-        for skillId in pairs(profile.unlocked) do
-            local skill = Mystic.GetSkill(skillId)
-            if skill then refund = refund + skill.unlock.points end
-        end
-
-        profile.unlocked = {}
-        profile.skillbar = {}
+        profile.ranks = {}
         for slot = 1, MysticConfig.SkillBar.slots do profile.skillbar[slot] = false end
-        profile:AddSkillPoints(refund)
-    else
-        profile:AddSkillPoints(MysticConfig.Points.awakeningSkillPoints)
     end
 
     profile.race = raceName
     profile:SetEssence(profile:GetMaxEssence())
+
+    -- Startguthaben in der neuen Klassenwaehrung.
+    local stoneName, stoneLabel = Mystic.GetClassStone(raceName)
+    if not isSwitch and stoneName and MysticConfig.Stones.startAmount > 0 then
+        player:AddItem(stoneName, MysticConfig.Stones.startAmount)
+        profile:Notify(('Du erhaeltst %d %s.'):format(MysticConfig.Stones.startAmount, stoneLabel), 'success')
+    end
 
     Mystic.DB.SetRace(profile.characterId, raceName)
     profile:Save()
@@ -72,9 +85,44 @@ RegisterNetEvent('mystic:server:awaken', function(raceName)
     MS.Logger.Log('character', ('%s ist als %s erwacht.'):format(player.fullname, race.label), player.license)
 end)
 
+-- Steinumwandlung ------------------------------------------------------------
+
+RegisterNetEvent('mystic:server:convertStones', function(times)
+    local source = source
+    local profile = Mystic.Profiles[source]
+    local player  = MS.GetPlayer(source)
+    if not profile or not player or not profile.race then return end
+
+    if not atRitualPoint(source) then
+        profile:Notify('Das geht nur an einem Ritualpunkt.', 'error')
+        return
+    end
+
+    times = math.floor(tonumber(times) or 1)
+    if times < 1 or times > 50 then times = 1 end
+
+    local conversion = MysticConfig.Stones.conversion
+    local needed = conversion.amount * times
+    local stoneName, stoneLabel = Mystic.GetClassStone(profile.race)
+    if not stoneName then return end
+
+    if not player:HasItem(conversion.from, needed) then
+        local fromLabel = Mystic.Stones[conversion.from] and Mystic.Stones[conversion.from].label or conversion.from
+        profile:Notify(('Du brauchst %d %s.'):format(needed, fromLabel), 'error')
+        return
+    end
+
+    if not player:RemoveItem(conversion.from, needed) then return end
+
+    local gained = conversion.result * times
+    player:AddItem(stoneName, gained)
+    profile:Notify(('%d %s erhalten.'):format(gained, stoneLabel), 'success')
+
+    TriggerClientEvent('mystic:client:refreshRitual', source)
+end)
+
 -- Meditation -----------------------------------------------------------------
 
---- Zieht einen gewichteten Eintrag aus der Lootliste.
 local function rollLoot(race)
     local raceStone = race and Mystic.RaceStones[race] or nil
     local entries, total = {}, 0
@@ -121,7 +169,6 @@ RegisterNetEvent('mystic:server:meditate', function()
     TriggerClientEvent('mystic:client:meditationStart', source, MysticConfig.Meditation.duration)
 
     SetTimeout(MysticConfig.Meditation.duration * 1000, function()
-        -- Spieler koennte inzwischen weg sein.
         if not Mystic.Profiles[source] or not MS.GetPlayer(source) then return end
         if not atRitualPoint(source) then
             profile:Notify('Die Meditation wurde unterbrochen.', 'error')
@@ -133,19 +180,21 @@ RegisterNetEvent('mystic:server:meditate', function()
             local stone = Mystic.Stones[loot.item]
             profile:Notify(('Die Erde gibt dir %dx %s.'):format(loot.count, stone and stone.label or loot.item), 'success')
         end
+
+        profile:AddXp(MysticConfig.Progression.xpPerMeditation)
+        profile:Sync()
     end)
 end)
 
---- Der Client fragt die Daten fuer die Ritual-Oberflaeche an.
-RegisterNetEvent('mystic:server:requestRitualData', function()
-    local source = source
+-- Daten fuer die Oberflaeche -------------------------------------------------
+
+--- Baut die Nutzdaten des Skilltrees.
+---@param atRitual boolean Steht der Spieler an einem Ritualpunkt?
+function Mystic.BuildRitualPayload(source, atRitual)
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)
-    if not profile or not player then return end
+    if not profile or not player then return nil end
 
-    if not atRitualPoint(source) then return end
-
-    -- Steinbestand des Spielers fuer die Kostenanzeige.
     local stones = {}
     for name in pairs(Mystic.Stones) do
         stones[name] = player:GetItemCount(name)
@@ -153,11 +202,23 @@ RegisterNetEvent('mystic:server:requestRitualData', function()
 
     local meditationLeft = math.max(0, (profile.lastMeditation + MysticConfig.Meditation.cooldown) - os.time())
 
-    TriggerClientEvent('mystic:client:openRitual', source, {
+    return {
         profile        = profile:GetData(),
         stones         = stones,
+        atRitual       = atRitual,
         meditationLeft = meditationLeft,
         canMeditate    = MysticConfig.Meditation.enabled,
-        canChangeRace  = MysticConfig.Awakening.allowRaceChange,
-    })
+        conversion     = MysticConfig.Stones.conversion,
+    }
+end
+
+RegisterNetEvent('mystic:server:requestRitualData', function()
+    local source = source
+    if not Mystic.Profiles[source] then return end
+
+    local atRitual = atRitualPoint(source)
+    local payload = Mystic.BuildRitualPayload(source, atRitual)
+    if not payload then return end
+
+    TriggerClientEvent('mystic:client:openRitual', source, payload)
 end)

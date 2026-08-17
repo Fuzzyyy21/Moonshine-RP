@@ -71,31 +71,63 @@ register('setrasse', 'Setzt die Rasse eines Spielers', {
     reply(source, ('Rasse gesetzt: %s'):format(race.label), 'success')
 end)
 
-register('givepunkte', 'Gibt Skill- oder persoenliche Punkte', {
+register('givepunkte', 'Gibt persoenliche Punkte', {
     { name = 'id', help = 'Spieler-ID' },
-    { name = 'art', help = 'skill | perk' },
     { name = 'anzahl', help = 'Anzahl' },
 }, function(source, args)
     local profile = targetProfile(source, args[1])
     if not profile then return end
 
-    local kind = args[2]
-    local amount = tonumber(args[3])
-    if not amount or (kind ~= 'skill' and kind ~= 'perk') then
-        reply(source, 'Verwendung: /givepunkte [id] [skill|perk] [anzahl]', 'error')
+    local amount = tonumber(args[2])
+    if not amount then
+        reply(source, 'Verwendung: /givepunkte [id] [anzahl]', 'error')
         return
     end
 
-    if kind == 'skill' then
-        profile:AddSkillPoints(amount)
-    else
-        profile:AddPersonalPoints(amount)
-    end
-
+    profile:AddPersonalPoints(amount)
     profile:Save()
     profile:Sync()
-    profile:Notify(('%d %s-Punkte erhalten.'):format(amount, kind), 'success')
+    profile:Notify(('%d persoenliche Punkte erhalten.'):format(amount), 'success')
     reply(source, 'Punkte vergeben.', 'success')
+end)
+
+register('givexp', 'Gibt Klassen-Erfahrung', {
+    { name = 'id', help = 'Spieler-ID' },
+    { name = 'xp', help = 'Menge' },
+}, function(source, args)
+    local profile = targetProfile(source, args[1])
+    if not profile then return end
+
+    local amount = tonumber(args[2])
+    if not amount or not profile.race then
+        reply(source, 'Verwendung: /givexp [id] [xp] (Spieler braucht eine Klasse)', 'error')
+        return
+    end
+
+    profile:AddXp(amount)
+    profile:Save()
+    profile:Sync()
+    reply(source, ('%d XP vergeben, Stufe %d.'):format(amount, profile:GetLevel()), 'success')
+end)
+
+register('setlevel', 'Setzt die Klassenstufe', {
+    { name = 'id', help = 'Spieler-ID' },
+    { name = 'stufe', help = '1-50' },
+}, function(source, args)
+    local profile = targetProfile(source, args[1])
+    if not profile then return end
+
+    local level = tonumber(args[2])
+    if not level or level < 1 or level > MysticConfig.Progression.maxLevel then
+        reply(source, ('Stufe muss zwischen 1 und %d liegen.'):format(MysticConfig.Progression.maxLevel), 'error')
+        return
+    end
+
+    profile.xp = Mystic.GetTotalXpForLevel(level)
+    profile:Save()
+    profile:Sync()
+    profile:Notify(('Deine Klassenstufe ist jetzt %d.'):format(level), 'info')
+    reply(source, ('Stufe %d gesetzt.'):format(level), 'success')
 end)
 
 register('givestein', 'Gibt einem Spieler Ritualsteine', {
@@ -124,18 +156,18 @@ register('givestein', 'Gibt einem Spieler Ritualsteine', {
     end
 end)
 
-register('unlockall', 'Schaltet alle Skills der Rasse frei (Test)', {
+register('unlockall', 'Setzt alle Skills der Klasse auf Maximalstufe (Test)', {
     { name = 'id', help = 'Spieler-ID' },
 }, function(source, args)
     local profile = targetProfile(source, args[1])
     if not profile or not profile.race then
-        reply(source, 'Der Spieler hat keine Rasse.', 'error')
+        reply(source, 'Der Spieler hat keine Klasse.', 'error')
         return
     end
 
     local slot = 1
     for _, skill in ipairs(Mystic.GetSkillsForRace(profile.race)) do
-        profile.unlocked[skill.id] = true
+        profile.ranks[skill.id] = skill.maxRank
 
         if not skill.passive and slot <= MysticConfig.SkillBar.slots then
             profile.skillbar[slot] = skill.id
@@ -145,17 +177,18 @@ register('unlockall', 'Schaltet alle Skills der Rasse frei (Test)', {
 
     profile:Save()
     profile:Sync()
-    reply(source, 'Alle Skills freigeschaltet.', 'success')
+    reply(source, 'Alle Skills auf Maximalstufe.', 'success')
 end)
 
-register('resetmystic', 'Setzt Rasse, Skills und Perks zurueck', {
+register('resetmystic', 'Setzt Klasse, Skills und Perks zurueck', {
     { name = 'id', help = 'Spieler-ID' },
 }, function(source, args)
     local profile = targetProfile(source, args[1])
     if not profile then return end
 
     profile.race     = nil
-    profile.unlocked = {}
+    profile.xp       = 0
+    profile.ranks    = {}
     profile.perks    = {}
     profile.skillbar = {}
     for slot = 1, MysticConfig.SkillBar.slots do profile.skillbar[slot] = false end
@@ -172,9 +205,10 @@ end)
 
 RegisterCommand('mystik', function(source)
     if source == 0 then return end
+    if not Mystic.Profiles[source] then return end
 
-    local profile = Mystic.Profiles[source]
-    if not profile then return end
-
-    TriggerClientEvent('mystic:client:openOverview', source, profile:GetData())
+    local payload = Mystic.BuildRitualPayload(source, false)
+    if payload then
+        TriggerClientEvent('mystic:client:openRitual', source, payload)
+    end
 end, false)

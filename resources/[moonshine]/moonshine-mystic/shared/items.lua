@@ -34,23 +34,36 @@ Mystic.Stones = {
         label = 'Schattenstein', weight = 210,
         description = 'Verschluckt jedes Licht in seiner Naehe.',
     },
+    hexenstein = {
+        label = 'Hexenstein', weight = 200,
+        description = 'Riecht nach Kraeutern und alten Fluechen.',
+    },
     silberstein = {
         label = 'Silberstein', weight = 250,
         description = 'Gesegnetes Silber. Wesen meiden ihn.',
     },
 }
 
---- Stein, der zur jeweiligen Rasse gehoert (Meditation bevorzugt ihn).
+--- Klassenstein: Waehrung des jeweiligen Skilltrees. Die Meditation laesst
+--- ihn bei Spielern dieser Klasse haeufiger fallen.
 Mystic.RaceStones = {
     vampir    = 'blutstein',
     werwolf   = 'mondstein',
     daemon    = 'flammenstein',
     fee       = 'feenstaub',
     magier    = 'arkanstein',
-    hexer     = 'schattenstein',
+    hexer     = 'hexenstein',
     nekromant = 'schattenstein',
     jaeger    = 'silberstein',
 }
+
+--- Klassenstein einer Klasse, inklusive Anzeigename.
+function Mystic.GetClassStone(race)
+    local name = Mystic.RaceStones[race]
+    if not name then return nil end
+
+    return name, Mystic.Stones[name] and Mystic.Stones[name].label or name
+end
 
 --- Registriert alle Steine als Items im Core.
 --- Muss auf Server und Client laufen (jeweils eigener Lua-State).

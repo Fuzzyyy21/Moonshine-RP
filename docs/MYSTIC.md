@@ -1,61 +1,91 @@
-# Moonshine Mystik – Rassen, Skilltree und Perks
+# Moonshine Mystik – Klassen, Skilltree und Perks
 
-`moonshine-mystic` baut auf `moonshine-core` auf und macht aus dem Server ein
-mystisches Rollenspiel: Wesen mit eigenen Kräften, ein Skilltree, der an
-Ritualpunkten mit Steinen eingelöst wird, und persönliche Werte, die man sich
-über Onlinezeit erspielt.
+`moonshine-mystic` baut auf `moonshine-core` auf: Wesen mit eigenen Kräften, ein
+Skilltree mit Stufen, den man an Ritualpunkten mit Klassensteinen ausbaut, und
+persönliche Werte, die man sich über Onlinezeit erspielt.
+
+## Kernregel: Die Klasse bindet sich mit der ersten Fähigkeit
+
+Nach der Erweckung bleibt die Klasse **frei wechselbar**, solange noch keine
+einzige Fähigkeit geskillt wurde. In der Oberfläche sind dann alle acht Klassen
+in der linken Spalte sichtbar und mit einem Klick wählbar.
+
+Sobald die **erste Stufe einer Fähigkeit** gekauft ist, ist die Wahl endgültig:
+die Seitenleiste zeigt nur noch die eigene Klasse, alle anderen sind verborgen.
+
+Steuern lässt sich das über `MysticConfig.Awakening`:
+
+```lua
+lockAfterFirstSkill = true,   -- Kernregel; false = Wechsel bleibt offen
+allowRaceChange     = false,  -- true = Wechsel auch danach, gegen Steine
+raceChangeStones    = { seelenstein = 3 },
+```
+
+Beim erlaubten Wechsel verfallen alle Stufen, die ausgegebenen Klassensteine
+werden vollständig erstattet.
 
 ## Ablauf für Spieler
 
-1. **Erwecken** – Am Ritualpunkt `E` drücken, Reiter *Erweckung*, Rasse wählen.
-   Standardmäßig ist die Wahl endgültig (`MysticConfig.Awakening.allowRaceChange`).
-2. **Steine sammeln** – Am Ritualpunkt meditieren (Reiter *Steine*). Alle 15
-   Minuten fällt ein Stein; Steine der eigenen Rasse fallen häufiger.
-3. **Skills einlösen** – Reiter *Skilltree*: Skill anklicken, Kosten prüfen,
-   *Einlösen*. Kostet Skillpunkte **und** Steine, und geht nur am Ritualpunkt.
-4. **Leiste belegen** – Reiter *Skillleiste* oder direkt im Skill-Detail.
+1. **Erwecken** – Am Ritualpunkt `E`, Klasse links auswählen. Zum Start gibt es
+   20 Klassensteine.
+2. **Steine sammeln** – Reiter *Steine*: am Ritualpunkt meditieren, oder
+   5 Runensteine in 1 Klassenstein umwandeln (`+` in der Kopfzeile).
+3. **Skillen** – Reiter *Skilltree*: Knoten anklicken, Stufenliste prüfen,
+   *Skillen*. Kostet Klassensteine; hohe Knoten zusätzlich eine Klassenstufe.
+4. **Leiste belegen** – Im Detailfenster oder im Reiter *Skillleiste*.
    `F5` klappt die Leiste im Spiel aus, `NUMPAD 1–6` lösen die Slots aus.
-5. **Persönliche Skills** – Reiter *Persönliche Skills*: Leben, Ausdauer,
-   Schaden, Regeneration und mehr, bezahlt aus persönlichen Punkten.
+5. **Persönliche Skills** – Reiter *Persönliche Skills*, bezahlt aus
+   persönlichen Punkten (unabhängig von der Klasse).
 
-`/mystik` öffnet dieselbe Oberfläche überall – nur ohne Einlösen.
+`/mystik` öffnet dieselbe Oberfläche überall – nur ohne Skillen.
 
-## Rassen
+## Klassenstufe und XP
 
-| Rasse | Ressource | Stärken | Besonderheit |
+Jede Klasse hat eine eigene Stufe (max. 50). XP kommen aus:
+
+| Quelle | XP |
+|---|---|
+| Onlinezeit | 12 pro Minute |
+| Fähigkeit eingesetzt | 8 |
+| je getroffenem Ziel | 6 |
+| Meditation abgeschlossen | 120 |
+| Stufe geskillt | 150 |
+
+Benötigte XP für den nächsten Aufstieg: `500 + Stufe × 650`. Alles in
+`MysticConfig.Progression`.
+
+Die Stufe schaltet die unteren Baumreihen frei: Reihe 4 ab Stufe 10 bzw. 15,
+der Abschlussknoten ab Stufe 25. Gesperrte Knoten zeigen ein Schloss.
+
+## Klassen
+
+| Klasse | Ressource | Klassenstein | Stärken |
 |---|---|---|---|
-| 🩸 Vampir | Blut | Nahkampf, Tempo, Lebensentzug | Nimmt tagsüber Schaden, bis *Kind der Nacht* freigeschaltet ist |
-| 🐺 Werwolf | Wut | Höchster Nahkampfschaden, viel Leben | Nachts stärker, kann sich verwandeln |
-| 🔥 Dämon | Höllenfeuer | Flächenschaden, Weste | Setzt Ziele in Brand |
-| 🧚 Fee | Feenstaub | Heilung, Sprünge, Tempo | Wenig Leben, kein Fallschaden |
-| 🪄 Magier | Mana | Größter Vorrat, Teleport, Schild | Zeitdehnung |
-| 🜏 Hexer | Hexenkraft | Flüche, Gift, Entwaffnen | Schwächt statt zu töten |
-| 💀 Nekromant | Seelen | Lebensentzug auf Distanz | Belebt Gefallene wieder |
-| 🏹 Jäger | Fokus | Höchster Schusswaffenschaden | Startet mit voller Weste |
+| 🩸 Vampir | Blut | Blutstein | Nahkampf, Tempo, Lebensentzug; tagsüber verwundbar |
+| 🐺 Werwolf | Wut | Mondstein | Höchster Nahkampfschaden, Gestaltwandel, nachts stärker |
+| 🔥 Dämon | Höllenfeuer | Flammenstein | Flächenschaden, Feuer, Weste |
+| 🧚 Fee | Feenstaub | Feenstaub | Heilung, Sprünge, Tempo; wenig Leben |
+| 🪄 Magier | Mana | Arkanstein | Größter Vorrat, Teleport, Schild, Zeitdehnung |
+| 🜏 Hexer | Hexenkraft | Hexenstein | Flüche, Gift, Entwaffnen |
+| 💀 Nekromant | Seelen | Schattenstein | Lebensentzug, Wiederbelebung |
+| 🏹 Jäger | Fokus | Silberstein | Höchster Schusswaffenschaden, volle Weste |
 
-Jede Rasse hat fünf Skills über vier Stufen – vier aktive und einen passiven
-Abschluss. Die Werte stehen in `shared/races.lua` und `shared/skills.lua`.
+Jede Klasse hat **11 Knoten in 5 Reihen**: ein Wurzelknoten, drei Zweige mit je
+zwei Ausbaustufen, drei starke Knoten ab Stufe 10/15 und ein Abschlussknoten ab
+Stufe 25. Fähigkeiten haben 1, 3 oder 5 Stufen; jede Stufe verbessert die Werte
+und wird im Detailfenster einzeln aufgelistet.
 
 ## Steine
 
 | Stein | Verwendung |
 |---|---|
-| Runenstein | Grundkosten aller Stufen |
-| Seelenstein | Stufe 2 und 4, Rassenwechsel |
-| Blutstein / Mondstein / Flammenstein / Feenstaub / Arkanstein / Schattenstein / Silberstein | rassenspezifisch ab Stufe 2 |
+| Klassenstein (siehe Tabelle) | einzige Währung im Skilltree |
+| Runenstein | wird am Ritualpunkt in Klassensteine umgewandelt (5 : 1) |
+| Seelenstein | Klassenwechsel, wenn erlaubt |
 
-Steine sind normale Items im Core-Inventar. Sie werden beim Start über
-`exports['moonshine-core']:RegisterItem` registriert – `moonshine-core` selbst
-bleibt unverändert.
-
-## Punkte
-
-| Punkteart | Quelle | Verwendung |
-|---|---|---|
-| Skillpunkte | alle 30 Minuten Onlinezeit, +2 beim Erwecken | Rassenskills im Skilltree |
-| Persönliche Punkte | alle 15 Minuten Onlinezeit, 3 zum Start | Perks (Leben, Ausdauer, Schaden, …) |
-
-Intervalle stehen in `MysticConfig.Points`.
+Alle Steine sind normale Items im Core-Inventar und werden beim Start über
+`exports['moonshine-core']:RegisterItem` registriert – `moonshine-core` bleibt
+unverändert.
 
 ## Persönliche Skills
 
@@ -71,50 +101,72 @@ Intervalle stehen in `MysticConfig.Points`.
 | Schnelligkeit | +2 % Tempo | 5 |
 | Meisterung | −4 % Abklingzeit | 5 |
 
-Zurücksetzen geht am Ritualpunkt – alle Punkte werden erstattet.
+Punkte gibt es alle 15 Minuten Onlinezeit (3 zum Start). Zurücksetzen geht am
+Ritualpunkt und erstattet alles.
 
 ## Ritualpunkte
 
 Sechs Standorte in `MysticConfig.RitualPoints` (Vinewood Friedhof, Mount
 Chiliad, Altruisten-Lager, Kirche Sandy Shores, Leuchtturm Paleto, Steinkreis
-bei Zancudo). Koordinaten sind Richtwerte – vor dem Livegang einmal im Spiel
-prüfen und anpassen. Jeder Punkt bekommt einen Blip und einen Bodenmarker.
+bei Zancudo), jeweils mit Blip und Bodenmarker. Koordinaten sind Richtwerte –
+vor dem Livegang einmal im Spiel prüfen.
 
 ## Commands
 
 | Command | Level | Beschreibung |
 |---|---|---|
-| `/mystik` | – | Übersicht öffnen |
+| `/mystik` | – | Skilltree-Übersicht öffnen |
 | `/skillleiste` | – | Leiste aus-/einklappen (F5) |
-| `/setrasse [id] [rasse]` | 3 | Rasse setzen |
-| `/givepunkte [id] [skill\|perk] [n]` | 3 | Punkte vergeben |
+| `/setrasse [id] [klasse]` | 3 | Klasse setzen |
+| `/givexp [id] [xp]` | 3 | Klassen-XP vergeben |
+| `/setlevel [id] [stufe]` | 3 | Klassenstufe setzen |
+| `/givepunkte [id] [n]` | 3 | Persönliche Punkte vergeben |
 | `/givestein [id] [stein] [n]` | 3 | Steine vergeben |
-| `/unlockall [id]` | 3 | Alle Skills der Rasse freischalten (Test) |
-| `/resetmystic [id]` | 3 | Rasse, Skills und Perks zurücksetzen |
+| `/unlockall [id]` | 3 | Alle Knoten auf Maximalstufe (Test) |
+| `/resetmystic [id]` | 3 | Klasse, Skills, Stufe und Perks zurücksetzen |
 
 ## Balancing anpassen
 
-* **Rassenwerte** – `shared/races.lua`: `stats` (Leben, Schaden, Tempo, Weste)
-  und `essence` (Vorrat, Regeneration).
-* **Skills** – `shared/skills.lua`: `cooldown`, `cost`, `effect` und die
-  Freischaltkosten über die Hilfsfunktion `cost(tier, rassenstein, anzahl)`.
-* **Perks** – `shared/perks.lua`: `maxLevel`, `costBase`, `costStep`, `perLevel`.
-* **Tempo des Fortschritts** – `MysticConfig.Points` und
-  `MysticConfig.Meditation`.
-* **Schutzzonen** – `MysticConfig.Combat.safeZones`, dort wirken keine Skills.
+* **Klassenwerte** – `shared/races.lua`: `stats` und `essence`.
+* **Baum** – `shared/skills.lua`: Position (`row`, `col`), `maxRank`,
+  `requires`, `level`, `stones`, `essence`, `cooldown`, `effect`.
+* **Fortschritt** – `MysticConfig.Progression` (XP-Kurve und Quellen),
+  `MysticConfig.Stones` (Startguthaben, Umwandlung), `MysticConfig.Meditation`.
+* **Perks** – `shared/perks.lua`.
+* **Schutzzonen** – `MysticConfig.Combat.safeZones`.
 
-Nach Änderungen an Shared-Dateien reicht `restart moonshine-mystic`.
+Nach Änderungen reicht `restart moonshine-mystic`.
 
-## Wirkungsarten für eigene Skills
+### Werte pro Stufe
 
-`effect.kind` bestimmt, was ein Skill tut. Vorhanden sind:
+Jedes numerische Feld eines Effekts darf eine Liste sein – ein Eintrag je Stufe:
+
+```lua
+node{ id = 'vampir_lebensentzug', race = 'vampir', row = 1, col = 2, maxRank = 5,
+      label = 'Lebensentzug', icon = '💉',
+      description = 'Reisst einem Ziel die Lebenskraft heraus.',
+      requires = { 'vampir_blutdurst' }, stones = { base = 18, step = 6 },
+      essence = { 24, 26, 28, 30, 32 }, cooldown = { 30, 28, 26, 24, 20 },
+      effect = { kind = 'drain', single = true, range = 25.0,
+                 damage = { 20, 26, 32, 38, 45 },
+                 heal   = { 20, 26, 32, 38, 45 } } }
+```
+
+Skalare Werte (`range`, `kind`, `model`, …) gelten für alle Stufen. Die
+Stufenliste im Detailfenster wird daraus automatisch erzeugt
+(`Mystic.DescribeRank`), es braucht also keine Extra-Texte.
+
+Kosten: `stones = { base = 18, step = 6 }` bedeutet 18 / 24 / 30 / 36 / 42
+Klassensteine für die Stufen 1–5. Alternativ eine feste Liste: `stones = { 15 }`.
+
+## Wirkungsarten
 
 | kind | Parameter | Wirkung |
 |---|---|---|
 | `drain` | `radius` oder `range`+`single`, `damage`, `heal` | Schaden im Umkreis oder am Ziel, heilt den Wirker |
 | `aoe_damage` | `radius`, `damage`, `fire`, `ragdoll` | Flächenschaden |
 | `projectile` | `damage`, `element`, `range` | Geschoss auf das anvisierte Ziel |
-| `curse` | `range`, `duration`, `slow`, `damageOverTime`, `disarm` | Verlangsamt, entwaffnet, Schaden über Zeit |
+| `curse` | `range` oder `radius`, `duration`, `slow`, `damageOverTime`, `disarm` | Einzel- oder Flächenfluch |
 | `poison` | `radius`, `duration`, `damagePerTick` | Giftwolke |
 | `fear` | `radius`, `duration` | Ragdoll und Panik |
 | `heal_self` | `amount`, `cleanse`, `buff` | Selbstheilung |
@@ -128,12 +180,10 @@ Nach Änderungen an Shared-Dateien reicht `restart moonshine-mystic`.
 | `reveal` | `radius`, `duration` | Zeigt Spieler in der Umgebung |
 | `nightvision` | `duration` | Nachtsicht |
 | `transform` | `duration`, `model`, `healthBonus`, `meleeMult`, `speedMult` | Gestaltwandel |
-| `passive` | `healthBonus`, `essenceBonus`, `essenceRegen`, `regenPerTick`, `damageMult`, `meleeMult`, `costMult`, `cooldownMult`, `sunImmune`, `fireImmune`, `noFallDamage` | Dauerhafte Boni |
+| `passive` | `healthBonus`, `armorBonus`, `stamina`, `essenceBonus`, `essenceRegen`, `regenPerTick`, `damageMult`, `meleeMult`, `speedMult`, `costMult`, `cooldownMult`, `sunImmune`, `fireImmune`, `noFallDamage` | Dauerhafte Boni je Stufe |
 
-Ein neuer Skill braucht nur einen Eintrag in `shared/skills.lua`, solange er
-eine dieser Arten nutzt. Für etwas Neues kommt der serverseitige Teil nach
-`server/skills.lua` (`applySkillEffects`) und die Darstellung nach
-`client/abilities.lua`.
+Für etwas völlig Neues kommt der serverseitige Teil nach `server/skills.lua`
+(`applySkillEffects`) und die Darstellung nach `client/abilities.lua`.
 
 ## API
 
@@ -142,10 +192,12 @@ eine dieser Arten nutzt. Für etwas Neues kommt der serverseitige Teil nach
 local Mystic = exports['moonshine-mystic']:GetMysticObject()
 
 local profile = Mystic.GetProfile(source)
-profile.race                      -- 'vampir', 'werwolf', ...
-profile:IsUnlocked('vampir_blutdurst')
-profile:GetModifiers()            -- summierte Boni
-profile:AddSkillPoints(2)
+profile.race                            -- 'vampir', 'werwolf', ...
+profile:GetRank('vampir_blutsinn')      -- 0 = nicht gelernt
+profile:GetLevel()
+profile:AddXp(250)
+profile:GetModifiers()
+profile:CanSwitchClass()
 profile:Sync()
 ```
 
@@ -153,11 +205,14 @@ profile:Sync()
 |---|---|
 | `GetMysticObject()` | Mystik-Objekt |
 | `GetProfile(source)` | Profil |
-| `GetRace(source)` | Rassenname |
+| `GetRace(source)` | Klassenname |
 | `IsRace(source, race)` | boolean |
 | `HasSkill(source, skillId)` | boolean |
+| `GetSkillRank(source, skillId)` | number |
+| `GetLevel(source)` | number |
+| `AddXp(source, n)` | boolean |
 | `GetModifiers(source)` | Tabelle |
-| `AddSkillPoints(source, n)` / `AddPersonalPoints(source, n)` | boolean |
+| `AddPersonalPoints(source, n)` | boolean |
 | `AddEssence(source, n)` | boolean |
 | `SetRace(source, race)` | boolean |
 
@@ -167,8 +222,9 @@ profile:Sync()
 |---|---|
 | `mystic:server:profileLoaded` | `source, profile` |
 | `mystic:server:playerAwakened` | `source, race` |
-| `mystic:server:skillUnlocked` | `source, skillId` |
+| `mystic:server:skillUpgraded` | `source, skillId, rank` |
 | `mystic:server:skillUsed` | `source, skillId, targetSource, hits` |
+| `mystic:server:levelUp` | `source, level` |
 | `mystic:server:perkUpgraded` | `source, perkId, level` |
 
 **Events (Client)**
@@ -177,21 +233,14 @@ profile:Sync()
 |---|---|
 | `mystic:client:profileChanged` | `data` |
 | `mystic:client:raceChanged` | `race` |
+| `mystic:client:levelUp` | `level` |
 | `mystic:client:transformEnded` | – |
-
-Beispiel: Ein Türsystem, das nur Vampire durchlässt.
-
-```lua
-if exports['moonshine-mystic']:IsRace(source, 'vampir') then
-    -- Tür öffnen
-end
-```
 
 ## Bekannte Grenzen
 
 * Der Gestaltwandel tauscht das Spielermodell. Ein Kleidungsscript sollte auf
   `mystic:client:transformEnded` hören und das Outfit neu setzen.
 * Schaden an anderen Spielern wird beim Ziel angewendet (üblich in FiveM); der
-  Server prüft vorher Rasse, Freischaltung, Essenz, Abklingzeit und Distanz.
+  Server prüft vorher Klasse, Stufe, Essenz, Abklingzeit, Distanz und Zonen.
 * Es gibt noch kein Fraktions- oder Clansystem, keine Quests und keine
-  Rassen-Blutlinien – dafür ist die API vorbereitet.
+  Blutlinien – dafür ist die API vorbereitet.

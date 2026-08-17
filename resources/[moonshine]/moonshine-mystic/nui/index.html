@@ -18,87 +18,138 @@
     <div class="bar-race" id="bar-race"></div>
 </div>
 
-<!-- Ritual ----------------------------------------------------------------->
-<div id="ritual" class="overlay hidden">
-    <div class="ritual-window">
+<!-- Skilltree --------------------------------------------------------------->
+<div id="tree-screen" class="hidden">
 
-        <header class="ritual-header">
-            <div class="race-badge" id="race-badge">
-                <span class="race-icon" id="race-icon">✦</span>
-                <div>
-                    <div class="race-name" id="race-name">Nicht erweckt</div>
-                    <div class="race-sub" id="race-sub">Waehle deinen Pfad</div>
+    <!-- Kopfzeile -->
+    <header class="top">
+        <div class="class-title">
+            <div class="crest" id="crest">✦</div>
+            <div>
+                <h1 id="class-name">Nicht erweckt</h1>
+                <div class="subtitle">Skilltree</div>
+                <p class="class-desc" id="class-desc">Waehle deine Klasse an einem Ritualpunkt.</p>
+            </div>
+        </div>
+
+        <div class="level-box" id="level-box">
+            <div class="level-caption" id="level-caption">Stufe</div>
+            <div class="level-body">
+                <span class="level-value" id="level-value">1</span>
+                <div class="xp">
+                    <div class="xp-text"><span id="xp-current">0</span> / <span id="xp-next">0</span> XP</div>
+                    <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stone-box">
+            <div class="stone-caption" id="stone-caption">Steine</div>
+            <div class="stone-body">
+                <span class="gem">◆</span>
+                <span class="stone-count" id="stone-count">0</span>
+                <button class="plus" id="btn-convert" title="Runensteine umwandeln">+</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="middle">
+
+        <!-- Klassen -->
+        <aside class="classes">
+            <div class="section-caption" id="classes-caption">Klasse waehlen</div>
+            <div id="class-list"></div>
+            <div class="class-hint" id="class-hint"></div>
+        </aside>
+
+        <!-- Baum -->
+        <main class="tree-area">
+            <div class="tabs">
+                <button class="tab active" data-tab="tree">Skilltree</button>
+                <button class="tab" data-tab="perks">Persoenliche Skills</button>
+                <button class="tab" data-tab="bar">Skillleiste</button>
+                <button class="tab" data-tab="stones">Steine</button>
+            </div>
+
+            <div class="tab-panel" id="panel-tree">
+                <div class="tree-canvas" id="tree-canvas">
+                    <svg id="tree-links"></svg>
+                    <div id="tree-nodes"></div>
                 </div>
             </div>
 
-            <div class="points">
-                <div class="point-box">
-                    <span class="point-value" id="skill-points">0</span>
-                    <span class="point-label">Skillpunkte</span>
-                </div>
-                <div class="point-box">
-                    <span class="point-value" id="personal-points">0</span>
-                    <span class="point-label">Pers. Punkte</span>
+            <div class="tab-panel hidden" id="panel-perks">
+                <div class="perk-grid" id="perk-grid"></div>
+            </div>
+
+            <div class="tab-panel hidden" id="panel-bar">
+                <div class="bar-editor">
+                    <h3>Belegung der Skillleiste</h3>
+                    <p class="muted">Waehle fuer jeden Slot eine gelernte aktive Faehigkeit.</p>
+                    <div class="bar-edit-slots" id="bar-edit-slots"></div>
                 </div>
             </div>
 
-            <button class="btn ghost" id="btn-close">Schliessen (ESC)</button>
-        </header>
+            <div class="tab-panel hidden" id="panel-stones">
+                <div class="stone-columns">
+                    <div class="stone-grid" id="stone-grid"></div>
+                    <div class="stone-side">
+                        <h3>Meditation</h3>
+                        <p class="muted">Versenke dich am Ritualpunkt, um Steine zu finden.
+                            Steine deiner Klasse erscheinen haeufiger.</p>
+                        <div id="meditation-state" class="muted"></div>
+                        <button class="btn primary" id="btn-meditate">Meditieren</button>
 
-        <nav class="tabs" id="tabs">
-            <button class="tab active" data-tab="tree">Skilltree</button>
-            <button class="tab" data-tab="perks">Persoenliche Skills</button>
-            <button class="tab" data-tab="bar">Skillleiste</button>
-            <button class="tab" data-tab="stones">Steine</button>
-            <button class="tab" data-tab="races">Erweckung</button>
-        </nav>
-
-        <!-- Skilltree -->
-        <section class="panel" id="panel-tree">
-            <div class="tree" id="tree"></div>
-            <aside class="detail" id="detail">
-                <div class="detail-empty">Waehle einen Skill aus dem Baum.</div>
-            </aside>
-        </section>
-
-        <!-- Perks -->
-        <section class="panel hidden" id="panel-perks">
-            <div class="perk-grid" id="perk-grid"></div>
-            <aside class="detail">
-                <h3>Persoenliche Punkte</h3>
-                <p class="muted">Du erhaeltst Punkte fuer deine Onlinezeit. Sie gelten
-                    unabhaengig von deiner Rasse und bleiben beim Rassenwechsel erhalten.</p>
-                <button class="btn danger" id="btn-reset-perks">Perks zuruecksetzen</button>
-            </aside>
-        </section>
-
-        <!-- Skillleiste -->
-        <section class="panel hidden" id="panel-bar">
-            <div class="bar-editor">
-                <h3>Belegung der Skillleiste</h3>
-                <p class="muted">Waehle fuer jeden Slot einen freigeschalteten aktiven Skill.</p>
-                <div class="bar-edit-slots" id="bar-edit-slots"></div>
+                        <h3 class="spaced">Umwandeln</h3>
+                        <p class="muted" id="conversion-text"></p>
+                        <button class="btn" id="btn-convert-2">Umwandeln</button>
+                    </div>
+                </div>
             </div>
-        </section>
+        </main>
 
-        <!-- Steine -->
-        <section class="panel hidden" id="panel-stones">
-            <div class="stone-grid" id="stone-grid"></div>
-            <aside class="detail">
-                <h3>Meditation</h3>
-                <p class="muted">Versenke dich am Ritualpunkt, um Steine zu finden.
-                    Steine deiner Rasse erscheinen haeufiger.</p>
-                <div id="meditation-state" class="muted"></div>
-                <button class="btn primary" id="btn-meditate">Meditieren</button>
-            </aside>
-        </section>
+        <!-- Detail + Legende -->
+        <aside class="detail-column">
+            <div class="detail" id="detail">
+                <div class="detail-empty">Waehle einen Knoten im Baum.</div>
+            </div>
 
-        <!-- Erweckung -->
-        <section class="panel hidden" id="panel-races">
-            <div class="race-grid" id="race-grid"></div>
-        </section>
-
+            <div class="legend">
+                <div class="section-caption">Legende</div>
+                <div class="legend-row"><span class="dot learned"></span> Erlernt / Aktiv</div>
+                <div class="legend-row"><span class="dot open"></span> Verfuegbar</div>
+                <div class="legend-row"><span class="dot next"></span> Naechste Stufe</div>
+                <div class="legend-row"><span class="dot locked"></span> Gesperrt</div>
+            </div>
+        </aside>
     </div>
+
+    <!-- Fusszeile -->
+    <footer class="bottom">
+        <button class="foot-action" id="btn-reset-perks">
+            <span class="foot-icon">↻</span>
+            <span>
+                <strong>Perks zuruecksetzen</strong>
+                <em>Persoenliche Punkte erstatten</em>
+            </span>
+        </button>
+
+        <div class="foot-center">
+            <span class="muted">Verfuegbare Steine</span>
+            <span class="gem">◆</span>
+            <span class="stone-count" id="stone-count-2">0</span>
+            <span class="muted spaced-left">Persoenliche Punkte</span>
+            <span class="stone-count" id="personal-points">0</span>
+        </div>
+
+        <button class="foot-action right" id="btn-close">
+            <span>
+                <strong>Schliessen</strong>
+                <em>ESC</em>
+            </span>
+            <span class="foot-icon">✕</span>
+        </button>
+    </footer>
 </div>
 
 <script src="app.js"></script>

@@ -7,6 +7,7 @@ local SCHEMA = [[
 CREATE TABLE IF NOT EXISTS `ms_mystic` (
     `character_id`    INT         NOT NULL,
     `race`            VARCHAR(32) DEFAULT NULL,
+    `xp`              INT         NOT NULL DEFAULT 0,
     `skill_points`    INT         NOT NULL DEFAULT 0,
     `personal_points` INT         NOT NULL DEFAULT 0,
     `unlocked`        LONGTEXT    DEFAULT NULL,
@@ -19,8 +20,30 @@ CREATE TABLE IF NOT EXISTS `ms_mystic` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ]]
 
+--- Ergaenzt Spalten, die in aelteren Installationen fehlen.
+local function migrate()
+    local columns = MySQL.query.await([[
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ms_mystic'
+    ]]) or {}
+
+    local present = {}
+    for _, row in ipairs(columns) do
+        present[(row.COLUMN_NAME or row.column_name):lower()] = true
+    end
+
+    if not present.xp then
+        MySQL.query.await('ALTER TABLE `ms_mystic` ADD COLUMN `xp` INT NOT NULL DEFAULT 0')
+        print('^3[Mystic]^7 Spalte ms_mystic.xp ergaenzt.')
+    end
+end
+
 MySQL.ready(function()
-    local ok, err = pcall(function() MySQL.query.await(SCHEMA) end)
+    local ok, err = pcall(function()
+        MySQL.query.await(SCHEMA)
+        migrate()
+    end)
+
     if not ok then
         print(('^1[Mystic]^7 Tabelle ms_mystic konnte nicht angelegt werden: %s'):format(tostring(err)))
         return
@@ -36,20 +59,19 @@ function Mystic.DB.Load(characterId)
 
     if not row then
         MySQL.insert.await([[
-            INSERT INTO ms_mystic (character_id, skill_points, personal_points, unlocked, skillbar, perks)
-            VALUES (?, ?, ?, '[]', '[]', '{}')
+            INSERT INTO ms_mystic (character_id, personal_points, unlocked, skillbar, perks)
+            VALUES (?, ?, '{}', '[]', '{}')
         ]], {
             characterId,
-            MysticConfig.Points.startSkillPoints,
             MysticConfig.Points.startPersonalPoints,
         })
 
         row = {
             character_id    = characterId,
             race            = nil,
-            skill_points    = MysticConfig.Points.startSkillPoints,
+            xp              = 0,
             personal_points = MysticConfig.Points.startPersonalPoints,
-            unlocked        = '[]',
+            unlocked        = '{}',
             skillbar        = '[]',
             perks           = '{}',
             seconds_played  = 0,
@@ -63,14 +85,14 @@ end
 function Mystic.DB.Save(characterId, payload)
     return MySQL.update.await([[
         UPDATE ms_mystic
-        SET race = ?, skill_points = ?, personal_points = ?, unlocked = ?,
+        SET race = ?, xp = ?, personal_points = ?, unlocked = ?,
             skillbar = ?, perks = ?, seconds_played = ?
         WHERE character_id = ?
     ]], {
         payload.race,
-        payload.skillPoints,
+        payload.xp,
         payload.personalPoints,
-        json.encode(payload.unlocked),
+        json.encode(payload.ranks),
         json.encode(payload.skillbar),
         json.encode(payload.perks),
         payload.secondsPlayed,

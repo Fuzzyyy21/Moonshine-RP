@@ -8,12 +8,17 @@ MysticConfig.Debug = false
 
 -- Erweckung ------------------------------------------------------------------
 MysticConfig.Awakening = {
-    -- Ohne Rasse gibt es keine Rassenskills, persoenliche Perks laufen trotzdem.
+    -- Ohne Klasse gibt es keine Klassenskills, persoenliche Perks laufen trotzdem.
     onlyAtRitualPoint = true,
-    -- Rassenwechsel fuer Spieler erlauben (sonst nur per Admin-Command).
-    allowRaceChange   = false,
-    -- Kosten fuer einen freiwilligen Rassenwechsel.
-    raceChangeStones  = { seelenstein = 3 },
+
+    -- Kernregel: Die Klasse laesst sich frei wechseln, solange noch KEINE
+    -- Faehigkeit gelernt wurde. Mit der ersten geskillten Faehigkeit ist die
+    -- Wahl endgueltig und im Skilltree ist nur noch die eigene Klasse sichtbar.
+    lockAfterFirstSkill = true,
+
+    -- Wechsel auch nach der ersten Faehigkeit erlauben (gegen Steine).
+    allowRaceChange  = false,
+    raceChangeStones = { seelenstein = 3 },
 }
 
 -- Skillleiste ----------------------------------------------------------------
@@ -33,11 +38,35 @@ MysticConfig.Points = {
     -- Persoenliche Punkte (Perks) durch Onlinezeit.
     minutesPerPersonalPoint = 15,
     startPersonalPoints     = 3,
-    -- Skillpunkte fuer den Rassen-Skilltree.
-    minutesPerSkillPoint    = 30,
-    startSkillPoints        = 1,
-    -- Bonuspunkte beim Erwecken einer Rasse.
-    awakeningSkillPoints    = 2,
+}
+
+-- Klassenstufe ---------------------------------------------------------------
+-- Klassenskills brauchen Klassensteine; hohe Knoten zusaetzlich eine Stufe.
+MysticConfig.Progression = {
+    maxLevel = 50,
+
+    -- Benoetigte XP fuer den Aufstieg von Stufe n auf n+1.
+    xpBase = 500,
+    xpStep = 650,
+
+    -- XP-Quellen
+    xpPerMinute     = 12,   -- Onlinezeit
+    xpPerSkillCast  = 8,    -- eingesetzter Skill
+    xpPerSkillHit   = 6,    -- je getroffenem Ziel
+    xpPerMeditation = 120,  -- abgeschlossene Meditation
+    xpPerUnlock     = 150,  -- geskillte Stufe
+}
+
+-- Klassensteine --------------------------------------------------------------
+MysticConfig.Stones = {
+    -- Umwandlung am Ritualpunkt: aus neutralen Steinen wird der Klassenstein.
+    conversion = {
+        from   = 'runenstein',
+        amount = 5,   -- so viele Runensteine
+        result = 1,   -- ergeben so viele Klassensteine
+    },
+    -- Startguthaben beim Erwecken.
+    startAmount = 20,
 }
 
 -- Ritualpunkte ---------------------------------------------------------------
@@ -76,6 +105,7 @@ MysticConfig.Meditation = {
         { item = 'feenstaub',     count = 1, weight = 4  },
         { item = 'arkanstein',    count = 1, weight = 4  },
         { item = 'schattenstein', count = 1, weight = 3  },
+        { item = 'hexenstein',    count = 1, weight = 3  },
         { item = 'silberstein',   count = 1, weight = 2  },
     },
     -- Steine, die zur Rasse des Spielers passen, fallen bevorzugt (Faktor).

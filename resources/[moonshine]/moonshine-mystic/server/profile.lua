@@ -14,29 +14,46 @@ local function decode(value, fallback)
     return decoded
 end
 
+--- Liest die gespeicherten Stufen. Alte Datensaetze speicherten nur eine
+--- Liste freigeschalteter IDs; die wandern auf Stufe 1.
+local function readRanks(stored)
+    local decoded = decode(stored, {})
+    local ranks = {}
+
+    for key, value in pairs(decoded) do
+        if type(key) == 'number' and type(value) == 'string' then
+            if Mystic.GetSkill(value) then ranks[value] = 1 end
+        elseif type(key) == 'string' and type(value) == 'number' then
+            local skill = Mystic.GetSkill(key)
+            if skill then
+                ranks[key] = math.max(1, math.min(math.floor(value), skill.maxRank))
+            end
+        end
+    end
+
+    return ranks
+end
+
 --- Erstellt das Profil aus einem Datenbankdatensatz.
 function Mystic.CreateProfile(source, characterId, row)
-    local unlockedList = decode(row.unlocked, {})
-    local unlocked = {}
-    for _, id in ipairs(unlockedList) do
-        if Mystic.GetSkill(id) then unlocked[id] = true end
-    end
+    local ranks = readRanks(row.unlocked)
 
     -- Leiste auf feste Laenge bringen, leere Slots sind false.
     local storedBar = decode(row.skillbar, {})
     local skillbar = {}
     for slot = 1, MysticConfig.SkillBar.slots do
         local id = storedBar[slot]
-        skillbar[slot] = (type(id) == 'string' and unlocked[id]) and id or false
+        local skill = type(id) == 'string' and Mystic.GetSkill(id) or nil
+        skillbar[slot] = (skill and not skill.passive and (ranks[id] or 0) > 0) and id or false
     end
 
     local self = setmetatable({
         source         = source,
         characterId    = characterId,
         race           = row.race,
-        skillPoints    = row.skill_points or 0,
+        xp             = row.xp or 0,
         personalPoints = row.personal_points or 0,
-        unlocked       = unlocked,
+        ranks          = ranks,
         skillbar       = skillbar,
         perks          = decode(row.perks, {}),
         secondsPlayed  = row.seconds_played or 0,
@@ -57,9 +74,97 @@ function Mystic.GetProfile(source)
     return Mystic.Profiles[tonumber(source)]
 end
 
+-- Stufen und Erfahrung -------------------------------------------------------
+
+---@return number Klassenstufe
+function Profile:GetLevel()
+    local level = Mystic.GetLevelFromXp(self.xp)
+    return level
+end
+
+--- Fortschritt fuer die Oberflaeche.
+---@return number level, number xpIntoLevel, number xpForNext
+function Profile:GetProgress()
+    return Mystic.GetLevelFromXp(self.xp)
+end
+
+--- Vergibt Erfahrung und meldet Stufenaufstiege.
+---@return boolean levelUp
+function Profile:AddXp(amount)
+    amount = math.floor(tonumber(amount) or 0)
+    if amount <= 0 or not self.race then return false end
+
+    local before = self:GetLevel()
+    self.xp = self.xp + amount
+    local after = self:GetLevel()
+
+    if after > before then
+        self:Notify(('Klassenstufe %d erreicht.'):format(after), 'success')
+        TriggerClientEvent('mystic:client:levelUp', self.source, after)
+        TriggerEvent('mystic:server:levelUp', self.source, after)
+        return true
+    end
+
+    return false
+end
+
+-- Skills ---------------------------------------------------------------------
+
+---@return number Stufe des Skills (0 = nicht gelernt)
+function Profile:GetRank(skillId)
+    return self.ranks[skillId] or 0
+end
+
+function Profile:IsUnlocked(skillId)
+    return self:GetRank(skillId) > 0
+end
+
+--- Anzahl aller gekauften Stufen. 0 bedeutet: die Klasse ist noch frei waehlbar.
+function Profile:GetTotalRanks()
+    local total = 0
+    for _, rank in pairs(self.ranks) do total = total + rank end
+    return total
+end
+
+--- Darf der Spieler die Klasse noch wechseln?
+function Profile:CanSwitchClass()
+    if not MysticConfig.Awakening.lockAfterFirstSkill then return true end
+    if self:GetTotalRanks() == 0 then return true end
+    return MysticConfig.Awakening.allowRaceChange
+end
+
+--- Verbleibende Abklingzeit in Sekunden.
+function Profile:GetCooldown(skillId)
+    local expiry = self.cooldowns[skillId]
+    if not expiry then return 0 end
+
+    local remaining = expiry - os.time()
+    if remaining <= 0 then
+        self.cooldowns[skillId] = nil
+        return 0
+    end
+    return remaining
+end
+
+function Profile:SetCooldown(skillId, seconds)
+    self.cooldowns[skillId] = os.time() + math.max(1, math.floor(seconds))
+end
+
+--- Belegt einen Slot der Skillleiste (skillId = nil leert ihn).
+function Profile:SetBarSlot(slot, skillId)
+    if slot < 1 or slot > MysticConfig.SkillBar.slots then return false end
+
+    for index, id in pairs(self.skillbar) do
+        if id == skillId and index ~= slot then self.skillbar[index] = false end
+    end
+
+    self.skillbar[slot] = skillId or false
+    return true
+end
+
 -- Werte ----------------------------------------------------------------------
 
---- Summiert Rassenwerte, passive Skills und Perks.
+--- Summiert Klassenwerte, passive Skills (nach Stufe) und Perks.
 ---@return table Modifikatoren
 function Profile:GetModifiers()
     local mods = {
@@ -79,17 +184,21 @@ function Profile:GetModifiers()
         mods.speedMult   = mods.speedMult * race.stats.speedMult
     end
 
-    -- Passive Skills
-    for skillId in pairs(self.unlocked) do
+    for skillId, rank in pairs(self.ranks) do
         local skill = Mystic.GetSkill(skillId)
-        if skill and skill.passive then
-            local effect = skill.effect
+
+        if skill and skill.passive and rank > 0 then
+            local effect = Mystic.ResolveEffect(skill, rank)
+
             mods.healthBonus  = mods.healthBonus + (effect.healthBonus or 0)
+            mods.armorBonus   = mods.armorBonus + (effect.armorBonus or 0)
+            mods.stamina      = mods.stamina + (effect.stamina or 0)
             mods.essenceBonus = mods.essenceBonus + (effect.essenceBonus or 0)
             mods.essenceRegen = mods.essenceRegen + (effect.essenceRegen or 0)
             mods.regenPerTick = mods.regenPerTick + (effect.regenPerTick or 0)
             mods.damageMult   = mods.damageMult + (effect.damageMult or 0)
             mods.meleeMult    = mods.meleeMult + (effect.meleeMult or 0)
+            mods.speedMult    = mods.speedMult + (effect.speedMult or 0)
             mods.costMult     = mods.costMult * (effect.costMult or 1.0)
             mods.cooldownMult = mods.cooldownMult * (effect.cooldownMult or 1.0)
             mods.sunImmune    = mods.sunImmune or effect.sunImmune == true
@@ -98,7 +207,6 @@ function Profile:GetModifiers()
         end
     end
 
-    -- Perks
     local perks = Mystic.SumPerks(self.perks)
     mods.healthBonus  = mods.healthBonus + perks.healthBonus
     mods.armorBonus   = mods.armorBonus + perks.armorBonus
@@ -146,47 +254,7 @@ function Profile:UseEssence(amount)
     return true
 end
 
--- Skills ---------------------------------------------------------------------
-
-function Profile:IsUnlocked(skillId)
-    return self.unlocked[skillId] == true
-end
-
---- Verbleibende Abklingzeit in Sekunden.
-function Profile:GetCooldown(skillId)
-    local expiry = self.cooldowns[skillId]
-    if not expiry then return 0 end
-
-    local remaining = expiry - os.time()
-    if remaining <= 0 then
-        self.cooldowns[skillId] = nil
-        return 0
-    end
-    return remaining
-end
-
-function Profile:SetCooldown(skillId, seconds)
-    self.cooldowns[skillId] = os.time() + math.max(1, math.floor(seconds))
-end
-
---- Belegt einen Slot der Skillleiste (skillId = nil leert ihn).
-function Profile:SetBarSlot(slot, skillId)
-    if slot < 1 or slot > MysticConfig.SkillBar.slots then return false end
-
-    -- Skill darf nur einmal in der Leiste liegen.
-    for index, id in pairs(self.skillbar) do
-        if id == skillId and index ~= slot then self.skillbar[index] = false end
-    end
-
-    self.skillbar[slot] = skillId or false
-    return true
-end
-
 -- Punkte ---------------------------------------------------------------------
-
-function Profile:AddSkillPoints(amount)
-    self.skillPoints = math.max(0, self.skillPoints + amount)
-end
 
 function Profile:AddPersonalPoints(amount)
     self.personalPoints = math.max(0, self.personalPoints + amount)
@@ -202,10 +270,9 @@ function Profile:GetData()
         if remaining > 0 then cooldowns[skillId] = remaining end
     end
 
-    local unlocked = {}
-    for skillId in pairs(self.unlocked) do unlocked[#unlocked + 1] = skillId end
-
     local race = Mystic.GetRace(self.race)
+    local level, xpIntoLevel, xpForNext = self:GetProgress()
+    local stoneName, stoneLabel = Mystic.GetClassStone(self.race)
 
     return {
         race           = self.race,
@@ -213,16 +280,27 @@ function Profile:GetData()
         raceIcon       = race and race.icon or nil,
         raceColor      = race and race.color or nil,
         essenceLabel   = race and race.essence.label or 'Essenz',
+
+        level          = level,
+        xp             = self.xp,
+        xpIntoLevel    = xpIntoLevel,
+        xpForNext      = xpForNext,
+
         essence        = math.floor(self.essence),
         maxEssence     = self:GetMaxEssence(),
-        skillPoints    = self.skillPoints,
         personalPoints = self.personalPoints,
-        unlocked       = unlocked,
+
+        ranks          = self.ranks,
+        totalRanks     = self:GetTotalRanks(),
+        canSwitchClass = self:CanSwitchClass(),
         skillbar       = self.skillbar,
         perks          = self.perks,
         modifiers      = self:GetModifiers(),
         cooldowns      = cooldowns,
-        secondsPlayed  = self.secondsPlayed,
+
+        classStone      = stoneName,
+        classStoneLabel = stoneLabel,
+        secondsPlayed   = self.secondsPlayed,
     }
 end
 
@@ -230,21 +308,18 @@ function Profile:Sync()
     TriggerClientEvent('mystic:client:syncProfile', self.source, self:GetData())
 end
 
-function Profile:Notify(message, type)
-    TriggerClientEvent('moonshine:client:notify', self.source, message, type or 'info', 5000)
+function Profile:Notify(message, type, duration)
+    TriggerClientEvent('moonshine:client:notify', self.source, message, type or 'info', duration or 5000)
 end
 
 function Profile:Save()
     if not Mystic.DB.Ready then return false end
 
-    local unlocked = {}
-    for skillId in pairs(self.unlocked) do unlocked[#unlocked + 1] = skillId end
-
     Mystic.DB.Save(self.characterId, {
         race           = self.race,
-        skillPoints    = self.skillPoints,
+        xp             = self.xp,
         personalPoints = self.personalPoints,
-        unlocked       = unlocked,
+        ranks          = self.ranks,
         skillbar       = self.skillbar,
         perks          = self.perks,
         secondsPlayed  = self.secondsPlayed,
