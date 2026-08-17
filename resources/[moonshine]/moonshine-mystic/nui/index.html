@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Mystik</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Skillleiste ------------------------------------------------------------->
+<div id="skillbar" class="hidden">
+    <div class="essence">
+        <span class="essence-label" id="essence-label">Essenz</span>
+        <div class="essence-track"><div class="essence-fill" id="essence-fill"></div></div>
+        <span class="essence-value" id="essence-value">0 / 0</span>
+    </div>
+    <div class="bar-slots" id="bar-slots"></div>
+    <div class="bar-race" id="bar-race"></div>
+</div>
+
+<!-- Ritual ----------------------------------------------------------------->
+<div id="ritual" class="overlay hidden">
+    <div class="ritual-window">
+
+        <header class="ritual-header">
+            <div class="race-badge" id="race-badge">
+                <span class="race-icon" id="race-icon">✦</span>
+                <div>
+                    <div class="race-name" id="race-name">Nicht erweckt</div>
+                    <div class="race-sub" id="race-sub">Waehle deinen Pfad</div>
+                </div>
+            </div>
+
+            <div class="points">
+                <div class="point-box">
+                    <span class="point-value" id="skill-points">0</span>
+                    <span class="point-label">Skillpunkte</span>
+                </div>
+                <div class="point-box">
+                    <span class="point-value" id="personal-points">0</span>
+                    <span class="point-label">Pers. Punkte</span>
+                </div>
+            </div>
+
+            <button class="btn ghost" id="btn-close">Schliessen (ESC)</button>
+        </header>
+
+        <nav class="tabs" id="tabs">
+            <button class="tab active" data-tab="tree">Skilltree</button>
+            <button class="tab" data-tab="perks">Persoenliche Skills</button>
+            <button class="tab" data-tab="bar">Skillleiste</button>
+            <button class="tab" data-tab="stones">Steine</button>
+            <button class="tab" data-tab="races">Erweckung</button>
+        </nav>
+
+        <!-- Skilltree -->
+        <section class="panel" id="panel-tree">
+            <div class="tree" id="tree"></div>
+            <aside class="detail" id="detail">
+                <div class="detail-empty">Waehle einen Skill aus dem Baum.</div>
+            </aside>
+        </section>
+
+        <!-- Perks -->
+        <section class="panel hidden" id="panel-perks">
+            <div class="perk-grid" id="perk-grid"></div>
+            <aside class="detail">
+                <h3>Persoenliche Punkte</h3>
+                <p class="muted">Du erhaeltst Punkte fuer deine Onlinezeit. Sie gelten
+                    unabhaengig von deiner Rasse und bleiben beim Rassenwechsel erhalten.</p>
+                <button class="btn danger" id="btn-reset-perks">Perks zuruecksetzen</button>
+            </aside>
+        </section>
+
+        <!-- Skillleiste -->
+        <section class="panel hidden" id="panel-bar">
+            <div class="bar-editor">
+                <h3>Belegung der Skillleiste</h3>
+                <p class="muted">Waehle fuer jeden Slot einen freigeschalteten aktiven Skill.</p>
+                <div class="bar-edit-slots" id="bar-edit-slots"></div>
+            </div>
+        </section>
+
+        <!-- Steine -->
+        <section class="panel hidden" id="panel-stones">
+            <div class="stone-grid" id="stone-grid"></div>
+            <aside class="detail">
+                <h3>Meditation</h3>
+                <p class="muted">Versenke dich am Ritualpunkt, um Steine zu finden.
+                    Steine deiner Rasse erscheinen haeufiger.</p>
+                <div id="meditation-state" class="muted"></div>
+                <button class="btn primary" id="btn-meditate">Meditieren</button>
+            </aside>
+        </section>
+
+        <!-- Erweckung -->
+        <section class="panel hidden" id="panel-races">
+            <div class="race-grid" id="race-grid"></div>
+        </section>
+
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

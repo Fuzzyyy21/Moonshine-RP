@@ -1,8 +1,14 @@
 # Moonshine RP – Custom FiveM Framework
 
-Ein eigenständiges Roleplay-Framework für FiveM. Kein ESX-/QBCore-Fork, keine
-Alt-Lasten – nur Lua, [oxmysql](https://github.com/overextended/oxmysql) und eine
-klare API.
+Ein eigenständiges Roleplay-Framework für FiveM plus ein mystisches
+Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
+[oxmysql](https://github.com/overextended/oxmysql) und eine klare API.
+
+| Resource | Inhalt |
+|---|---|
+| `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
+| `moonshine-mystic` | Rassen, Skilltree an Ritualpunkten, Skillleiste, persönliche Perks → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
+| `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
 
@@ -44,6 +50,7 @@ klare API.
    ```cfg
    ensure oxmysql
    ensure moonshine-core
+   ensure moonshine-mystic
    ensure moonshine-shops
    ```
 
@@ -64,9 +71,15 @@ resources/[moonshine]/
 │   ├── server/              Datenbank, Spielerobjekt, Inventar, Commands, API
 │   ├── client/              Charakterauswahl, HUD, Inventar, Callbacks
 │   └── nui/                 Oberfläche (Charakterauswahl, HUD, Inventar)
+├── moonshine-mystic/        Rassen, Skilltree, Skillleiste, Perks
+│   ├── shared/              Config, Rassen, Skills, Perks, Steine
+│   ├── server/              Profile, Skills, Perks, Ritualpunkte, API
+│   ├── client/              Fähigkeiten, Skillleiste, Ritual-UI, Rassenmechanik
+│   └── nui/                 Oberfläche (Skillleiste, Skilltree, Perks)
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
-docs/API.md                  API-Dokumentation
+docs/API.md                  API-Dokumentation des Frameworks
+docs/MYSTIC.md               Dokumentation des Mystik-Systems
 ```
 
 ## Konfiguration
@@ -90,8 +103,10 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 | Taste | Funktion |
 |---|---|
 | `F2` | Inventar |
+| `F5` | Skillleiste aus-/einklappen |
 | `F7` | HUD ein-/ausblenden |
-| `E` | Bodenitem aufheben / Laden öffnen |
+| `NUMPAD 1–6` | Skill-Slots auslösen |
+| `E` | Bodenitem aufheben / Laden öffnen / Ritualpunkt |
 
 Die Tasten lassen sich im FiveM-Menü unter *Einstellungen → Tastenbelegung → FiveM*
 frei ändern.
@@ -115,6 +130,9 @@ frei ändern.
 | `/setmoney [id] [betrag] [konto]` | 4 | Kontostand setzen |
 | `/setadmin [id] [level]` | 4 | Adminlevel setzen |
 | `/saveall` | 4 | Alle Charaktere speichern |
+
+Mystik-Commands (`/mystik`, `/setrasse`, `/givestein`, …) stehen in
+[`docs/MYSTIC.md`](docs/MYSTIC.md).
 
 Adminlevel: `0` User, `1` Support, `2` Moderator, `3` Admin, `4` Owner.
 

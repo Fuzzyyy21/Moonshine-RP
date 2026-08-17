@@ -1,0 +1,373 @@
+:root {
+    --bg:       rgba(10, 9, 16, 0.94);
+    --bg-soft:  rgba(24, 21, 36, 0.94);
+    --line:     rgba(255, 255, 255, 0.09);
+    --text:     #ece9f5;
+    --muted:    #8f88a6;
+    --accent:   #9b6bd8;
+    --accent-2: #d8b25f;
+    --ok:       #5fc98a;
+    --danger:   #d9534f;
+    --radius:   12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+    color: var(--text);
+    user-select: none;
+}
+
+.hidden { display: none !important; }
+.muted { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+.btn {
+    padding: 9px 15px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-soft);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, opacity .15s;
+}
+.btn:hover:not(:disabled) { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.2); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: #7c4fc0; color: #150e20; font-weight: 600; }
+.btn.primary:hover:not(:disabled) { background: #ab7fe4; }
+.btn.ghost { background: transparent; }
+.btn.danger { border-color: rgba(217,83,79,.5); color: #f0a5a3; }
+.btn.danger:hover:not(:disabled) { background: rgba(217,83,79,.16); }
+
+/* ------------------------------------------------------------ Skillleiste */
+
+#skillbar {
+    position: absolute;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    animation: rise .18s ease-out;
+}
+
+@keyframes rise { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.essence {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 11px;
+}
+.essence-label { color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+.essence-track { width: 190px; height: 6px; background: rgba(0,0,0,.6); border-radius: 3px; overflow: hidden; }
+.essence-fill { height: 100%; width: 0; background: linear-gradient(90deg, #6b4ba8, #b98bea); transition: width .25s; }
+.essence-value { color: var(--muted); min-width: 62px; text-align: right; }
+
+.bar-slots { display: flex; gap: 8px; }
+
+.bar-slot {
+    position: relative;
+    width: 62px;
+    height: 62px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+.bar-slot.filled { border-color: rgba(155,107,216,.55); }
+.bar-slot .icon { font-size: 22px; line-height: 1; }
+.bar-slot .name { font-size: 9px; color: var(--muted); max-width: 56px; text-align: center;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-slot .key {
+    position: absolute; top: 3px; left: 5px;
+    font-size: 9px; color: var(--accent-2); letter-spacing: .5px;
+}
+.bar-slot .cost { position: absolute; bottom: 3px; right: 5px; font-size: 9px; color: var(--muted); }
+
+.bar-slot .cooldown {
+    position: absolute;
+    inset: 0;
+    background: rgba(6, 5, 10, .78);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent-2);
+}
+
+.bar-race { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+/* ----------------------------------------------------------------- Ritual */
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(6, 5, 10, .62);
+    backdrop-filter: blur(4px);
+}
+
+.ritual-window {
+    width: 1120px;
+    max-width: 95vw;
+    height: 84vh;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ritual-header {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--line);
+}
+
+.race-badge { display: flex; align-items: center; gap: 12px; flex: 1; }
+.race-icon {
+    width: 46px; height: 46px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    border-radius: 12px;
+    background: rgba(155,107,216,.15);
+    border: 1px solid rgba(155,107,216,.4);
+}
+.race-name { font-size: 18px; font-weight: 600; }
+.race-sub  { font-size: 12px; color: var(--muted); }
+
+.points { display: flex; gap: 10px; }
+.point-box {
+    text-align: center;
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-soft);
+}
+.point-value { display: block; font-size: 19px; font-weight: 700; color: var(--accent-2); }
+.point-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+.tabs { display: flex; gap: 4px; padding: 12px 24px 0; border-bottom: 1px solid var(--line); }
+.tab {
+    padding: 9px 16px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+.tab:hover  { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.panel { flex: 1; display: flex; gap: 20px; padding: 20px 24px; overflow: hidden; }
+
+/* ------------------------------------------------------------- Skilltree */
+
+.tree { flex: 1; display: flex; gap: 14px; overflow-x: auto; overflow-y: hidden; }
+
+.tier {
+    min-width: 210px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.tier-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+}
+
+.node {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color .15s, transform .1s, opacity .15s;
+}
+.node:hover { border-color: rgba(155,107,216,.6); }
+.node.selected { border-color: var(--accent); background: rgba(155,107,216,.14); }
+.node.unlocked { border-color: rgba(95,201,138,.5); }
+.node.locked { opacity: .5; }
+
+.node .head { display: flex; align-items: center; gap: 8px; }
+.node .icon { font-size: 19px; }
+.node .title { font-size: 13px; font-weight: 600; }
+.node .meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.node .state { font-size: 10px; margin-top: 6px; letter-spacing: .5px; text-transform: uppercase; }
+.node .state.ok      { color: var(--ok); }
+.node .state.blocked { color: var(--danger); }
+.node .state.open    { color: var(--accent-2); }
+.tag-passive {
+    font-size: 9px; padding: 1px 6px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--muted);
+}
+
+/* ---------------------------------------------------------------- Detail */
+
+.detail {
+    width: 320px;
+    flex: 0 0 320px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    overflow-y: auto;
+}
+.detail h3 { font-size: 15px; margin-bottom: 8px; }
+.detail-empty { color: var(--muted); font-size: 13px; text-align: center; margin-top: 40px; }
+.detail .desc { font-size: 13px; line-height: 1.55; color: #cdc7dd; margin-bottom: 14px; }
+
+.stat-row {
+    display: flex; justify-content: space-between;
+    font-size: 12px; padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+}
+.stat-row span:first-child { color: var(--muted); }
+
+.cost-list { margin: 14px 0; display: flex; flex-direction: column; gap: 6px; }
+.cost-item {
+    display: flex; justify-content: space-between;
+    font-size: 12px; padding: 7px 10px;
+    border: 1px solid var(--line); border-radius: 8px;
+}
+.cost-item.ok   { border-color: rgba(95,201,138,.4); }
+.cost-item.miss { border-color: rgba(217,83,79,.45); color: #f0a5a3; }
+
+.slot-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.slot-buttons .btn { padding: 6px 11px; font-size: 12px; }
+
+/* ----------------------------------------------------------------- Perks */
+
+.perk-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+    align-content: start;
+    overflow-y: auto;
+}
+
+.perk {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+    padding: 14px;
+}
+.perk .head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+.perk .icon { font-size: 18px; }
+.perk .title { font-size: 14px; font-weight: 600; flex: 1; }
+.perk .level { font-size: 12px; color: var(--accent-2); }
+.perk .desc { font-size: 12px; color: var(--muted); line-height: 1.45; min-height: 34px; }
+
+.level-track { display: flex; gap: 3px; margin: 10px 0; }
+.pip { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.09); }
+.pip.on { background: var(--accent); }
+
+.perk .footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.perk .cost { font-size: 11px; color: var(--muted); }
+
+/* ------------------------------------------------------- Leiste / Steine */
+
+.bar-editor { flex: 1; overflow-y: auto; }
+.bar-editor h3 { font-size: 15px; margin-bottom: 4px; }
+
+.bar-edit-slots { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; max-width: 640px; }
+.bar-edit-row {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--bg-soft); padding: 10px 14px;
+}
+.bar-edit-row .slot-key {
+    width: 74px; font-size: 11px; color: var(--accent-2);
+    text-transform: uppercase; letter-spacing: .5px;
+}
+.bar-edit-row select {
+    flex: 1; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: rgba(0,0,0,.4);
+    color: var(--text); font-size: 13px; outline: none;
+}
+.bar-edit-row select:focus { border-color: var(--accent); }
+.bar-edit-row option { background: #18131f; }
+
+.stone-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    align-content: start;
+    overflow-y: auto;
+}
+.stone {
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--bg-soft); padding: 12px 14px; font-size: 13px;
+}
+.stone .count { font-size: 16px; font-weight: 700; color: var(--accent-2); }
+
+/* -------------------------------------------------------------- Rassen */
+
+.race-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+    gap: 14px;
+    align-content: start;
+    overflow-y: auto;
+}
+
+.race-card {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.race-card.current { border-color: var(--ok); }
+.race-card .head { display: flex; align-items: center; gap: 10px; }
+.race-card .icon { font-size: 24px; }
+.race-card h3 { font-size: 16px; }
+.race-card .desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.race-card ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.race-card li { font-size: 12px; color: #cdc7dd; padding-left: 14px; position: relative; }
+.race-card li::before { content: '◆'; position: absolute; left: 0; color: var(--accent); font-size: 8px; top: 4px; }
+.race-card .btn { margin-top: auto; }
+
+/* ------------------------------------------------------------- Scrollbar */
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.25); }

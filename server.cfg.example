@@ -27,6 +27,7 @@ ensure oxmysql
 
 # Moonshine ------------------------------------------------------------------
 ensure moonshine-core
+ensure moonshine-mystic
 ensure moonshine-shops
 
 # Rechte ---------------------------------------------------------------------
