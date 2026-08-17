@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine RP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Benachrichtigungen -->
+<div id="notifications"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+    <div class="hud-card">
+        <div class="hud-row">
+            <span class="hud-name" id="hud-name">—</span>
+            <span class="hud-id" id="hud-id">#0</span>
+        </div>
+        <div class="hud-job" id="hud-job">—</div>
+        <div class="hud-money">
+            <span class="money cash"><i>$</i><span id="hud-cash">0</span></span>
+            <span class="money bank"><i>&#127974;</i><span id="hud-bank">0</span></span>
+        </div>
+    </div>
+
+    <div class="hud-bars">
+        <div class="bar" title="Leben"><div class="fill health" id="bar-health"></div></div>
+        <div class="bar" title="Weste"><div class="fill armor" id="bar-armor"></div></div>
+        <div class="bar status-bar" title="Hunger"><div class="fill hunger" id="bar-hunger"></div></div>
+        <div class="bar status-bar" title="Durst"><div class="fill thirst" id="bar-thirst"></div></div>
+    </div>
+</div>
+
+<!-- Charakterauswahl -->
+<div id="charselect" class="overlay hidden">
+    <div class="charselect-inner">
+        <header>
+            <h1 id="server-name">Moonshine RP</h1>
+            <p>Waehle deinen Charakter</p>
+        </header>
+
+        <div id="character-list" class="character-list"></div>
+        <div id="char-error" class="error hidden"></div>
+
+        <!-- Erstellungsformular -->
+        <div id="create-form" class="create-form hidden">
+            <h2>Neuen Charakter erstellen</h2>
+            <div class="form-grid">
+                <label>Vorname<input type="text" id="input-firstname" maxlength="24" placeholder="Max"></label>
+                <label>Nachname<input type="text" id="input-lastname" maxlength="24" placeholder="Mustermann"></label>
+                <label>Geburtsdatum<input type="text" id="input-dob" maxlength="10" placeholder="01.01.1990"></label>
+                <label>Geschlecht
+                    <select id="input-gender">
+                        <option value="m">Maennlich</option>
+                        <option value="w">Weiblich</option>
+                    </select>
+                </label>
+            </div>
+            <div class="form-actions">
+                <button class="btn ghost" id="btn-cancel-create">Abbrechen</button>
+                <button class="btn primary" id="btn-submit-create">Charakter erstellen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventar -->
+<div id="inventory" class="overlay hidden">
+    <div class="inventory-inner">
+        <header class="inventory-header">
+            <h2>Inventar</h2>
+            <div class="weight">
+                <span id="weight-text">0.0 / 40.0 kg</span>
+                <div class="bar wide"><div class="fill weight-fill" id="bar-weight"></div></div>
+            </div>
+            <button class="btn ghost" id="btn-close-inventory">Schliessen</button>
+        </header>
+
+        <div id="slots" class="slots"></div>
+
+        <footer class="inventory-footer">
+            <div class="context" id="context">
+                <span class="hint">Linksklick auswaehlen &middot; Doppelklick benutzen &middot; ziehen zum Verschieben</span>
+            </div>
+            <div class="actions">
+                <input type="number" id="action-count" min="1" value="1">
+                <button class="btn" id="btn-use">Benutzen</button>
+                <button class="btn" id="btn-give">Geben</button>
+                <button class="btn danger" id="btn-drop">Ablegen</button>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# -----------------------------------------------------------------------------
+# Moonshine RP - Beispielkonfiguration
+# Kopieren nach server.cfg und anpassen.
+# -----------------------------------------------------------------------------
+
+endpoint_add_tcp "0.0.0.0:30120"
+endpoint_add_udp "0.0.0.0:30120"
+
+sv_maxclients 48
+sv_hostname "Moonshine RP | Custom Framework"
+sv_licenseKey "DEIN_KEY_VON_keymaster.fivem.net"
+sv_scriptHookAllowed 0
+
+# Datenbank ------------------------------------------------------------------
+set mysql_connection_string "mysql://user:passwort@localhost/moonshine?charset=utf8mb4"
+
+# Basis-Resources ------------------------------------------------------------
+ensure mapmanager
+ensure chat
+ensure spawnmanager
+ensure sessionmanager
+ensure basic-gamemode
+ensure hardcap
+
+# Abhaengigkeiten ------------------------------------------------------------
+ensure oxmysql
+
+# Moonshine ------------------------------------------------------------------
+ensure moonshine-core
+ensure moonshine-shops
+
+# Rechte ---------------------------------------------------------------------
+# Adminrechte laufen ueber ms_users.admin_level (0-4), nicht ueber ACE.
+# Der erste Owner wird per SQL gesetzt:
+#   UPDATE ms_users SET admin_level = 4 WHERE license = 'license:deinelizenz';
+
+add_ace group.admin command allow
+add_principal identifier.license:DEINE_LIZENZ group.admin
