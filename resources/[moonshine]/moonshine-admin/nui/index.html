@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Beobachtungshinweis ------------------------------------------------------>
+<div id="spectate" class="hidden">
+    <span class="dot"></span>
+    <span>Beobachtet <b id="spectate-name">–</b></span>
+</div>
+
+<div id="screen" class="hidden">
+    <div class="window">
+
+        <header class="top">
+            <div class="brand">
+                <div class="crest">🛡</div>
+                <div>
+                    <h1>Adminpanel</h1>
+                    <p class="sub" id="server-name">Moonshine RP</p>
+                </div>
+            </div>
+
+            <div class="head-stats">
+                <div class="stat">
+                    <span class="stat-caption">Online</span>
+                    <span class="stat-value" id="stat-players">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Laufzeit</span>
+                    <span class="stat-value" id="stat-uptime">0 Min.</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Dein Level</span>
+                    <span class="stat-value" id="stat-level">0</span>
+                </div>
+            </div>
+
+            <button class="icon-btn" id="btn-tools" title="Eigene Werkzeuge">🧰</button>
+            <button class="icon-btn" id="btn-close" title="Schliessen (ESC)">✕</button>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="players"><span>👥</span> Spieler</button>
+            <button class="tab" data-tab="log"><span>📜</span> Protokoll</button>
+            <button class="tab" data-tab="tools"><span>🧰</span> Werkzeuge</button>
+        </nav>
+
+        <!-- Spieler --------------------------------------------------------->
+        <section class="panel" id="panel-players">
+            <div class="player-layout">
+                <div class="player-side">
+                    <input type="text" id="search" placeholder="Name oder ID suchen …">
+                    <div class="player-list" id="player-list"></div>
+                </div>
+
+                <aside class="detail" id="detail">
+                    <div class="detail-empty">Waehle links einen Spieler.</div>
+                </aside>
+            </div>
+        </section>
+
+        <!-- Protokoll ------------------------------------------------------->
+        <section class="panel hidden" id="panel-log">
+            <div class="log-filter" id="log-filter"></div>
+            <div class="log-list" id="log-list"></div>
+        </section>
+
+        <!-- Werkzeuge ------------------------------------------------------->
+        <section class="panel hidden" id="panel-tools">
+            <div class="tool-grid">
+                <div class="card">
+                    <div class="section-caption">Eigene Werkzeuge</div>
+                    <p class="muted">Wirken nur bei dir und sind nicht protokolliert.</p>
+                    <div class="tool-row">
+                        <button class="btn" id="btn-noclip">Noclip umschalten</button>
+                        <button class="btn" id="btn-invisible">Unsichtbar umschalten</button>
+                    </div>
+                    <p class="muted spaced">Im Noclip: <b>W A S D</b> bewegen,
+                        <b>Q</b> hoch, <b>E</b> runter, <b>Shift</b> schneller,
+                        Mausrad regelt das Tempo.</p>
+                </div>
+
+                <div class="card">
+                    <div class="section-caption">Bann aufheben</div>
+                    <p class="muted">Die Lizenz steht in der Tabelle
+                        <code>ms_users</code> und im Protokoll.</p>
+                    <div class="tool-row">
+                        <input type="text" id="unban-license" placeholder="license:abc123…">
+                        <button class="btn primary" id="btn-unban">Aufheben</button>
+                    </div>
+                </div>
+
+                <div class="card wide">
+                    <div class="section-caption">Wachhund</div>
+                    <p class="muted">Auffaellige Spieler stehen mit Strikes in der
+                        Spielerliste. Strikes verfallen von selbst. Aktionen des
+                        Wachhunds landen im Protokoll unter <b>anticheat</b>.</p>
+                    <div class="watch-list" id="watch-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="bottom">
+            <span class="muted">Alles, was andere Spieler betrifft, wird
+                protokolliert — mit deinem Namen.</span>
+            <button class="btn small" id="btn-refresh">Aktualisieren</button>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

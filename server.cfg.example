@@ -38,6 +38,7 @@ ensure moonshine-vehicles
 ensure moonshine-services
 ensure moonshine-jobs
 ensure moonshine-shops
+ensure moonshine-admin
 
 # Rechte ---------------------------------------------------------------------
 # Adminrechte laufen ueber ms_users.admin_level (0-4), nicht ueber ACE.

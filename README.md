@@ -17,6 +17,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-vehicles` | Autohäuser, eigene Fahrzeuge, Garagen, Schlüssel und Verwahrstelle → [`docs/VEHICLES.md`](docs/VEHICLES.md) |
 | `moonshine-services` | Tankstellen, Werkstätten, Bank, Geldautomaten und Schwarzmarkt → [`docs/SERVICES.md`](docs/SERVICES.md) |
 | `moonshine-jobs` | Jobcenter und Arbeitsaufträge mit echtem Ablauf → [`docs/JOBS.md`](docs/JOBS.md) |
+| `moonshine-admin` | Adminpanel, Werkzeuge und Anticheat-Grundlagen → [`docs/ADMIN.md`](docs/ADMIN.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
@@ -39,7 +40,8 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Fahrzeuge** | 42 Fahrzeuge in drei Autohäusern, sechs Garagen, Tank- und Schadenspersistenz, Schlüsselsystem und Verwahrstelle |
 | **Dienste** | 9 Tankstellen, 4 Werkstätten, 6 Bankfilialen, 16 Geldautomaten, wandernder Schwarzmarkt mit Geldwäsche |
 | **Arbeit** | Jobcenter, vier Aufträge mit Stationen, Arbeitsfahrzeug, Taxi-Fahrgästen, Abschlussbonus und Bestenliste |
-| **Admin** | Rechtesystem über Adminlevel plus Commands für Geld, Items, Jobs, Teleport, Kick, Ban |
+| **Admin** | Rechtesystem über Adminlevel, Commands plus Panel mit Spielerliste, Protokoll, Noclip und Beobachten |
+| **Anticheat** | Wachhund mit Strikes für Leben, Weste, Waffen und Bewegung, dazu eine Ratenbegrenzung für eigene Resources |
 
 ## Voraussetzungen
 
@@ -77,6 +79,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ensure moonshine-services
    ensure moonshine-jobs
    ensure moonshine-shops
+   ensure moonshine-admin
    ```
 
 4. Einmal verbinden, danach dich selbst zum Owner machen:
@@ -123,6 +126,7 @@ resources/[moonshine]/
 ├── moonshine-vehicles/      Autohäuser, Garagen, Schlüssel, Verwahrstelle
 ├── moonshine-services/      Tankstellen, Werkstätten, Bank, Schwarzmarkt
 ├── moonshine-jobs/          Jobcenter und Arbeitsaufträge
+├── moonshine-admin/         Adminpanel, Werkzeuge, Wachhund
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
 docs/API.md                  API-Dokumentation des Frameworks
@@ -135,6 +139,7 @@ docs/AUCTION.md              Auktionshaus
 docs/VEHICLES.md             Fahrzeuge, Garagen und Schlüssel
 docs/SERVICES.md             Tankstellen, Werkstätten, Bank, Schwarzmarkt
 docs/JOBS.md                 Jobcenter und Arbeitsaufträge
+docs/ADMIN.md                Adminpanel und Anticheat
 docs/ROADMAP.md              Ideen für den weiteren Ausbau
 ```
 
@@ -162,6 +167,7 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 | `F5` | Skillleiste aus-/einklappen |
 | `F6` | Fortschritt (Spielzeit, Missionen, Battle Pass, Kisten) |
 | `F7` | HUD ein-/ausblenden |
+| `F9` | Adminpanel (ab Level 2) |
 | `F10` | Fraktion |
 | `L` | Fahrzeug ver-/entriegeln |
 | `NUMPAD 1–6` | Skill-Slots auslösen |
@@ -196,7 +202,8 @@ Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
 [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
 [Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md),
 [Auktionshaus](docs/AUCTION.md), [Fahrzeuge](docs/VEHICLES.md) und
-[Dienstleistungen](docs/SERVICES.md) und [Arbeit](docs/JOBS.md).
+[Dienstleistungen](docs/SERVICES.md), [Arbeit](docs/JOBS.md) und
+[Administration](docs/ADMIN.md).
 
 Adminlevel: `0` User, `1` Support, `2` Moderator, `3` Admin, `4` Owner.
 
