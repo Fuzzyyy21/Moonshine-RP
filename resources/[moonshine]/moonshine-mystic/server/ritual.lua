@@ -223,6 +223,8 @@ RegisterNetEvent('mystic:server:buyStone', function(item, amount)
             seelenstein = player:GetItemCount('seelenstein'),
         },
     })
+
+    TriggerEvent('mystic:server:stoneBought', source, item, amount)
 end)
 
 RegisterNetEvent('mystic:server:requestMerchant', function()

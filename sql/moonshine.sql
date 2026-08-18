@@ -64,3 +64,35 @@ CREATE TABLE IF NOT EXISTS `ms_logs` (
 
 -- Beispiel: sich selbst zum Owner machen (Lizenz anpassen!)
 -- UPDATE `ms_users` SET `admin_level` = 4 WHERE `license` = 'license:deinelizenz';
+
+-- ---------------------------------------------------------------------------
+-- Fortschritt (moonshine-progress)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_progress` (
+    `character_id`      INT        NOT NULL,
+    `playtime_day`      VARCHAR(10) DEFAULT NULL,
+    `playtime_minutes`  INT        NOT NULL DEFAULT 0,
+    `playtime_claimed`  LONGTEXT   DEFAULT NULL,
+    `playtime_total`    INT        NOT NULL DEFAULT 0,
+    `bp_season`         INT        NOT NULL DEFAULT 1,
+    `bp_xp`             INT        NOT NULL DEFAULT 0,
+    `bp_premium`        TINYINT(1) NOT NULL DEFAULT 0,
+    `bp_claimed`        LONGTEXT   DEFAULT NULL,
+    `cases`             LONGTEXT   DEFAULT NULL,
+    `updated_at`        TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `ms_missions` (
+    `id`           INT         NOT NULL AUTO_INCREMENT,
+    `character_id` INT         NOT NULL,
+    `mission_id`   VARCHAR(64) NOT NULL,
+    `kind`         VARCHAR(16) NOT NULL,
+    `progress`     INT         NOT NULL DEFAULT 0,
+    `claimed`      TINYINT(1)  NOT NULL DEFAULT 0,
+    `period`       VARCHAR(16) NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `character_id` (`character_id`),
+    UNIQUE KEY `mission_period` (`character_id`, `mission_id`, `period`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

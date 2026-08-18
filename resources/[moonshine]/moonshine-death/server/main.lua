@@ -97,7 +97,7 @@ end)
 
 -- Wiederbelebung -------------------------------------------------------------
 
-local function clearDowned(source, health)
+local function clearDowned(source, health, medic)
     local player = MS.GetPlayer(source)
     downed[source] = nil
 
@@ -107,14 +107,14 @@ local function clearDowned(source, health)
     end
 
     TriggerClientEvent('death:client:revive', source, health or DeathConfig.Revive.health)
-    TriggerEvent('moonshine-death:server:playerRevived', source)
+    TriggerEvent('moonshine-death:server:playerRevived', source, medic)
 end
 
 --- Von aussen (z.B. Klassenskill oder Admin) wiederbeleben.
-function RevivePlayer(source, health)
+function RevivePlayer(source, health, medic)
     if not downed[source] then return false end
 
-    clearDowned(source, health)
+    clearDowned(source, health, medic)
     return true
 end
 
@@ -166,7 +166,7 @@ RegisterNetEvent('death:server:requestRevive', function(targetId)
 
         if item and not player:RemoveItem(item, 1) then return end
 
-        clearDowned(targetId, DeathConfig.Revive.health)
+        clearDowned(targetId, DeathConfig.Revive.health, source)
         player:Notify(('%s wurde stabilisiert.'):format(target.fullname), 'success')
         target:Notify('Du wurdest wiederbelebt.', 'success')
 

@@ -9,6 +9,32 @@ local function syncDrops(target)
     TriggerClientEvent('moonshine:client:syncDrops', target or -1, MS.Drops)
 end
 
+--- Legt ein Item ohne Spielerbezug auf den Boden.
+--- Wird gebraucht, wenn eine Belohnung nicht ins Inventar passt.
+---@return number|nil dropId
+function MS.CreateDrop(name, count, metadata, coords)
+    local item = MS.GetItem(name)
+    if not item then return nil end
+
+    count = math.floor(tonumber(count) or 1)
+    if count < 1 then return nil end
+    if type(coords) ~= 'table' and type(coords) ~= 'vector3' then return nil end
+
+    nextDropId = nextDropId + 1
+    MS.Drops[nextDropId] = {
+        id        = nextDropId,
+        name      = name,
+        label     = item.label,
+        count     = count,
+        metadata  = metadata,
+        coords    = { x = coords.x, y = coords.y, z = coords.z },
+        createdAt = os.time(),
+    }
+
+    syncDrops()
+    return nextDropId
+end
+
 RegisterNetEvent('moonshine:server:dropItem', function(slot, count, coords)
     local player = MS.Players[source]
     if not player then return end

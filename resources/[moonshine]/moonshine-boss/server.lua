@@ -154,6 +154,9 @@ local function rewardParticipants()
                     rewarded = rewarded + 1
                 end
 
+                -- Fuer Missionen und Statistiken.
+                TriggerEvent('boss:server:participantRewarded', source, current.definition and current.definition.name)
+
                 if hits > topHits then
                     topSource, topHits = source, hits
                 end

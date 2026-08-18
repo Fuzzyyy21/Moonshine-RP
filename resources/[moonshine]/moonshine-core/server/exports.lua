@@ -95,3 +95,7 @@ end)
 exports('SaveAllPlayers', function()
     return MS.SaveAllPlayers()
 end)
+
+exports('CreateDrop', function(name, count, metadata, coords)
+    return MS.CreateDrop(name, count, metadata, coords)
+end)

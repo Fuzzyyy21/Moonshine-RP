@@ -30,6 +30,7 @@ ensure moonshine-core
 ensure moonshine-mystic
 ensure moonshine-death
 ensure moonshine-boss
+ensure moonshine-progress
 ensure moonshine-shops
 
 # Rechte ---------------------------------------------------------------------

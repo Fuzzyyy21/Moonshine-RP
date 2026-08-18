@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Fortschritt</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Hinweise oben rechts ---------------------------------------------------->
+<div id="toasts"></div>
+
+<!-- Hauptfenster ------------------------------------------------------------>
+<div id="screen" class="hidden">
+    <div class="window">
+
+        <header class="top">
+            <div class="brand">
+                <div class="crest">✦</div>
+                <div>
+                    <h1>Fortschritt</h1>
+                    <p class="sub" id="season-label">Saison 1</p>
+                </div>
+            </div>
+
+            <div class="head-stats">
+                <div class="stat">
+                    <span class="stat-caption">Heute online</span>
+                    <span class="stat-value" id="head-playtime">0 Min.</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Pass-Stufe</span>
+                    <span class="stat-value" id="head-level">1</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Kisten</span>
+                    <span class="stat-value" id="head-cases">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Reset in</span>
+                    <span class="stat-value" id="head-reset">–</span>
+                </div>
+            </div>
+
+            <button class="icon-btn" id="btn-close" title="Schliessen (ESC)">✕</button>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="playtime"><span>⏱</span> Spielzeit</button>
+            <button class="tab" data-tab="missions"><span>📜</span> Missionen<i class="badge hidden" id="badge-missions">0</i></button>
+            <button class="tab" data-tab="pass"><span>⚡</span> Battle Pass<i class="badge hidden" id="badge-pass">0</i></button>
+            <button class="tab" data-tab="cases"><span>📦</span> Kisten</button>
+        </nav>
+
+        <!-- Spielzeit ------------------------------------------------------->
+        <section class="panel" id="panel-playtime">
+            <div class="panel-head">
+                <div>
+                    <h2>Spielzeit-Belohnungen</h2>
+                    <p class="muted">Die Zeit zaehlt pro Tag. Um <span id="reset-hour">4</span> Uhr
+                        beginnt sie von vorn.</p>
+                </div>
+                <div class="playtime-total">
+                    <span class="stat-caption">Gesamt gespielt</span>
+                    <span class="stat-value" id="playtime-total">0 Std.</span>
+                </div>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-track"><div class="timeline-fill" id="timeline-fill"></div></div>
+                <div class="timeline-marks" id="timeline-marks"></div>
+            </div>
+
+            <div class="milestone-grid" id="milestone-grid"></div>
+        </section>
+
+        <!-- Missionen ------------------------------------------------------->
+        <section class="panel hidden" id="panel-missions">
+            <div class="mission-columns">
+                <div class="mission-column">
+                    <div class="panel-head">
+                        <h2>Taeglich</h2>
+                        <span class="chip" id="daily-reset">–</span>
+                    </div>
+                    <div class="mission-list" id="daily-list"></div>
+                </div>
+
+                <div class="mission-column">
+                    <div class="panel-head">
+                        <h2>Woechentlich</h2>
+                        <span class="chip">Reset am Montag</span>
+                    </div>
+                    <div class="mission-list" id="weekly-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Battle Pass ----------------------------------------------------->
+        <section class="panel hidden" id="panel-pass">
+            <div class="pass-head">
+                <div class="pass-level">
+                    <div class="pass-level-ring" id="pass-ring">
+                        <span id="pass-level">1</span>
+                    </div>
+                    <div>
+                        <h2 id="pass-season">Saison 1</h2>
+                        <div class="pass-xp-text">
+                            <span id="pass-xp">0</span> / <span id="pass-xp-needed">0</span> XP
+                        </div>
+                        <div class="pass-xp-track"><div class="pass-xp-fill" id="pass-xp-fill"></div></div>
+                    </div>
+                </div>
+
+                <div class="pass-actions">
+                    <div class="premium-state" id="premium-state">Kostenlose Spur</div>
+                    <button class="btn" id="btn-claim-all">Alles abholen</button>
+                    <button class="btn primary" id="btn-premium">Premium freischalten</button>
+                </div>
+            </div>
+
+            <div class="pass-legend">
+                <span><i class="dot free"></i> Kostenlos</span>
+                <span><i class="dot premium"></i> Premium</span>
+            </div>
+
+            <div class="pass-rail" id="pass-rail"></div>
+        </section>
+
+        <!-- Kisten ---------------------------------------------------------->
+        <section class="panel hidden" id="panel-cases">
+            <div class="case-columns">
+                <div class="case-grid" id="case-grid"></div>
+
+                <aside class="case-side">
+                    <div class="section-caption">Inhalt</div>
+                    <div id="case-detail" class="case-detail">
+                        <p class="muted">Waehle eine Kiste, um ihre Chancen zu sehen.</p>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <footer class="bottom">
+            <span class="muted">Belohnungen landen sofort im Inventar bzw. auf dem Konto.</span>
+            <span class="muted" id="foot-hint"></span>
+        </footer>
+    </div>
+</div>
+
+<!-- Kistenanimation --------------------------------------------------------->
+<div id="case-overlay" class="overlay hidden">
+    <div class="case-stage">
+        <div class="case-box" id="case-box">📦</div>
+        <div class="case-glow" id="case-glow"></div>
+        <h2 id="case-title">Holzkiste</h2>
+        <div class="case-reel" id="case-reel"></div>
+        <div class="case-result hidden" id="case-result">
+            <div class="case-result-label" id="case-result-label"></div>
+            <div class="case-result-reward" id="case-result-reward"></div>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
