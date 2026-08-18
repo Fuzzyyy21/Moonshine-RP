@@ -132,9 +132,10 @@ end)
 
 -- Einnahme -------------------------------------------------------------------------
 
---- Zaehlt, welche Fraktionen in einem Gebiet stehen.
-local function scanTerritory(territory)
-    local counts = {}
+--- Sammelt einmal je Durchlauf, wo alle Fraktionsmitglieder stehen.
+---@return table[] Liste aus { factionId, coords }
+local function scanPlayers()
+    local present = {}
 
     for _, player in pairs(MS.GetPlayers()) do
         local faction = Factions.GetByCharacter(player.charId)
@@ -143,12 +144,24 @@ local function scanTerritory(territory)
             local ped = GetPlayerPed(player.source)
 
             if ped and ped ~= 0 then
-                local coords = GetEntityCoords(ped)
-
-                if #(coords - territory.coords) <= territory.radius then
-                    counts[faction.id] = (counts[faction.id] or 0) + 1
-                end
+                present[#present + 1] = {
+                    factionId = faction.id,
+                    coords    = GetEntityCoords(ped),
+                }
             end
+        end
+    end
+
+    return present
+end
+
+--- Zaehlt, welche Fraktionen in einem Gebiet stehen.
+local function countIn(territory, present)
+    local counts = {}
+
+    for _, entry in ipairs(present) do
+        if #(entry.coords - territory.coords) <= territory.radius then
+            counts[entry.factionId] = (counts[entry.factionId] or 0) + 1
         end
     end
 
@@ -195,13 +208,14 @@ end
 local function tick()
     local now = os.time()
     local changed = false
+    local present = scanPlayers()
 
     for _, territory in ipairs(Factions.Territories) do
         local state = Factions.TerritoryState[territory.id]
         if not state then goto continue end
 
         do
-            local counts = scanTerritory(territory)
+            local counts = countIn(territory, present)
 
             -- Wer greift an, wer verteidigt?
             local attackers, attackerId, defenders = 0, nil, 0

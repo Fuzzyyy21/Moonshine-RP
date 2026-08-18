@@ -32,6 +32,7 @@ local function open()
 
     isOpen = true
     SetNuiFocus(true, true)
+    SendNUIMessage({ action = 'factions:options', data = Factions.GetEmblemOptions() })
     SendNUIMessage({ action = 'factions:open' })
     push()
 end
@@ -153,10 +154,26 @@ for name, event in pairs(FORWARD) do
     end)
 end
 
---- Das eigene Inventar fuer den Tresor.
+--- Das eigene Inventar fuer den Tresor - mit aufgeloesten Bezeichnungen.
 RegisterNUICallback('requestInventory', function(_, cb)
     local core = exports['moonshine-core']:GetPlayerData()
-    cb(core and core.inventory or {})
+    local entries = {}
+
+    for _, entry in ipairs(core and core.inventory or {}) do
+        if entry and entry.name then
+            local item = exports['moonshine-core']:GetItem(entry.name)
+
+            entries[#entries + 1] = {
+                slot  = entry.slot,
+                name  = entry.name,
+                label = item and item.label or entry.name,
+                count = entry.count,
+            }
+        end
+    end
+
+    table.sort(entries, function(a, b) return a.label < b.label end)
+    cb(entries)
 end)
 
 -- Steuerung ----------------------------------------------------------------------------
