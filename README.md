@@ -8,6 +8,8 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 |---|---|
 | `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
 | `moonshine-mystic` | Klassen mit Skilltree (Ränge, bezahlt mit Klassensteinen), Skillleiste, persönlicher Skillbaum (bezahlt mit XP) → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
+| `moonshine-death` | Bewusstlosigkeit statt Sofort-Respawn, Notruf, Wiederbelebung → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
+| `moonshine-nodes` | Steinadern in der Welt: Ritualsteine abbauen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
@@ -51,6 +53,8 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ensure oxmysql
    ensure moonshine-core
    ensure moonshine-mystic
+   ensure moonshine-death
+   ensure moonshine-nodes
    ensure moonshine-shops
    ```
 
@@ -72,14 +76,18 @@ resources/[moonshine]/
 │   ├── client/              Charakterauswahl, HUD, Inventar, Callbacks
 │   └── nui/                 Oberfläche (Charakterauswahl, HUD, Inventar)
 ├── moonshine-mystic/        Klassen, Skilltree, Skillleiste, Perks
-│   ├── shared/              Config, Rassen, Skills, Perks, Steine
+│   ├── shared/              Config, Klassen, Skills, Perks, Steine
 │   ├── server/              Profile, Skills, Perks, Ritualpunkte, API
-│   ├── client/              Fähigkeiten, Skillleiste, Ritual-UI, Rassenmechanik
+│   ├── client/              Fähigkeiten, Skillleiste, Ritual-UI, Klassenmechanik
 │   └── nui/                 Oberfläche (Skillleiste, Skilltree, Perks)
+├── moonshine-death/         Bewusstlosigkeit, Notruf, Wiederbelebung, Respawn
+├── moonshine-nodes/         Steinadern zum Abbauen von Ritualsteinen
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
 docs/API.md                  API-Dokumentation des Frameworks
 docs/MYSTIC.md               Dokumentation des Mystik-Systems
+docs/SURVIVAL.md             Sterbesystem und Steinadern
+docs/ROADMAP.md              Ideen für den weiteren Ausbau
 ```
 
 ## Konfiguration
@@ -106,7 +114,8 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 | `F5` | Skillleiste aus-/einklappen |
 | `F7` | HUD ein-/ausblenden |
 | `NUMPAD 1–6` | Skill-Slots auslösen |
-| `E` | Bodenitem aufheben / Laden öffnen / Ritualpunkt |
+| `E` | Bodenitem aufheben / Laden öffnen / Ritualpunkt / Steinader / Notruf |
+| `G` | Wiederbeleben bzw. aufgeben, wenn bewusstlos |
 
 Die Tasten lassen sich im FiveM-Menü unter *Einstellungen → Tastenbelegung → FiveM*
 frei ändern.
@@ -132,7 +141,8 @@ frei ändern.
 | `/saveall` | 4 | Alle Charaktere speichern |
 
 Mystik-Commands (`/mystik`, `/setrasse`, `/givestein`, …) stehen in
-[`docs/MYSTIC.md`](docs/MYSTIC.md).
+[`docs/MYSTIC.md`](docs/MYSTIC.md), das Sterbesystem und die Steinadern in
+[`docs/SURVIVAL.md`](docs/SURVIVAL.md).
 
 Adminlevel: `0` User, `1` Support, `2` Moderator, `3` Admin, `4` Owner.
 
@@ -162,3 +172,4 @@ Vollständige Referenz: [`docs/API.md`](docs/API.md).
 * Bodenitems leben nur zur Laufzeit und verfallen nach 10 Minuten.
 * Skins/Kleidung sind bewusst nicht enthalten – `appearance` liegt als Spalte und
   Feld bereit, damit ein Clothing-Script direkt andocken kann.
+* Was als Nächstes sinnvoll wäre, steht in [`docs/ROADMAP.md`](docs/ROADMAP.md).

@@ -69,6 +69,14 @@ function Mystic.UseSkill(skillId)
         return
     end
 
+    -- Bewusstlose wirken nichts (moonshine-death, falls vorhanden).
+    local downed = false
+    pcall(function() downed = exports['moonshine-death']:IsDowned() end)
+    if downed then
+        MS.Notify('Du bist bewusstlos.', 'error')
+        return
+    end
+
     local rank = (Mystic.Profile.ranks and Mystic.Profile.ranks[skillId]) or 0
     if rank < 1 then return end
 

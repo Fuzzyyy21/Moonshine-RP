@@ -28,6 +28,8 @@ ensure oxmysql
 # Moonshine ------------------------------------------------------------------
 ensure moonshine-core
 ensure moonshine-mystic
+ensure moonshine-death
+ensure moonshine-nodes
 ensure moonshine-shops
 
 # Rechte ---------------------------------------------------------------------

@@ -237,7 +237,15 @@ local function applySkillEffects(profile, effect, casterCoords, targetSource)
 
     elseif kind == 'revive_target' then
         if targetSource and #(casterCoords - coordsOf(targetSource)) <= (effect.range or 6.0) then
-            applyToTarget(targetSource, { type = 'revive', health = effect.health or 120 })
+            -- Laeuft moonshine-death, raeumt es die Bewusstlosigkeit serverseitig auf.
+            local handled = false
+            pcall(function()
+                handled = exports['moonshine-death']:RevivePlayer(targetSource, effect.health or 120)
+            end)
+
+            if not handled then
+                applyToTarget(targetSource, { type = 'revive', health = effect.health or 120 })
+            end
             hits = 1
         end
     end
