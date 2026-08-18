@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Death</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 100%; height: 100%; overflow: hidden; background: transparent;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif; color: #e9e4e4; user-select: none;
+        }
+        .hidden { display: none !important; }
+
+        #death {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(0,0,0,.25) 0%, rgba(30,0,0,.75) 70%, rgba(10,0,0,.92) 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            padding-bottom: 12vh;
+            animation: fade .8s ease-out;
+        }
+        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+        h1 {
+            font-size: 40px; letter-spacing: 12px; text-transform: uppercase;
+            color: #c9433c; text-shadow: 0 0 30px rgba(180,20,20,.55); margin-bottom: 6px;
+        }
+        .sub { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #8d8080; margin-bottom: 26px; }
+
+        .timer { font-size: 52px; font-weight: 700; line-height: 1; }
+        .timer-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #8d8080; margin-top: 6px; }
+
+        .bar { width: 320px; height: 4px; background: rgba(255,255,255,.12); border-radius: 2px; margin-top: 16px; overflow: hidden; }
+        .bar div { height: 100%; width: 100%; background: linear-gradient(90deg, #c9433c, #7a1d1a); transition: width 1s linear; }
+
+        .hints { display: flex; gap: 28px; margin-top: 28px; }
+        .hint { display: flex; align-items: center; gap: 9px; font-size: 12px; color: #b9b0b0; }
+        .key {
+            min-width: 26px; height: 26px; padding: 0 7px;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+            background: rgba(0,0,0,.45); font-size: 12px; font-weight: 600;
+        }
+        .hint.locked { opacity: .45; }
+    </style>
+</head>
+<body>
+<div id="death" class="hidden">
+    <h1>Bewusstlos</h1>
+    <div class="sub">Du kaempfst um dein Leben</div>
+
+    <div class="timer" id="timer">5:00</div>
+    <div class="timer-label">bis zum Ende</div>
+    <div class="bar"><div id="bar-fill"></div></div>
+
+    <div class="hints">
+        <div class="hint"><span class="key" id="call-key">E</span> Notruf absetzen</div>
+        <div class="hint" id="respawn-hint"><span class="key" id="respawn-key">G</span> <span id="respawn-text">Aufgeben</span></div>
+    </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

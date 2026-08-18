@@ -75,6 +75,14 @@ exports('RegisterUsableItem', function(name, callback)
     MS.RegisterUsableItem(name, callback)
 end)
 
+exports('RegisterItem', function(name, definition)
+    return MS.RegisterItem(name, definition)
+end)
+
+exports('GetItem', function(name)
+    return MS.GetItem(name)
+end)
+
 exports('RegisterServerCallback', function(name, callback)
     MS.RegisterServerCallback(name, callback)
 end)

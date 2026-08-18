@@ -36,6 +36,14 @@ exports('Notify', function(message, type, duration)
     MS.Notify(message, type, duration)
 end)
 
+exports('RegisterItem', function(name, definition)
+    return MS.RegisterItem(name, definition)
+end)
+
+exports('GetItem', function(name)
+    return MS.GetItem(name)
+end)
+
 exports('TriggerServerCallback', function(name, callback, ...)
     MS.TriggerServerCallback(name, callback, ...)
 end)

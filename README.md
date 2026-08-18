@@ -1,8 +1,16 @@
 # Moonshine RP – Custom FiveM Framework
 
-Ein eigenständiges Roleplay-Framework für FiveM. Kein ESX-/QBCore-Fork, keine
-Alt-Lasten – nur Lua, [oxmysql](https://github.com/overextended/oxmysql) und eine
-klare API.
+Ein eigenständiges Roleplay-Framework für FiveM plus ein mystisches
+Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
+[oxmysql](https://github.com/overextended/oxmysql) und eine klare API.
+
+| Resource | Inhalt |
+|---|---|
+| `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
+| `moonshine-mystic` | Klassen-Skilltree (Klassensteine) und persönlicher Skillbaum mit 6 Kategorien (Fähigkeitspunkte), Skillleiste, Ritualpunkte → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
+| `moonshine-death` | Bewusstlosigkeit statt Sofort-Respawn, Notruf, Wiederbelebung → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
+| `moonshine-boss` | Weltbosse alle 45 Minuten, lassen Runen- und Seelensteine fallen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
+| `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
 
@@ -44,6 +52,9 @@ klare API.
    ```cfg
    ensure oxmysql
    ensure moonshine-core
+   ensure moonshine-mystic
+   ensure moonshine-death
+   ensure moonshine-boss
    ensure moonshine-shops
    ```
 
@@ -64,9 +75,19 @@ resources/[moonshine]/
 │   ├── server/              Datenbank, Spielerobjekt, Inventar, Commands, API
 │   ├── client/              Charakterauswahl, HUD, Inventar, Callbacks
 │   └── nui/                 Oberfläche (Charakterauswahl, HUD, Inventar)
+├── moonshine-mystic/        Klassen, Skilltree, Skillleiste, Perks
+│   ├── shared/              Config, Klassen, Skills, persoenlicher Baum, Steine
+│   ├── server/              Profile, Skills, persoenlicher Baum, Ritualpunkte, API
+│   ├── client/              Fähigkeiten, Skillleiste, Ritual-UI, Klassenmechanik
+│   └── nui/                 Oberfläche (Skillleiste, beide Skilltrees, Händler)
+├── moonshine-death/         Bewusstlosigkeit, Notruf, Wiederbelebung, Respawn
+├── moonshine-boss/          Weltbosse als Quelle fuer Runen- und Seelensteine
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
-docs/API.md                  API-Dokumentation
+docs/API.md                  API-Dokumentation des Frameworks
+docs/MYSTIC.md               Dokumentation des Mystik-Systems
+docs/SURVIVAL.md             Sterbesystem und Steinadern
+docs/ROADMAP.md              Ideen für den weiteren Ausbau
 ```
 
 ## Konfiguration
@@ -90,8 +111,11 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 | Taste | Funktion |
 |---|---|
 | `F2` | Inventar |
+| `F5` | Skillleiste aus-/einklappen |
 | `F7` | HUD ein-/ausblenden |
-| `E` | Bodenitem aufheben / Laden öffnen |
+| `NUMPAD 1–6` | Skill-Slots auslösen |
+| `E` | Bodenitem aufheben / Laden öffnen / Ritualpunkt / Steinader / Notruf |
+| `G` | Wiederbeleben bzw. aufgeben, wenn bewusstlos |
 
 Die Tasten lassen sich im FiveM-Menü unter *Einstellungen → Tastenbelegung → FiveM*
 frei ändern.
@@ -115,6 +139,10 @@ frei ändern.
 | `/setmoney [id] [betrag] [konto]` | 4 | Kontostand setzen |
 | `/setadmin [id] [level]` | 4 | Adminlevel setzen |
 | `/saveall` | 4 | Alle Charaktere speichern |
+
+Mystik-Commands (`/mystik`, `/setrasse`, `/givestein`, …) stehen in
+[`docs/MYSTIC.md`](docs/MYSTIC.md), das Sterbesystem und die Steinadern in
+[`docs/SURVIVAL.md`](docs/SURVIVAL.md).
 
 Adminlevel: `0` User, `1` Support, `2` Moderator, `3` Admin, `4` Owner.
 
@@ -144,3 +172,4 @@ Vollständige Referenz: [`docs/API.md`](docs/API.md).
 * Bodenitems leben nur zur Laufzeit und verfallen nach 10 Minuten.
 * Skins/Kleidung sind bewusst nicht enthalten – `appearance` liegt als Spalte und
   Feld bereit, damit ein Clothing-Script direkt andocken kann.
+* Was als Nächstes sinnvoll wäre, steht in [`docs/ROADMAP.md`](docs/ROADMAP.md).

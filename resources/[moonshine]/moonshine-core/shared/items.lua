@@ -56,6 +56,24 @@ function MS.GetItem(name)
     return MS.Items[name]
 end
 
+--- Registriert ein Item zur Laufzeit, damit andere Resources eigene Items
+--- mitbringen koennen. Muss auf Server UND Client aufgerufen werden.
+---@param name string
+---@param definition table { label, weight, stack, usable, closeUi, description }
+function MS.RegisterItem(name, definition)
+    if type(name) ~= 'string' or type(definition) ~= 'table' then return false end
+
+    MS.Items[name] = {
+        label       = definition.label or name,
+        weight      = definition.weight or 100,
+        stack       = definition.stack ~= false,
+        usable      = definition.usable or false,
+        closeUi     = definition.closeUi ~= false,
+        description = definition.description or '',
+    }
+    return true
+end
+
 --- Gewicht einer bestimmten Menge eines Items.
 function MS.GetItemWeight(name, count)
     local item = MS.GetItem(name)

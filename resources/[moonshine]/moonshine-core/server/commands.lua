@@ -190,6 +190,9 @@ registerCommand('revive', 'Belebt einen Spieler wieder', {
 
     TriggerClientEvent('moonshine:client:revive', target.source)
     target:Notify('Du wurdest wiederbelebt.', 'success')
+
+    -- Sterbesysteme koennen hier ihren Zustand aufraeumen.
+    TriggerEvent('moonshine:server:adminRevive', target.source)
 end)
 
 registerCommand('heal', 'Heilt einen Spieler vollstaendig', {

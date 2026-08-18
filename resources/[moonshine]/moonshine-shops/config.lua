@@ -11,6 +11,8 @@ ShopConfig.Items = {
     { name = 'cola',    price = 18  },
     { name = 'bandage', price = 120 },
     { name = 'phone',   price = 950 },
+    -- Notfallset fuer Wiederbelebungen (moonshine-death)
+    { name = 'medikit',      price = 800 },
 }
 
 --- Standorte der Laeden.
