@@ -207,40 +207,23 @@ RegisterNetEvent('vehicles:server:report', function(plate, fuel, engine, body)
     Vehicles.DB.SaveCondition(entry.id, fuel, engine, body)
 end)
 
---- Tanken.
-RegisterNetEvent('vehicles:server:refuel', function(plate, amount)
+--- Tankstand von aussen setzen. Das Tanken selbst liegt in
+--- moonshine-services, dort wird auch die Naehe zur Zapfsaeule geprueft.
+RegisterNetEvent('vehicles:server:setFuel', function(plate, value)
     local source = source
-    local player = MS.GetPlayer(source)
-    if not player then return end
+    if not MS.GetPlayer(source) then return end
 
     plate = Vehicles.CleanPlate(plate)
-    amount = math.max(1, math.min(100, math.floor(tonumber(amount) or 0)))
 
-    local row = Vehicles.DB.GetByPlate(plate)
+    local entry = Vehicles.Spawned[plate]
+    if not entry or entry.source ~= source then return end
+
+    local row = Vehicles.DB.GetById(entry.id)
     if not row then return end
 
-    local current = tonumber(row.fuel) or 0
-    local missing = math.max(0, 100 - current)
-    if missing <= 0 then
-        player:Notify('Der Tank ist voll.', 'info')
-        return
-    end
-
-    amount = math.min(amount, math.floor(missing))
-    local cost = amount * VehicleConfig.State.fuelPrice
-
-    if not player:RemoveMoney(cost, 'cash', 'tanken') then
-        player:Notify(('Dir fehlen %s in bar.'):format(MS.Utils.FormatMoney(
-            cost - player:GetMoney('cash'))), 'error')
-        return
-    end
-
-    Vehicles.DB.SaveCondition(row.id, current + amount,
+    Vehicles.DB.SaveCondition(entry.id,
+        math.max(0.0, math.min(100.0, tonumber(value) or 0)),
         tonumber(row.engine) or 1000, tonumber(row.body) or 1000)
-
-    TriggerClientEvent('vehicles:client:setFuel', source, plate, current + amount)
-    player:Notify(('%d Prozent getankt fuer %s.'):format(
-        amount, MS.Utils.FormatMoney(cost)), 'success')
 end)
 
 --- Der Client fragt den Tankstand eines Fahrzeugs ab, das er nicht selbst

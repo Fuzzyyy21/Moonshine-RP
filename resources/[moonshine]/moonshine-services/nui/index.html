@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Dienste</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Fortschrittsbalken (Tanken / Reparieren) -------------------------------->
+<div id="progress" class="hidden">
+    <div class="progress-label" id="progress-label">Wird getankt …</div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+</div>
+
+<div id="screen" class="hidden">
+    <div class="window">
+
+        <header class="top">
+            <div class="brand">
+                <div class="crest" id="crest">🏦</div>
+                <div>
+                    <h1 id="title">Bank</h1>
+                    <p class="sub" id="subtitle"></p>
+                </div>
+            </div>
+
+            <div class="head-stats" id="head-stats"></div>
+
+            <button class="icon-btn" id="btn-close" title="Schliessen (ESC)">✕</button>
+        </header>
+
+        <!-- Bank ----------------------------------------------------------->
+        <section class="panel hidden" id="panel-bank">
+            <div class="bank-grid">
+                <div class="card">
+                    <div class="section-caption">Einzahlen</div>
+                    <p class="muted">Bargeld aufs Konto. Sicher vor dem Verlust
+                        beim Ausrauben.</p>
+                    <div class="amount-row">
+                        <input type="number" id="deposit-amount" min="1" placeholder="Betrag">
+                        <button class="btn primary" id="btn-deposit">Einzahlen</button>
+                    </div>
+                    <div class="quick-row" id="deposit-quick"></div>
+                </div>
+
+                <div class="card">
+                    <div class="section-caption">Abheben</div>
+                    <p class="muted" id="withdraw-hint">Vom Konto in bar.</p>
+                    <div class="amount-row">
+                        <input type="number" id="withdraw-amount" min="1" placeholder="Betrag">
+                        <button class="btn primary" id="btn-withdraw">Abheben</button>
+                    </div>
+                    <div class="quick-row" id="withdraw-quick"></div>
+                </div>
+
+                <div class="card wide hidden" id="transfer-card">
+                    <div class="section-caption">Ueberweisen</div>
+                    <p class="muted" id="transfer-hint"></p>
+                    <div class="amount-row">
+                        <input type="number" id="transfer-target" placeholder="Server-ID">
+                        <input type="number" id="transfer-amount" min="1" placeholder="Betrag">
+                        <button class="btn primary" id="btn-transfer">Ueberweisen</button>
+                    </div>
+                    <div class="fee-note" id="transfer-fee"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tanken --------------------------------------------------------->
+        <section class="panel hidden" id="panel-fuel">
+            <div class="fuel-layout">
+                <div class="card">
+                    <div class="section-caption">Tankstand</div>
+                    <div class="gauge">
+                        <div class="gauge-track"><div class="gauge-fill" id="fuel-fill"></div></div>
+                        <div class="gauge-value"><span id="fuel-value">0</span> %</div>
+                    </div>
+                    <div class="plate-row">
+                        <span class="muted">Kennzeichen</span>
+                        <span class="plate" id="fuel-plate">–</span>
+                    </div>
+
+                    <div class="section-caption spaced">Menge</div>
+                    <input type="range" id="fuel-range" min="1" max="100" value="100">
+                    <div class="fuel-summary">
+                        <span><b id="fuel-amount">0</b> Prozentpunkte</span>
+                        <span class="price" id="fuel-price">0 $</span>
+                    </div>
+                    <div class="quick-row" id="fuel-quick"></div>
+                    <button class="btn primary wide-btn" id="btn-refuel">Tanken</button>
+                </div>
+
+                <div class="card">
+                    <div class="section-caption">Benzinkanister</div>
+                    <p class="muted" id="canister-hint"></p>
+                    <div class="amount-row">
+                        <input type="number" id="canister-count" min="1" max="5" value="1">
+                        <button class="btn" id="btn-canister">Kaufen</button>
+                    </div>
+                    <p class="muted spaced">Ein Kanister im Inventar lässt sich
+                        überall benutzen – praktisch, wenn der Tank auf der
+                        Landstraße leer wird.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Werkstatt ------------------------------------------------------>
+        <section class="panel hidden" id="panel-repair">
+            <div class="repair-layout">
+                <div class="card">
+                    <div class="section-caption">Zustand</div>
+
+                    <div class="cond-row">
+                        <span class="cond-label">Motor</span>
+                        <div class="bar"><i class="engine" id="engine-bar"></i></div>
+                        <span class="cond-value" id="engine-value">100 %</span>
+                    </div>
+
+                    <div class="cond-row">
+                        <span class="cond-label">Karosserie</span>
+                        <div class="bar"><i class="body" id="body-bar"></i></div>
+                        <span class="cond-value" id="body-value">100 %</span>
+                    </div>
+
+                    <div class="plate-row spaced">
+                        <span class="muted">Kennzeichen</span>
+                        <span class="plate" id="repair-plate">–</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-caption">Kostenvoranschlag</div>
+                    <div class="repair-price" id="repair-price">0 $</div>
+                    <p class="muted" id="repair-discount"></p>
+                    <p class="muted">Grundgebühr plus Aufschlag je fehlendem
+                        Prozentpunkt. Danach ist alles wieder wie neu –
+                        inklusive Lack und Dellen.</p>
+                    <button class="btn primary wide-btn" id="btn-repair">Reparieren lassen</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Schwarzmarkt --------------------------------------------------->
+        <section class="panel hidden" id="panel-market">
+            <div class="market-layout">
+                <div>
+                    <div class="section-caption">Im Angebot</div>
+                    <div class="trade-list" id="market-sells"></div>
+                </div>
+
+                <div>
+                    <div class="section-caption">Wird angekauft</div>
+                    <div class="trade-list" id="market-buys"></div>
+
+                    <div class="card spaced hidden" id="laundry-card">
+                        <div class="section-caption">Waschanlage</div>
+                        <p class="muted" id="laundry-hint"></p>
+                        <div class="amount-row">
+                            <input type="number" id="laundry-amount" min="1" placeholder="Betrag">
+                            <button class="btn" id="btn-launder">Waschen</button>
+                        </div>
+                        <div class="fee-note" id="laundry-result"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="bottom">
+            <span class="muted" id="foot-hint"></span>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

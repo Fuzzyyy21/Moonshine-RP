@@ -35,6 +35,7 @@ ensure moonshine-progress
 ensure moonshine-factions
 ensure moonshine-auction
 ensure moonshine-vehicles
+ensure moonshine-services
 ensure moonshine-shops
 
 # Rechte ---------------------------------------------------------------------

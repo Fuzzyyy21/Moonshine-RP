@@ -15,6 +15,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-factions` | Fraktionen mit Wappen, Rängen, Skilltree, Kasse, Tresor, Shop, Garage und Gebieten → [`docs/FACTIONS.md`](docs/FACTIONS.md) |
 | `moonshine-auction` | Auktionshaus mit Geboten, Sofortkauf und Abholfach → [`docs/AUCTION.md`](docs/AUCTION.md) |
 | `moonshine-vehicles` | Autohäuser, eigene Fahrzeuge, Garagen, Schlüssel und Verwahrstelle → [`docs/VEHICLES.md`](docs/VEHICLES.md) |
+| `moonshine-services` | Tankstellen, Werkstätten, Bank, Geldautomaten und Schwarzmarkt → [`docs/SERVICES.md`](docs/SERVICES.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
@@ -35,6 +36,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Fraktionen** | Wappen-Baukasten, bis zu acht Ränge mit 13 Rechten, eigener Skilltree, Kasse, Tresor, Shop, Garage, acht Gebiete mit Einnahme und Einkommen |
 | **Auktionshaus** | Gebote mit Anti-Sniping, Sofortkauf, Hausgebühr, Abholfach für Offline-Spieler |
 | **Fahrzeuge** | 42 Fahrzeuge in drei Autohäusern, sechs Garagen, Tank- und Schadenspersistenz, Schlüsselsystem und Verwahrstelle |
+| **Dienste** | 9 Tankstellen, 4 Werkstätten, 6 Bankfilialen, 16 Geldautomaten, wandernder Schwarzmarkt mit Geldwäsche |
 | **Admin** | Rechtesystem über Adminlevel plus Commands für Geld, Items, Jobs, Teleport, Kick, Ban |
 
 ## Voraussetzungen
@@ -70,6 +72,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ensure moonshine-factions
    ensure moonshine-auction
    ensure moonshine-vehicles
+   ensure moonshine-services
    ensure moonshine-shops
    ```
 
@@ -115,6 +118,7 @@ resources/[moonshine]/
 │   └── nui/                 Oberfläche (zehn Reiter, SVG-Wappen, Karte)
 ├── moonshine-auction/       Auktionshaus mit Abholfach
 ├── moonshine-vehicles/      Autohäuser, Garagen, Schlüssel, Verwahrstelle
+├── moonshine-services/      Tankstellen, Werkstätten, Bank, Schwarzmarkt
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
 docs/API.md                  API-Dokumentation des Frameworks
@@ -125,6 +129,7 @@ docs/PROGRESS.md             Spielzeit, Missionen, Battle Pass, Kisten
 docs/FACTIONS.md             Fraktionssystem
 docs/AUCTION.md              Auktionshaus
 docs/VEHICLES.md             Fahrzeuge, Garagen und Schlüssel
+docs/SERVICES.md             Tankstellen, Werkstätten, Bank, Schwarzmarkt
 docs/ROADMAP.md              Ideen für den weiteren Ausbau
 ```
 
@@ -155,7 +160,7 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 | `F10` | Fraktion |
 | `L` | Fahrzeug ver-/entriegeln |
 | `NUMPAD 1–6` | Skill-Slots auslösen |
-| `E` | Bodenitem aufheben / Laden / Ritualpunkt / Auktionator / Garage / Notruf |
+| `E` | Aufheben / Laden / Ritualpunkt / Auktionator / Garage / Tanken / Bank / Notruf |
 | `G` | Wiederbeleben bzw. aufgeben, wenn bewusstlos |
 
 Die Tasten lassen sich im FiveM-Menü unter *Einstellungen → Tastenbelegung → FiveM*
@@ -185,7 +190,8 @@ Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
 [Welt](docs/WORLD.md), [Mystik](docs/MYSTIC.md),
 [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
 [Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md),
-[Auktionshaus](docs/AUCTION.md) und [Fahrzeuge](docs/VEHICLES.md).
+[Auktionshaus](docs/AUCTION.md), [Fahrzeuge](docs/VEHICLES.md) und
+[Dienstleistungen](docs/SERVICES.md).
 
 Adminlevel: `0` User, `1` Support, `2` Moderator, `3` Admin, `4` Owner.
 

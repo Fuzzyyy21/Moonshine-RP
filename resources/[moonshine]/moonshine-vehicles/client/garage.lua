@@ -220,6 +220,36 @@ exports('GetFuel', function(plate)
     return Vehicles.Fuel[Vehicles.CleanPlate(plate)]
 end)
 
+--- Tankstand setzen (Tankstelle, Kanister, Admin).
+exports('SetFuel', function(plate, value)
+    plate = Vehicles.CleanPlate(plate)
+
+    value = math.max(0.0, math.min(100.0, tonumber(value) or 0.0))
+    Vehicles.Fuel[plate] = value
+
+    -- Wieder fahrbar machen, sobald etwas im Tank ist.
+    if value > VehicleConfig.State.stallBelow then
+        local vehicle = Vehicles.Mine[plate]
+        if not vehicle or not DoesEntityExist(vehicle) then
+            vehicle = Vehicles.FindByPlate(plate, 12.0)
+        end
+
+        if vehicle and DoesEntityExist(vehicle) then
+            SetVehicleUndriveable(vehicle, false)
+        end
+    end
+
+    -- Den neuen Stand sofort sichern, damit er ein Relog ueberlebt.
+    local vehicle = Vehicles.Mine[plate] or Vehicles.FindByPlate(plate, 12.0)
+
+    if vehicle and DoesEntityExist(vehicle) then
+        TriggerServerEvent('vehicles:server:report', plate, value,
+            GetVehicleEngineHealth(vehicle), GetVehicleBodyHealth(vehicle))
+    end
+
+    return true
+end)
+
 exports('StoreCurrentVehicle', function()
     Vehicles.StoreCurrent()
 end)

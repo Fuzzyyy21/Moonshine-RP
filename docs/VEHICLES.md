@@ -42,8 +42,8 @@ findet es beim nächsten Login wieder in der Garage.
 * Der Tank verliert etwa 1,4 Prozentpunkte je Minute bei laufendem Motor,
   über 90 km/h rund 40 % mehr.
 * Unter 0,4 % geht der Motor aus.
-* Getankt wird über `vehicles:server:refuel` – 45 $ bar je Prozentpunkt. Ein
-  Tankstellen-Script kann das direkt aufrufen; die Preisliste steht in
+* Getankt wird an den Tankstellen aus `moonshine-services` – 45 $ bar je
+  Prozentpunkt. Die Preisliste steht in `ServiceConfig.Fuel`, der Tankstand in
   `VehicleConfig.State`.
 * Alle 25 Sekunden meldet der Fahrer Tank, Motor und Karosserie an den Server.
 
