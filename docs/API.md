@@ -252,3 +252,23 @@ Nach beiden Änderungen reicht ein `restart moonshine-core`.
 | `TriggerServerCallback(name, cb, ...)` | – |
 | `OpenInventory()` | – |
 | `DrawText3D(coords, text, scale?)` | – |
+
+## Ratenbegrenzung
+
+Jedes Netzwerkereignis, das Geld oder Items bewegt, sollte begrenzt sein.
+`MS.RateLimit` reicht an `moonshine-admin` durch und laesst alles durch, wenn
+diese Resource nicht laeuft.
+
+```lua
+RegisterNetEvent('meinshop:server:kaufen', function(item, menge)
+    local source = source
+
+    -- Hoechstens 10 Aufrufe in 5 Sekunden.
+    if not MS.RateLimit(source, 'meinshop:kaufen', 10, 5) then return end
+
+    -- ...
+end)
+```
+
+Wer die Grenze wiederholt reisst, sammelt Strikes beim Wachhund. Details in
+[`ADMIN.md`](ADMIN.md).

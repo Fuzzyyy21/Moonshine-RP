@@ -27,6 +27,7 @@ end
 
 RegisterNetEvent('factions:server:buyItem', function(name, amount)
     local source = source
+    if not MS.RateLimit(source, 'factions:server:buyItem', 15, 10) then return end
     local player = MS.GetPlayer(source)
     if not player or not FactionConfig.Shop.enabled then return end
 

@@ -236,6 +236,8 @@ function Progress.SecondsUntilDailyReset()
 end
 
 RegisterNetEvent('progress:server:claimMission', function(missionId)
+    local source = source
+    if not MS.RateLimit(source, 'progress:server:claimMission', 15, 10) then return end
     if type(missionId) ~= 'string' then return end
     Progress.ClaimMission(source, missionId)
 end)

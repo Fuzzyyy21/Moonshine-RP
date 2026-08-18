@@ -50,6 +50,7 @@ end
 
 RegisterNetEvent('services:server:deposit', function(amount)
     local source = source
+    if not MS.RateLimit(source, 'services:server:deposit', 10, 10) then return end
     local player = MS.GetPlayer(source)
     if not player then return end
 
@@ -79,6 +80,7 @@ end)
 
 RegisterNetEvent('services:server:withdraw', function(amount)
     local source = source
+    if not MS.RateLimit(source, 'services:server:withdraw', 10, 10) then return end
     local player = MS.GetPlayer(source)
     if not player then return end
 

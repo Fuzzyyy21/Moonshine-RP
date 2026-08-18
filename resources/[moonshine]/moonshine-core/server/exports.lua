@@ -99,3 +99,24 @@ end)
 exports('CreateDrop', function(name, count, metadata, coords)
     return MS.CreateDrop(name, count, metadata, coords)
 end)
+
+--- Ratenbegrenzung fuer Netzwerkereignisse.
+---
+--- Delegiert an moonshine-admin, wenn es laeuft. Fehlt die Resource, wird
+--- alles durchgelassen - so bleibt jede Resource fuer sich lauffaehig.
+---
+---   if not MS.RateLimit(source, 'shop:kaufen', 10, 5) then return end
+---
+---@return boolean allowed
+function MS.RateLimit(source, key, max, windowSeconds)
+    local ok, allowed = pcall(function()
+        return exports['moonshine-admin']:RateLimit(source, key, max, windowSeconds)
+    end)
+
+    if not ok then return true end
+    return allowed ~= false
+end
+
+exports('RateLimit', function(source, key, max, windowSeconds)
+    return MS.RateLimit(source, key, max, windowSeconds)
+end)

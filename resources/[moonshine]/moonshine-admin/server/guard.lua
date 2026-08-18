@@ -3,11 +3,12 @@
 --- Bewusst zurueckhaltend: der Wachhund meldet und sammelt Strikes, statt
 --- sofort zu kicken. Ein Fehlalarm soll niemanden aus dem Spiel werfen.
 ---
---- Andere Resources koennen die Ratenbegrenzung mitbenutzen:
+--- Andere Resources benutzen die Ratenbegrenzung ueber den Core:
 ---
----   if not exports['moonshine-admin']:RateLimit(source, 'shop:buy', 10, 5) then
----       return
----   end
+---   if not MS.RateLimit(source, 'shop:buy', 10, 5) then return end
+---
+--- Der Core reicht das hierher durch und laesst alles durch, wenn diese
+--- Resource nicht laeuft - so bleibt jede Resource fuer sich lauffaehig.
 
 MS = MS or exports['moonshine-core']:GetCoreObject()
 

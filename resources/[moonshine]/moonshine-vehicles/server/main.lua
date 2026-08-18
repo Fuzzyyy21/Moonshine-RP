@@ -45,6 +45,7 @@ end)
 
 RegisterNetEvent('vehicles:server:buy', function(model, dealerId)
     local source = source
+    if not MS.RateLimit(source, 'vehicles:server:buy', 4, 10) then return end
     local player = MS.GetPlayer(source)
     if not player then return end
 
@@ -87,6 +88,7 @@ end)
 
 RegisterNetEvent('vehicles:server:sell', function(vehicleId)
     local source = source
+    if not MS.RateLimit(source, 'vehicles:server:sell', 4, 10) then return end
     if not MS.GetPlayer(source) then return end
 
     local ok, message = Vehicles.Sell(source, vehicleId)

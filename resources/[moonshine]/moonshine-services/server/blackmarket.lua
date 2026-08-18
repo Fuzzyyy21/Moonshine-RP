@@ -108,6 +108,7 @@ end)
 
 RegisterNetEvent('services:server:marketBuy', function(name, count)
     local source = source
+    if not MS.RateLimit(source, 'services:server:marketBuy', 15, 10) then return end
     local player = MS.GetPlayer(source)
     if not player or not Services.AtMarket(source) then return end
 
@@ -148,6 +149,7 @@ end)
 
 RegisterNetEvent('services:server:marketSell', function(name, count)
     local source = source
+    if not MS.RateLimit(source, 'services:server:marketSell', 15, 10) then return end
     local player = MS.GetPlayer(source)
     if not player or not Services.AtMarket(source) then return end
 
@@ -181,6 +183,7 @@ end)
 
 RegisterNetEvent('services:server:launder', function(amount)
     local source = source
+    if not MS.RateLimit(source, 'services:server:launder', 5, 10) then return end
     local player = MS.GetPlayer(source)
     if not player or not Services.AtMarket(source) then return end
 

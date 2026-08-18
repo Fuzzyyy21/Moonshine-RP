@@ -159,6 +159,8 @@ function Progress.AddBattlePassXp(source, amount)
 end
 
 RegisterNetEvent('progress:server:claimTier', function(level, track)
+    local source = source
+    if not MS.RateLimit(source, 'progress:server:claimTier', 25, 10) then return end
     Progress.ClaimTier(source, level, track)
 end)
 

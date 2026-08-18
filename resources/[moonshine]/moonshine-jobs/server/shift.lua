@@ -144,6 +144,7 @@ end
 --- Der Client meldet, dass er an der Station gearbeitet hat.
 RegisterNetEvent('work:server:completeStop', function()
     local source = source
+    if not MS.RateLimit(source, 'work:server:completeStop', 10, 10) then return end
     local player = MS.GetPlayer(source)
     if not player then return end
 

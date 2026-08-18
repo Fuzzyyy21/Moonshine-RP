@@ -165,6 +165,8 @@ function Progress.PackCase(source, name, amount)
 end
 
 RegisterNetEvent('progress:server:openCase', function(name)
+    local source = source
+    if not MS.RateLimit(source, 'progress:server:openCase', 10, 10) then return end
     if type(name) ~= 'string' then return end
     Progress.OpenCase(source, name)
 end)

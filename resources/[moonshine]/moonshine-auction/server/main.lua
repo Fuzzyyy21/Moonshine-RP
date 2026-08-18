@@ -48,6 +48,7 @@ end)
 
 RegisterNetEvent('auction:server:create', function(slot, count, startPrice, buyout, hours)
     local source = source
+    if not MS.RateLimit(source, 'auction:server:create', 5, 10) then return end
     if not MS.GetPlayer(source) or not atAuctionHouse(source) then return end
 
     local ok, message = Auction.Create(source, slot, count, startPrice, buyout, hours)
@@ -58,6 +59,7 @@ end)
 
 RegisterNetEvent('auction:server:bid', function(auctionId, amount)
     local source = source
+    if not MS.RateLimit(source, 'auction:server:bid', 15, 10) then return end
     if not MS.GetPlayer(source) or not atAuctionHouse(source) then return end
 
     local ok, message = Auction.Bid(source, auctionId, amount)
@@ -68,6 +70,7 @@ end)
 
 RegisterNetEvent('auction:server:buyout', function(auctionId)
     local source = source
+    if not MS.RateLimit(source, 'auction:server:buyout', 5, 10) then return end
     if not MS.GetPlayer(source) or not atAuctionHouse(source) then return end
 
     local ok, message = Auction.Buyout(source, auctionId)
@@ -92,6 +95,7 @@ end)
 
 RegisterNetEvent('auction:server:claim', function(mailId)
     local source = source
+    if not MS.RateLimit(source, 'auction:server:claim', 20, 10) then return end
     if not MS.GetPlayer(source) or not atAuctionHouse(source) then return end
 
     local ok, message = Auction.ClaimMail(source, mailId)

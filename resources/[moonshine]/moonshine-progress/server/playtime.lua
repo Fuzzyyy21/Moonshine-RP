@@ -133,5 +133,7 @@ function Progress.ClaimMilestone(source, minutes)
 end
 
 RegisterNetEvent('progress:server:claimMilestone', function(minutes)
+    local source = source
+    if not MS.RateLimit(source, 'progress:server:claimMilestone', 10, 10) then return end
     Progress.ClaimMilestone(source, minutes)
 end)

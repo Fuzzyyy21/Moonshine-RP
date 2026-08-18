@@ -74,15 +74,22 @@ RegisterNetEvent('meinshop:server:kaufen', function(item, menge)
     local source = source
 
     -- Höchstens 10 Käufe in 5 Sekunden.
-    if not exports['moonshine-admin']:RateLimit(source, 'meinshop:kaufen', 10, 5) then
-        return
-    end
+    if not MS.RateLimit(source, 'meinshop:kaufen', 10, 5) then return end
 
     -- … weiter wie gewohnt
 end)
 ```
 
+`MS.RateLimit` kommt aus `moonshine-core` und reicht an diese Resource durch.
+Läuft `moonshine-admin` nicht, lässt der Core alles durch — jede Resource
+bleibt also für sich lauffähig.
+
 Wird die Grenze dreimal überschritten, setzt es automatisch Strikes.
+
+Im Framework selbst hängt die Begrenzung bereits an allen Ereignissen, die
+Geld oder Items bewegen: Auktionsgebote, Bank, Schwarzmarkt, Tanken,
+Fahrzeugkauf, Fraktionskasse und -tresor, Steinkauf, Kistenöffnung,
+Belohnungsabholung und Arbeitsstationen.
 
 ## Commands
 
@@ -99,8 +106,8 @@ Wird die Grenze dreimal überschritten, setzt es automatisch Strikes.
 ## API
 
 ```lua
--- Ratenbegrenzung (der wichtigste Export)
-exports['moonshine-admin']:RateLimit(source, 'key', 10, 5)
+-- Ratenbegrenzung (ueber den Core, damit sie ohne diese Resource nicht bricht)
+MS.RateLimit(source, 'key', 10, 5)
 
 -- Verdacht selbst melden
 exports['moonshine-admin']:Flag(source, 'Unmoegliche Distanz', 2)

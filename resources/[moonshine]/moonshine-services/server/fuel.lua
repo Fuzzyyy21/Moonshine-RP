@@ -22,6 +22,7 @@ end
 --- Tankt ein Fahrzeug.
 RegisterNetEvent('services:server:refuel', function(plate, amount)
     local source = source
+    if not MS.RateLimit(source, 'services:server:refuel', 6, 10) then return end
     local player = MS.GetPlayer(source)
     if not player or not ServiceConfig.Fuel.enabled then return end
 

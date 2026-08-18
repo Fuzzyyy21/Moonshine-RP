@@ -103,6 +103,7 @@ end
 
 RegisterNetEvent('mystic:server:craftStone', function(times)
     local source = source
+    if not MS.RateLimit(source, 'mystic:server:craftStone', 10, 10) then return end
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)
     if not profile or not player then return end
@@ -169,6 +170,7 @@ end)
 
 RegisterNetEvent('mystic:server:buyStone', function(item, amount)
     local source = source
+    if not MS.RateLimit(source, 'mystic:server:buyStone', 15, 10) then return end
     local player = MS.GetPlayer(source)
     if not player or not MysticConfig.Merchant.enabled then return end
 

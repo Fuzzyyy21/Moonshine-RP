@@ -5,7 +5,7 @@ exports('GetAdminObject', function()
 end)
 
 --- Ratenbegrenzung fuer andere Resources.
----   if not exports['moonshine-admin']:RateLimit(source, 'shop:buy', 10, 5) then return end
+---   if not MS.RateLimit(source, 'shop:buy', 10, 5) then return end
 exports('RateLimit', function(source, key, max, windowSeconds)
     return Admin.RateLimit(source, tostring(key or 'default'), max, windowSeconds)
 end)

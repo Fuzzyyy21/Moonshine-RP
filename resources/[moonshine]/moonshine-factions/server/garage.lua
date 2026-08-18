@@ -76,6 +76,7 @@ end
 
 RegisterNetEvent('factions:server:buyVehicle', function(model)
     local source = source
+    if not MS.RateLimit(source, 'factions:server:buyVehicle', 4, 10) then return end
     local player = MS.GetPlayer(source)
     if not player or not FactionConfig.Garage.enabled then return end
 
