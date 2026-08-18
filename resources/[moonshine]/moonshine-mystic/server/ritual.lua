@@ -85,40 +85,169 @@ RegisterNetEvent('mystic:server:awaken', function(raceName)
     MS.Logger.Log('character', ('%s ist als %s erwacht.'):format(player.fullname, race.label), player.license)
 end)
 
--- Steinumwandlung ------------------------------------------------------------
+-- Klassenstein craften -------------------------------------------------------
 
-RegisterNetEvent('mystic:server:convertStones', function(times)
+--- Wie oft laesst sich das Rezept mit dem aktuellen Bestand ausfuehren?
+local function maxCrafts(player)
+    local recipe = MysticConfig.Stones.recipe
+    local possible = math.huge
+
+    for item, count in pairs(recipe) do
+        if item ~= 'result' then
+            possible = math.min(possible, math.floor(player:GetItemCount(item) / count))
+        end
+    end
+
+    return possible == math.huge and 0 or possible
+end
+
+RegisterNetEvent('mystic:server:craftStone', function(times)
     local source = source
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)
-    if not profile or not player or not profile.race then return end
+    if not profile or not player then return end
+
+    if not profile.race then
+        profile:Notify('Ohne Klasse kannst du keinen Ritualstein binden.', 'error')
+        return
+    end
 
     if not atRitualPoint(source) then
-        profile:Notify('Das geht nur an einem Ritualpunkt.', 'error')
+        profile:Notify('Das Binden gelingt nur an einem Ritualpunkt.', 'error')
         return
     end
 
     times = math.floor(tonumber(times) or 1)
-    if times < 1 or times > 50 then times = 1 end
+    if times < 1 then times = 1 end
+    if times > 20 then times = 20 end
 
-    local conversion = MysticConfig.Stones.conversion
-    local needed = conversion.amount * times
-    local stoneName, stoneLabel = Mystic.GetClassStone(profile.race)
-    if not stoneName then return end
+    local recipe = MysticConfig.Stones.recipe
+    local possible = maxCrafts(player)
 
-    if not player:HasItem(conversion.from, needed) then
-        local fromLabel = Mystic.Stones[conversion.from] and Mystic.Stones[conversion.from].label or conversion.from
-        profile:Notify(('Du brauchst %d %s.'):format(needed, fromLabel), 'error')
+    if possible < times then
+        local parts = {}
+        for item, count in pairs(recipe) do
+            if item ~= 'result' then
+                local stone = Mystic.Stones[item]
+                parts[#parts + 1] = ('%dx %s'):format(count * times, stone and stone.label or item)
+            end
+        end
+        table.sort(parts)
+
+        profile:Notify(('Dafuer brauchst du %s.'):format(table.concat(parts, ' und ')), 'error')
         return
     end
 
-    if not player:RemoveItem(conversion.from, needed) then return end
+    local stoneName, stoneLabel = Mystic.GetClassStone(profile.race)
+    if not stoneName then return end
 
-    local gained = conversion.result * times
+    local gained = (recipe.result or 1) * times
+
+    if not player:CanCarryItem(stoneName, gained) then
+        profile:Notify('Du kannst nicht mehr tragen.', 'error')
+        return
+    end
+
+    -- Erst abziehen, dann gutschreiben.
+    for item, count in pairs(recipe) do
+        if item ~= 'result' then
+            if not player:RemoveItem(item, count * times) then
+                profile:Notify('Die Steine konnten nicht entnommen werden.', 'error')
+                return
+            end
+        end
+    end
+
     player:AddItem(stoneName, gained)
-    profile:Notify(('%d %s erhalten.'):format(gained, stoneLabel), 'success')
+    profile:Notify(('%dx %s gebunden.'):format(gained, stoneLabel), 'success')
 
     TriggerClientEvent('mystic:client:refreshRitual', source)
+    TriggerEvent('mystic:server:stoneCrafted', source, stoneName, gained)
+end)
+
+-- Steinhaendler --------------------------------------------------------------
+
+RegisterNetEvent('mystic:server:buyStone', function(item, amount)
+    local source = source
+    local player = MS.GetPlayer(source)
+    if not player or not MysticConfig.Merchant.enabled then return end
+
+    -- Nur Grundsteine sind kaeuflich.
+    local allowed = false
+    for _, name in ipairs(MysticConfig.Stones.base) do
+        if name == item then allowed = true break end
+    end
+    if not allowed then return end
+
+    amount = math.floor(tonumber(amount) or 1)
+    if amount < 1 then amount = 1 end
+    if amount > MysticConfig.Merchant.maxPerPurchase then
+        amount = MysticConfig.Merchant.maxPerPurchase
+    end
+
+    -- Der Spieler muss wirklich bei einem Haendler stehen.
+    local coords = GetEntityCoords(GetPlayerPed(source))
+    local nearMerchant = false
+
+    for _, ped in ipairs(MysticConfig.Merchant.peds) do
+        if #(coords - vector3(ped.coords.x, ped.coords.y, ped.coords.z)) < 4.0 then
+            nearMerchant = true
+            break
+        end
+    end
+
+    if not nearMerchant then return end
+
+    local stone = Mystic.Stones[item]
+    local total = MysticConfig.Merchant.price * amount
+
+    if not player:CanCarryItem(item, amount) then
+        player:Notify('Du kannst nicht mehr tragen.', 'error')
+        return
+    end
+
+    if not player:RemoveMoney(total, MysticConfig.Merchant.account, 'steinhaendler') then
+        player:Notify(('Dir fehlen %s.'):format(MS.Utils.FormatMoney(
+            total - player:GetMoney(MysticConfig.Merchant.account))), 'error')
+        return
+    end
+
+    player:AddItem(item, amount)
+    player:Notify(('%dx %s fuer %s gekauft.'):format(
+        amount, stone and stone.label or item, MS.Utils.FormatMoney(total)), 'success')
+
+    TriggerClientEvent('mystic:client:merchantUpdate', source, {
+        money  = player:GetMoney(MysticConfig.Merchant.account),
+        stones = {
+            runenstein  = player:GetItemCount('runenstein'),
+            seelenstein = player:GetItemCount('seelenstein'),
+        },
+    })
+end)
+
+RegisterNetEvent('mystic:server:requestMerchant', function()
+    local source = source
+    local player = MS.GetPlayer(source)
+    if not player or not MysticConfig.Merchant.enabled then return end
+
+    local stones = {}
+    for _, name in ipairs(MysticConfig.Stones.base) do
+        local stone = Mystic.Stones[name]
+        stones[#stones + 1] = {
+            name  = name,
+            label = stone and stone.label or name,
+            description = stone and stone.description or '',
+            count = player:GetItemCount(name),
+        }
+    end
+
+    TriggerClientEvent('mystic:client:openMerchant', source, {
+        stones  = stones,
+        price   = MysticConfig.Merchant.price,
+        money   = player:GetMoney(MysticConfig.Merchant.account),
+        maximum = MysticConfig.Merchant.maxPerPurchase,
+        recipe  = MysticConfig.Stones.recipe,
+    })
 end)
 
 -- Meditation -----------------------------------------------------------------
@@ -208,7 +337,8 @@ function Mystic.BuildRitualPayload(source, atRitual)
         atRitual       = atRitual,
         meditationLeft = meditationLeft,
         canMeditate    = MysticConfig.Meditation.enabled,
-        conversion     = MysticConfig.Stones.conversion,
+        recipe         = MysticConfig.Stones.recipe,
+        craftable      = maxCrafts(player),
     }
 end
 

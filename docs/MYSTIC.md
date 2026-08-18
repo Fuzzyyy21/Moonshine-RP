@@ -28,8 +28,9 @@ werden vollständig erstattet.
 
 1. **Erwecken** – Am Ritualpunkt `E`, Klasse links auswählen. Zum Start gibt es
    20 Klassensteine.
-2. **Steine sammeln** – Reiter *Steine*: am Ritualpunkt meditieren, oder
-   5 Runensteine in 1 Klassenstein umwandeln (`+` in der Kopfzeile).
+2. **Grundsteine sammeln** – beim Weltboss (1–4 Runen- und 1–4 Seelensteine),
+   beim Steinhändler (je 1000 $) oder per Meditation am Ritualpunkt.
+   Daraus am Ritualpunkt einen Klassenstein binden: **10 + 10 → 1**.
 3. **Skillen** – Reiter *Skilltree*: Knoten anklicken, Stufenliste prüfen,
    *Skillen*. Kostet ausschließlich Klassensteine; tiefe Knoten zusätzlich eine
    Mindest-Klassenstufe (= Anzahl bereits geskillter Stufen).
@@ -46,7 +47,7 @@ Das ist die wichtigste Regel des Systems:
 
 | Baum | Währung | Quelle |
 |---|---|---|
-| **Klassenbaum** (Fähigkeiten der Klasse) | **Klassensteine** | Meditation, Umwandlung von Runensteinen, Admin |
+| **Klassenbaum** (Fähigkeiten der Klasse) | **Klassensteine** | aus 10 Runen- + 10 Seelensteinen gebunden |
 | **Persönlicher Baum** (Leben, Ausdauer, Schaden, …) | **Erfahrung (XP)** | Onlinezeit und Aktivität |
 
 XP können **nicht** in Klassenfähigkeiten gesteckt werden, Steine **nicht** in
@@ -106,11 +107,26 @@ und wird im Detailfenster einzeln aufgelistet.
 
 ## Steine
 
-| Stein | Verwendung |
+Es gibt nur **zwei Grundsteine**, aus denen alles andere entsteht:
+
+| Stein | Woher |
 |---|---|
-| Klassenstein (siehe Tabelle) | einzige Währung im Skilltree |
-| Runenstein | wird am Ritualpunkt in Klassensteine umgewandelt (5 : 1) |
-| Seelenstein | Klassenwechsel, wenn erlaubt |
+| **Runenstein** | Weltboss (1–4), Steinhändler (1000 $), Meditation |
+| **Seelenstein** | Weltboss (1–4), Steinhändler (1000 $), Meditation |
+
+**Binden** am Ritualpunkt, Reiter *Steine*:
+
+```
+10x Runenstein + 10x Seelenstein  ──>  1x Klassenstein
+```
+
+Der Klassenstein richtet sich nach der eigenen Klasse — ein Vampir bindet
+Blutsteine, ein Magier Arkansteine — und ist die einzige Währung im Skilltree.
+Rezept und Preise stehen in `MysticConfig.Stones` und `MysticConfig.Merchant`.
+
+**Steinhändler** stehen in Vinewood, Sandy Shores, Paleto Bay und der
+Innenstadt, sind auf der Karte markiert und verkaufen beide Grundsteine gegen
+Bargeld. Details zum Weltboss in [`SURVIVAL.md`](SURVIVAL.md).
 
 Alle Steine sind normale Items im Core-Inventar und werden beim Start über
 `exports['moonshine-core']:RegisterItem` registriert – `moonshine-core` bleibt
@@ -158,9 +174,9 @@ vor dem Livegang einmal im Spiel prüfen.
 * **Klassenwerte** – `shared/races.lua`: `stats` und `essence`.
 * **Baum** – `shared/skills.lua`: Position (`row`, `col`), `maxRank`,
   `requires`, `level`, `stones`, `essence`, `cooldown`, `effect`.
-* **Fortschritt** – `MysticConfig.Progression` (XP-Quellen und -Kurve für den
-  persönlichen Baum), `MysticConfig.Stones` (Startguthaben, Umwandlung) und
-  `MysticConfig.Meditation` (Steinnachschub) für den Klassenbaum.
+* **Fortschritt** – `MysticConfig.Progression` (XP für den persönlichen Baum),
+  `MysticConfig.Stones` (Rezept, Startguthaben), `MysticConfig.Merchant`
+  (Händlerpreise und Standorte) und `MysticConfig.Meditation`.
 * **Perks** – `shared/perks.lua`.
 * **Schutzzonen** – `MysticConfig.Combat.safeZones`.
 

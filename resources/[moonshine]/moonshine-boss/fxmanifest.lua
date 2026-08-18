@@ -2,9 +2,9 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
-name 'moonshine-nodes'
+name 'moonshine-boss'
 author 'Moonshine RP'
-description 'Steinadern: Ritualsteine in der Welt abbauen'
+description 'Weltbosse, die Ritualsteine fallen lassen'
 version '1.0.0'
 
 dependency 'moonshine-core'

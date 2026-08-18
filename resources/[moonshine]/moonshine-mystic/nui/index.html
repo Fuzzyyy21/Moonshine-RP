@@ -50,7 +50,7 @@
             <div class="stone-body">
                 <span class="gem">◆</span>
                 <span class="stone-count" id="stone-count">0</span>
-                <button class="plus" id="btn-convert" title="Runensteine umwandeln">+</button>
+                <button class="plus" id="btn-craft-2" title="Ritualstein binden">+</button>
             </div>
         </div>
     </header>
@@ -114,15 +114,26 @@
                 <div class="stone-columns">
                     <div class="stone-grid" id="stone-grid"></div>
                     <div class="stone-side">
-                        <h3>Meditation</h3>
-                        <p class="muted">Versenke dich am Ritualpunkt, um Steine zu finden.
-                            Steine deiner Klasse erscheinen haeufiger.</p>
-                        <div id="meditation-state" class="muted"></div>
-                        <button class="btn primary" id="btn-meditate">Meditieren</button>
+                        <h3>Ritualstein binden</h3>
+                        <p class="muted">Aus Grundsteinen wird der Stein deiner Klasse.
+                            Das gelingt nur an einem Ritualpunkt.</p>
 
-                        <h3 class="spaced">Umwandeln</h3>
-                        <p class="muted" id="conversion-text"></p>
-                        <button class="btn" id="btn-convert-2">Umwandeln</button>
+                        <div class="recipe" id="recipe"></div>
+                        <div class="recipe-result" id="recipe-result"></div>
+
+                        <div class="craft-row">
+                            <input type="number" id="craft-amount" min="1" max="20" value="1">
+                            <button class="btn primary" id="btn-craft">Binden</button>
+                        </div>
+
+                        <h3 class="spaced">Meditation</h3>
+                        <p class="muted">Versenke dich am Ritualpunkt fuer ein paar Grundsteine.</p>
+                        <div id="meditation-state" class="muted"></div>
+                        <button class="btn" id="btn-meditate">Meditieren</button>
+
+                        <h3 class="spaced">Weitere Quellen</h3>
+                        <p class="muted">Weltbosse lassen Grund&shy;steine fallen, und der
+                            Steinhaendler verkauft sie gegen Bargeld.</p>
                     </div>
                 </div>
             </div>
@@ -170,6 +181,29 @@
             <span class="foot-icon">✕</span>
         </button>
     </footer>
+</div>
+
+<!-- Steinhaendler ----------------------------------------------------------->
+<div id="merchant" class="overlay hidden">
+    <div class="merchant-window">
+        <header>
+            <div>
+                <h2>Steinhaendler</h2>
+                <p class="muted">Grundsteine gegen Bargeld. Was du daraus machst, ist deine Sache.</p>
+            </div>
+            <div class="merchant-money">
+                <span class="section-caption">Bargeld</span>
+                <span id="merchant-money">0 $</span>
+            </div>
+        </header>
+
+        <div class="merchant-list" id="merchant-list"></div>
+
+        <footer>
+            <span class="muted" id="merchant-hint"></span>
+            <button class="btn" id="btn-merchant-close">Schliessen (ESC)</button>
+        </footer>
+    </div>
 </div>
 
 <script src="app.js"></script>

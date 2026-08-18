@@ -511,17 +511,98 @@ function renderStones() {
         button.disabled = false;
     }
 
-    const conversion = data.conversion || {};
-    $('conversion-text').textContent = data.race
-        ? `${conversion.amount} ${conversion.fromLabel} ergeben ${conversion.result} ${data.stone.label}.`
+    renderRecipe();
+}
+
+/** Rezept fuer den Klassenstein. */
+function renderRecipe() {
+    const data = state.tree;
+    const recipe = data.recipe || { ingredients: [], result: 1, craftable: 0 };
+    const list = $('recipe');
+    list.innerHTML = '';
+
+    recipe.ingredients.forEach((ingredient) => {
+        const row = document.createElement('div');
+        row.className = 'recipe-row ' + (ingredient.have >= ingredient.need ? 'ok' : 'miss');
+        row.innerHTML = '<span></span><span></span>';
+        row.children[0].textContent = `${ingredient.need}x ${ingredient.label}`;
+        row.children[1].textContent = `${number(ingredient.have)} vorhanden`;
+        list.appendChild(row);
+    });
+
+    $('recipe-result').textContent = data.race
+        ? `ergibt ${recipe.result}x ${data.stone.label}`
         : 'Erst nach der Erweckung verfuegbar.';
-    $('btn-convert-2').disabled = !data.atRitual || !data.race;
+
+    const amount = $('craft-amount');
+    amount.max = Math.max(1, recipe.craftable || 1);
+
+    const blocked = !data.atRitual || !data.race || (recipe.craftable || 0) < 1;
+    $('btn-craft').disabled = blocked;
+    $('btn-craft-2').disabled = blocked;
+}
+
+function craft() {
+    const value = parseInt($('craft-amount').value, 10);
+    post('mysticCraft', { times: Number.isInteger(value) && value > 0 ? value : 1 });
 }
 
 $('btn-meditate').onclick = () => post('mysticMeditate');
-$('btn-convert').onclick = () => post('mysticConvert', { times: 1 });
-$('btn-convert-2').onclick = () => post('mysticConvert', { times: 1 });
+$('btn-craft').onclick = craft;
+$('btn-craft-2').onclick = () => {
+    document.querySelector('.tab[data-tab="stones"]').click();
+    craft();
+};
 $('btn-reset-perks').onclick = () => post('mysticResetPerks');
+
+
+/* ------------------------------------------------------------- Haendler */
+
+const merchant = { price: 1000, maximum: 20, stones: [] };
+
+function renderMerchant() {
+    const list = $('merchant-list');
+    list.innerHTML = '';
+
+    merchant.stones.forEach((stone) => {
+        const row = document.createElement('div');
+        row.className = 'merchant-row';
+        row.innerHTML = `
+            <div class="info">
+                <div class="label"></div>
+                <div class="desc"></div>
+            </div>
+            <div class="owned"></div>
+            <input type="number" min="1" value="1">
+            <div class="price"></div>
+            <button class="btn primary">Kaufen</button>`;
+
+        row.querySelector('.label').textContent = stone.label;
+        row.querySelector('.desc').textContent = stone.description || '';
+        row.querySelector('.owned').textContent = `${number(stone.count)} dabei`;
+        row.querySelector('.price').textContent = `${number(merchant.price)} $`;
+
+        const input = row.querySelector('input');
+        input.max = merchant.maximum;
+
+        row.querySelector('button').onclick = () => {
+            const value = parseInt(input.value, 10);
+            post('mysticBuyStone', {
+                item: stone.name,
+                amount: Math.min(merchant.maximum, Number.isInteger(value) && value > 0 ? value : 1),
+            });
+        };
+
+        list.appendChild(row);
+    });
+}
+
+function closeMerchant() {
+    $('merchant').classList.add('hidden');
+    post('mysticMerchantClose');
+}
+
+$('btn-merchant-close').onclick = closeMerchant;
 
 /* --------------------------------------------------------------- Anzeige */
 
@@ -545,7 +626,7 @@ function renderTreeScreen() {
     $('stone-caption').textContent = (data.stone && data.stone.label) || 'Steine';
     $('stone-count').textContent = number(data.stone && data.stone.count);
     $('stone-count-2').textContent = number(data.stone && data.stone.count);
-    $('btn-convert').disabled = !data.atRitual || !data.race;
+
 
     // Erfahrung gehoert allein zum persoenlichen Baum.
     $('personal-level').textContent = data.personalLevel || 1;
@@ -575,7 +656,11 @@ function closeTree() {
 $('btn-close').onclick = closeTree;
 
 document.addEventListener('keyup', (event) => {
-    if (event.key === 'Escape' && !$('tree-screen').classList.contains('hidden')) {
+    if (event.key !== 'Escape') return;
+
+    if (!$('merchant').classList.contains('hidden')) {
+        closeMerchant();
+    } else if (!$('tree-screen').classList.contains('hidden')) {
         closeTree();
     }
 });
@@ -612,6 +697,31 @@ window.addEventListener('message', (event) => {
 
         case 'mysticTreeClose':
             $('tree-screen').classList.add('hidden');
+            break;
+
+        case 'mysticMerchant':
+            merchant.price = data.price;
+            merchant.maximum = data.maximum;
+            merchant.stones = data.stones || [];
+            $('merchant-money').textContent = number(data.money) + ' $';
+            $('merchant-hint').textContent = data.recipe
+                ? `${data.recipe.runenstein}x Runenstein + ${data.recipe.seelenstein}x `
+                  + 'Seelenstein ergeben am Ritualpunkt einen Klassenstein.'
+                : '';
+            renderMerchant();
+            $('merchant').classList.remove('hidden');
+            break;
+
+        case 'mysticMerchantUpdate':
+            $('merchant-money').textContent = number(data.money) + ' $';
+            merchant.stones.forEach((stone) => {
+                if (data.stones[stone.name] !== undefined) stone.count = data.stones[stone.name];
+            });
+            renderMerchant();
+            break;
+
+        case 'mysticMerchantClose':
+            $('merchant').classList.add('hidden');
             break;
     }
 });

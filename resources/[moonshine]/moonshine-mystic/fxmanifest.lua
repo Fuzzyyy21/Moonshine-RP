@@ -35,6 +35,7 @@ client_scripts {
     'client/abilities.lua',
     'client/skillbar.lua',
     'client/ritual.lua',
+    'client/merchant.lua',
     'client/perks.lua',
     'client/racial.lua',
 }

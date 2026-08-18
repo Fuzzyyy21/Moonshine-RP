@@ -166,8 +166,23 @@ local function openUi(payload)
     end
     table.sort(stoneList, function(a, b) return a.label < b.label end)
 
-    local conversion = payload.conversion or MysticConfig.Stones.conversion
-    local fromStone = Mystic.Stones[conversion.from]
+    -- Rezept fuer den Klassenstein aufbereiten.
+    local recipe = payload.recipe or MysticConfig.Stones.recipe
+    local ingredients = {}
+
+    for item, count in pairs(recipe) do
+        if item ~= 'result' then
+            local stone = Mystic.Stones[item]
+            ingredients[#ingredients + 1] = {
+                item  = item,
+                label = stone and stone.label or item,
+                need  = count,
+                have  = stoneCounts[item] or 0,
+            }
+        end
+    end
+    table.sort(ingredients, function(a, b) return a.label < b.label end)
+
     local race = profile.race and Mystic.GetRace(profile.race) or nil
 
     uiOpen = true
@@ -204,11 +219,10 @@ local function openUi(payload)
                 label = profile.classStoneLabel,
                 count = stoneCount,
             },
-            conversion      = {
-                from      = conversion.from,
-                fromLabel = fromStone and fromStone.label or conversion.from,
-                amount    = conversion.amount,
-                result    = conversion.result,
+            recipe          = {
+                ingredients = ingredients,
+                result      = recipe.result or 1,
+                craftable   = payload.craftable or 0,
             },
 
             nodes           = nodes,
@@ -283,8 +297,8 @@ RegisterNUICallback('mysticSetSlot', function(data, cb)
     cb('ok')
 end)
 
-RegisterNUICallback('mysticConvert', function(data, cb)
-    TriggerServerEvent('mystic:server:convertStones', data.times or 1)
+RegisterNUICallback('mysticCraft', function(data, cb)
+    TriggerServerEvent('mystic:server:craftStone', data.times or 1)
     cb('ok')
 end)
 

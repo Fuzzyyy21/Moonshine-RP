@@ -1,7 +1,7 @@
 # Sterben, Wiederbelebung und Steinadern
 
 Zwei Resources, die den Spielkreislauf schließen: `moonshine-death` gibt dem Tod
-eine Konsequenz, `moonshine-nodes` gibt den Ritualsteinen eine Quelle in der Welt.
+eine Konsequenz, `moonshine-boss` gibt den Ritualsteinen eine Quelle in der Welt.
 
 ---
 
@@ -53,53 +53,74 @@ exports['moonshine-death']:IsDowned()                  --> boolean
 
 ---
 
-## moonshine-nodes – Steinadern
+## moonshine-boss – Weltbosse
 
-13 Fundorte in der Welt, an denen Ritualsteine abgebaut werden. Sie sind
-**nicht auf der Karte** (`NodeConfig.Blips.enabled = false`) — sie sollen
-gefunden und weitergegeben werden.
+Alle 45 Minuten erscheint an einem von sechs abgelegenen Orten ein Weltboss.
+Er wird serverweit angekündigt und auf der Karte markiert.
 
 ### Ablauf
 
-* **Werkzeug**: ein **Runenmeißel** (450 $ im 24/7) ist Pflicht. Er zerbricht
-  mit 4 % Wahrscheinlichkeit je Abbau.
-* **Abbau**: `E` an der Ader, 9 Sekunden Fortschrittsbalken. Weglaufen bricht ab.
-* **Vorkommen**: jede Ader hat 2–4 Ladungen, danach ist sie 10 Minuten versiegt.
-* **Gleichzeitigkeit**: an einer Ader arbeitet immer nur einer.
+* Drei Bosse zur Auswahl: **Uralter Blutfürst** (3500 Leben), **Bestie der
+  Wildnis** (2800) und **Schattenwandler** (4200, 300 Weste).
+* Der Boss greift den nächstgelegenen Spieler an, flieht nie und lässt sich
+  nicht umwerfen. Über ihm läuft ein Lebensbalken, solange man in der Nähe ist.
+* Wer mindestens **3 Treffer** landet und beim Tod im Umkreis von 80 Metern
+  steht, bekommt seinen Anteil.
+* Nach 25 Minuten zieht er sich zurück, falls ihn niemand erlegt.
 
-### Adertypen
+### Beute
 
-| Typ | Fundorte | Ausbeute |
+Jeder Teilnehmer würfelt **getrennt für beide Steinarten**:
+
+| Stein | Menge |
+|---|---|
+| Runenstein | 1–4 |
+| Seelenstein | 1–4 |
+
+Wer die meisten Treffer gelandet hat, bekommt zusätzlich 2 Seelensteine.
+
+### Commands
+
+| Command | Level | Beschreibung |
 |---|---|---|
-| **Runenader** | Steinbruch, Mine, Bergland | vor allem Runensteine |
-| **Seelenader** | Höhlen und Küste | vor allem Seelensteine |
-| **Verwunschene Ader** | Wälder, Chiliad | wirft zusätzlich den **Klassenstein** des Spielers aus |
-| **Verfluchte Ader** | Friedhof, Altruisten-Lager | beste Ausbeute, kostet währenddessen Leben |
-
-Die Klassenader liest die Klasse über `moonshine-mystic` aus — ein Vampir
-findet dort Blutsteine, ein Magier Arkansteine. Läuft das Mystik-System nicht,
-fällt der Anteil einfach weg.
-
-### Damit ergibt sich der Kreislauf
-
-```
-Steinader abbauen  ──>  Runensteine
-        │                    │
-        │                    ├── 5:1 umwandeln am Ritualpunkt ──> Klassenstein
-        │                                                              │
-        └── Verwunschene/Verfluchte Ader ──> Klassenstein direkt ───────┤
-                                                                       v
-                                                          Skilltree ausbauen
-```
-
-Dazu weiterhin: Meditation am Ritualpunkt alle 15 Minuten.
+| `/bossspawn` | 3 | Boss sofort erscheinen lassen |
+| `/bossweg` | 3 | Laufenden Boss entfernen |
+| `/bossinfo` | 3 | Status und Teilnehmerzahl |
 
 ### Konfiguration
 
-`moonshine-nodes/config.lua`: Werkzeug und Bruchchance, Abbaudauer, Respawn,
-Ladungen, Adertypen mit gewichteter Lootliste und alle Koordinaten.
-Die Koordinaten sind Richtwerte — einmal im Spiel gegenprüfen.
+`moonshine-boss/config.lua`: Intervall, Lebensdauer, Spawnpunkte, Bosse mit
+Modell, Leben, Waffe und Treffsicherheit, Beutemenge und Teilnahmebedingungen.
 
 | Event (Server) | Argumente |
 |---|---|
-| `moonshine-nodes:server:mined` | `source, adertyp, item, menge` |
+| `moonshine-boss:server:spawned` | `name, ort` |
+| `moonshine-boss:server:defeated` | `name, anzahlBelohnter` |
+| `moonshine-boss:server:despawned` | `grund` |
+
+---
+
+## Die Steinwirtschaft im Überblick
+
+Es gibt nur **zwei Grundsteine**: Runenstein und Seelenstein.
+
+```
+Weltboss (1-4 je Sorte)  ─┐
+Steinhändler (1000 $/St.) ─┼──>  Runensteine + Seelensteine
+Meditation (alle 15 Min)  ─┘             │
+                                         │  10 + 10 am Ritualpunkt
+                                         v
+                                  1 Klassenstein
+                                         │
+                                         v
+                                  Skilltree ausbauen
+```
+
+**Steinhändler** stehen an vier Orten (Vinewood, Sandy Shores, Paleto Bay,
+Innenstadt), sind auf der Karte markiert und verkaufen beide Grundsteine für
+je 1000 $ Bargeld. Konfiguration in `moonshine-mystic/shared/config.lua`
+unter `MysticConfig.Merchant`.
+
+**Binden** (Craften) geht nur am Ritualpunkt, Reiter *Steine*: 10 Runensteine
+plus 10 Seelensteine ergeben einen Klassenstein der eigenen Klasse. Das Rezept
+steht in `MysticConfig.Stones.recipe`.

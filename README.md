@@ -9,7 +9,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
 | `moonshine-mystic` | Klassen mit Skilltree (Ränge, bezahlt mit Klassensteinen), Skillleiste, persönlicher Skillbaum (bezahlt mit XP) → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
 | `moonshine-death` | Bewusstlosigkeit statt Sofort-Respawn, Notruf, Wiederbelebung → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
-| `moonshine-nodes` | Steinadern in der Welt: Ritualsteine abbauen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
+| `moonshine-boss` | Weltbosse alle 45 Minuten, lassen Runen- und Seelensteine fallen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
@@ -54,7 +54,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ensure moonshine-core
    ensure moonshine-mystic
    ensure moonshine-death
-   ensure moonshine-nodes
+   ensure moonshine-boss
    ensure moonshine-shops
    ```
 
@@ -81,7 +81,7 @@ resources/[moonshine]/
 │   ├── client/              Fähigkeiten, Skillleiste, Ritual-UI, Klassenmechanik
 │   └── nui/                 Oberfläche (Skillleiste, Skilltree, Perks)
 ├── moonshine-death/         Bewusstlosigkeit, Notruf, Wiederbelebung, Respawn
-├── moonshine-nodes/         Steinadern zum Abbauen von Ritualsteinen
+├── moonshine-boss/          Weltbosse als Quelle fuer Runen- und Seelensteine
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
 docs/API.md                  API-Dokumentation des Frameworks

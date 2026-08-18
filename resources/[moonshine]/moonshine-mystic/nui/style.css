@@ -444,6 +444,65 @@ html, body {
 .stone-side { width: 280px; flex: 0 0 280px; }
 .stone-side .btn { margin-top: 12px; width: 100%; }
 
+/* Rezept und Haendler */
+
+.recipe { display: flex; flex-direction: column; gap: 6px; margin: 12px 0 8px; }
+.recipe-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; padding: 8px 10px;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: rgba(0,0,0,.28);
+}
+.recipe-row.ok   { border-color: rgba(95,201,138,.45); }
+.recipe-row.miss { border-color: rgba(217,83,79,.45); color: #f0a5a3; }
+.recipe-result {
+    font-size: 12px; color: var(--class);
+    padding: 8px 10px; margin-bottom: 10px;
+    border: 1px dashed var(--class-dim); border-radius: 8px;
+}
+.craft-row { display: flex; gap: 8px; align-items: center; }
+.craft-row input {
+    width: 72px; padding: 9px; text-align: center; border-radius: 8px;
+    border: 1px solid var(--line); background: rgba(0,0,0,.4); color: var(--text);
+}
+.craft-row .btn { flex: 1; margin-top: 0; }
+
+.overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(6,5,10,.62); backdrop-filter: blur(4px);
+}
+
+.merchant-window {
+    width: 620px; max-width: 92vw;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px 26px 20px;
+}
+.merchant-window header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.merchant-window h2 { font-size: 20px; letter-spacing: 3px; text-transform: uppercase; color: var(--class); }
+.merchant-window header .muted { max-width: 340px; margin-top: 6px; }
+.merchant-money { text-align: right; }
+.merchant-money span:last-child { font-size: 20px; font-weight: 700; color: var(--ok); }
+
+.merchant-list { display: flex; flex-direction: column; gap: 10px; margin: 20px 0 16px; }
+.merchant-row {
+    display: flex; align-items: center; gap: 14px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--panel-2); padding: 12px 14px;
+}
+.merchant-row .info { flex: 1; }
+.merchant-row .label { font-size: 14px; }
+.merchant-row .desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.merchant-row .owned { font-size: 11px; color: var(--gold); min-width: 74px; text-align: right; }
+.merchant-row .price { font-size: 13px; color: var(--class); min-width: 84px; text-align: right; }
+.merchant-row input {
+    width: 62px; padding: 7px; text-align: center; border-radius: 8px;
+    border: 1px solid var(--line); background: rgba(0,0,0,.4); color: var(--text);
+}
+.merchant-window footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+
 /* Scrollbar */
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }

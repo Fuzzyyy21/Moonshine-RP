@@ -63,16 +63,41 @@ MysticConfig.Progression = {
     xpPerKill       = 0,    -- optional, von eigenen Scripts vergebbar
 }
 
--- Klassensteine --------------------------------------------------------------
+-- Steine ---------------------------------------------------------------------
+-- Es gibt nur zwei Grundsteine: Runenstein und Seelenstein. Beide bekommt man
+-- beim Weltboss oder kauft sie beim Haendler. Der Klassenstein wird daraus am
+-- Ritualpunkt gecraftet und ist die einzige Waehrung im Skilltree.
 MysticConfig.Stones = {
-    -- Umwandlung am Ritualpunkt: aus neutralen Steinen wird der Klassenstein.
-    conversion = {
-        from   = 'runenstein',
-        amount = 5,   -- so viele Runensteine
-        result = 1,   -- ergeben so viele Klassensteine
+    --- Rezept fuer einen Klassenstein.
+    recipe = {
+        runenstein  = 10,
+        seelenstein = 10,
+        result      = 1,
     },
-    -- Startguthaben beim Erwecken.
-    startAmount = 20,
+
+    --- Grundsteine, die es zu kaufen und zu finden gibt.
+    base = { 'runenstein', 'seelenstein' },
+
+    --- Startguthaben beim Erwecken (Klassensteine).
+    startAmount = 3,
+}
+
+-- Steinhaendler --------------------------------------------------------------
+MysticConfig.Merchant = {
+    enabled = true,
+    model   = 's_m_y_dealer_01',
+    price   = 1000,      -- Dollar je Grundstein
+    account = 'cash',
+    maxPerPurchase = 20,
+
+    peds = {
+        { label = 'Steinhaendler (Vinewood)',    coords = vector4(-1660.4, -237.3, 55.2, 118.0) },
+        { label = 'Steinhaendler (Sandy Shores)', coords = vector4(1962.1, 3803.4, 32.4, 300.0) },
+        { label = 'Steinhaendler (Paleto Bay)',   coords = vector4(-125.5, 6465.3, 31.5, 45.0) },
+        { label = 'Steinhaendler (Innenstadt)',   coords = vector4(275.4, -1155.3, 29.3, 90.0) },
+    },
+
+    blip = { enabled = true, sprite = 617, color = 27, scale = 0.65, label = 'Steinhaendler' },
 }
 
 -- Ritualpunkte ---------------------------------------------------------------
@@ -95,27 +120,18 @@ MysticConfig.RitualBlip = {
 }
 
 -- Meditation -----------------------------------------------------------------
--- Am Ritualpunkt meditieren, um Steine zu erhalten.
+-- Am Ritualpunkt meditieren, um ein paar Grundsteine zu erhalten.
 MysticConfig.Meditation = {
     enabled   = true,
     duration  = 20,    -- Sekunden
     cooldown  = 900,   -- Sekunden bis zur naechsten Meditation
     -- Gewichtete Ausbeute. Es faellt genau ein Eintrag.
     loot = {
-        { item = 'runenstein',    count = 1, weight = 45 },
-        { item = 'runenstein',    count = 2, weight = 18 },
-        { item = 'seelenstein',   count = 1, weight = 12 },
-        { item = 'blutstein',     count = 1, weight = 4  },
-        { item = 'mondstein',     count = 1, weight = 4  },
-        { item = 'flammenstein',  count = 1, weight = 4  },
-        { item = 'feenstaub',     count = 1, weight = 4  },
-        { item = 'arkanstein',    count = 1, weight = 4  },
-        { item = 'schattenstein', count = 1, weight = 3  },
-        { item = 'hexenstein',    count = 1, weight = 3  },
-        { item = 'silberstein',   count = 1, weight = 2  },
+        { item = 'runenstein',  count = 1, weight = 40 },
+        { item = 'runenstein',  count = 2, weight = 15 },
+        { item = 'seelenstein', count = 1, weight = 35 },
+        { item = 'seelenstein', count = 2, weight = 10 },
     },
-    -- Steine, die zur Rasse des Spielers passen, fallen bevorzugt (Faktor).
-    raceBonus = 2.5,
 }
 
 -- Ressource (Essenz) ---------------------------------------------------------

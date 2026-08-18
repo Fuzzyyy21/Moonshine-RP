@@ -29,7 +29,7 @@ ensure oxmysql
 ensure moonshine-core
 ensure moonshine-mystic
 ensure moonshine-death
-ensure moonshine-nodes
+ensure moonshine-boss
 ensure moonshine-shops
 
 # Rechte ---------------------------------------------------------------------
