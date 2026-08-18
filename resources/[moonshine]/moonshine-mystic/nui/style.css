@@ -503,6 +503,35 @@ html, body {
 }
 .merchant-window footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 
+/* Ritualpunkt */
+
+.ritual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ritual-card {
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--panel); padding: 16px 18px;
+}
+.ritual-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.ritual-head h3 { font-size: 15px; }
+.ritual-head .points { font-size: 13px; color: var(--gold); font-weight: 600; }
+.ritual-card .btn { width: 100%; margin-top: 12px; }
+.ritual-card .muted { min-height: 18px; }
+
+.blessing-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 10px; margin-top: 12px;
+}
+.blessing {
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--panel); padding: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+}
+.blessing .head { display: flex; align-items: center; gap: 9px; }
+.blessing .icon { font-size: 18px; }
+.blessing .title { font-size: 14px; flex: 1; }
+.blessing .cost { font-size: 12px; color: var(--gold); }
+.blessing .desc { font-size: 11px; color: var(--muted); line-height: 1.45; min-height: 32px; }
+.blessing .btn { margin-top: auto; }
+
 /* Scrollbar */
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }

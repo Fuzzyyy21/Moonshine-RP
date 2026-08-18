@@ -106,14 +106,17 @@ Es gibt nur **zwei Grundsteine**: Runenstein und Seelenstein.
 
 ```
 Weltboss (1-4 je Sorte)  ─┐
-Steinhändler (1000 $/St.) ─┼──>  Runensteine + Seelensteine
-Meditation (alle 15 Min)  ─┘             │
+Steinhändler (1000 $/St.) ─┴──>  Runensteine + Seelensteine
+                                         │
                                          │  10 + 10 am Ritualpunkt
                                          v
-                                  1 Klassenstein
+                                  1 Klassenstein  (erster Skill: 5 Stück)
                                          │
                                          v
                                   Skilltree ausbauen
+
+Ritual (alle 30 Min)   ──> 10.000 $  ──> beim Händler wieder Steine
+Meditation (alle 15 Min) ──> Meditationspunkte ──> Segen
 ```
 
 **Steinhändler** stehen an vier Orten (Vinewood, Sandy Shores, Paleto Bay,

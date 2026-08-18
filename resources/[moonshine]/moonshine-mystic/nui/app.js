@@ -101,7 +101,7 @@ document.querySelectorAll('.tab').forEach((tab) => {
         document.querySelectorAll('.tab').forEach((other) => other.classList.remove('active'));
         tab.classList.add('active');
 
-        ['tree', 'perks', 'bar', 'stones'].forEach((name) => {
+        ['tree', 'perks', 'bar', 'stones', 'ritual'].forEach((name) => {
             $('panel-' + name).classList.toggle('hidden', name !== tab.dataset.tab);
         });
     };
@@ -493,25 +493,82 @@ function renderStones() {
         grid.appendChild(element);
     });
 
+    renderRecipe();
+}
+
+/** Ritualpunkt: Meditation, Ritual und Segen. */
+function renderRitualTab() {
+    const data = state.tree;
     const meditation = data.meditation || {};
-    const button = $('btn-meditate');
-    const info = $('meditation-state');
+    const ritual = data.ritual || {};
+
+    $('med-points').textContent = number(data.meditationPoints);
+    $('med-points-2').textContent = number(data.meditationPoints);
+
+    const medButton = $('btn-meditate');
+    const medInfo = $('meditation-state');
 
     if (!meditation.enabled) {
-        info.textContent = 'Meditation ist auf diesem Server deaktiviert.';
-        button.disabled = true;
+        medInfo.textContent = 'Meditation ist auf diesem Server deaktiviert.';
+        medButton.disabled = true;
     } else if (!data.atRitual) {
-        info.textContent = 'Nur an einem Ritualpunkt moeglich.';
-        button.disabled = true;
+        medInfo.textContent = 'Nur an einem Ritualpunkt moeglich.';
+        medButton.disabled = true;
     } else if (meditation.left > 0) {
-        info.textContent = `Noch ${Math.ceil(meditation.left / 60)} Minuten Ruhe noetig.`;
-        button.disabled = true;
+        medInfo.textContent = `Noch ${Math.ceil(meditation.left / 60)} Minuten Ruhe noetig.`;
+        medButton.disabled = true;
     } else {
-        info.textContent = `Dauer: ${meditation.duration} Sekunden.`;
-        button.disabled = false;
+        const points = meditation.points || {};
+        medInfo.textContent = `${meditation.duration} Sekunden, ergibt `
+            + `${points.min}-${points.max} Punkte.`;
+        medButton.disabled = false;
     }
 
-    renderRecipe();
+    const ritButton = $('btn-ritual');
+    const ritInfo = $('ritual-state');
+    $('ritual-reward').textContent = number(ritual.reward) + ' $';
+
+    if (!ritual.enabled) {
+        ritInfo.textContent = 'Rituale sind auf diesem Server deaktiviert.';
+        ritButton.disabled = true;
+    } else if (!data.atRitual) {
+        ritInfo.textContent = 'Nur an einem Ritualpunkt moeglich.';
+        ritButton.disabled = true;
+    } else if (ritual.left > 0) {
+        ritInfo.textContent = `Der Ort erholt sich noch ${Math.ceil(ritual.left / 60)} Minuten.`;
+        ritButton.disabled = true;
+    } else {
+        ritInfo.textContent = `${ritual.duration} Sekunden`
+            + (ritual.cost > 0 ? `, Einsatz ${ritual.cost} Meditationspunkte.` : '.');
+        ritButton.disabled = false;
+    }
+
+    const grid = $('blessing-grid');
+    grid.innerHTML = '';
+
+    (data.blessings || []).forEach((blessing) => {
+        const card = document.createElement('div');
+        card.className = 'blessing';
+        card.innerHTML = `
+            <div class="head">
+                <span class="icon"></span>
+                <span class="title"></span>
+                <span class="cost"></span>
+            </div>
+            <div class="desc"></div>
+            <button class="btn primary">Wirken</button>`;
+
+        card.querySelector('.icon').textContent = blessing.icon || '✦';
+        card.querySelector('.title').textContent = blessing.label;
+        card.querySelector('.cost').textContent = `${blessing.cost} P`;
+        card.querySelector('.desc').textContent = blessing.description;
+
+        const button = card.querySelector('button');
+        button.disabled = !data.atRitual || !blessing.affordable;
+        button.onclick = () => post('mysticBlessing', { id: blessing.id });
+
+        grid.appendChild(card);
+    });
 }
 
 /** Rezept fuer den Klassenstein. */
@@ -548,6 +605,7 @@ function craft() {
 }
 
 $('btn-meditate').onclick = () => post('mysticMeditate');
+$('btn-ritual').onclick = () => post('mysticRitual');
 $('btn-craft').onclick = craft;
 $('btn-craft-2').onclick = () => {
     document.querySelector('.tab[data-tab="stones"]').click();
@@ -644,6 +702,7 @@ function renderTreeScreen() {
     renderPerks();
     renderBarEditor();
     renderStones();
+    renderRitualTab();
 
     $('tree-screen').classList.remove('hidden');
 }

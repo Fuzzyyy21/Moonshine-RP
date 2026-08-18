@@ -1,11 +1,10 @@
---- Ritualpunkte: Marker, Skilltree-Oberflaeche und Meditation.
+--- Ritualpunkte: Marker, Skilltree-Oberflaeche, Meditation und Rituale.
 
 local MS = exports['moonshine-core']:GetCoreObject()
 
 local uiOpen = false
 local uiAtRitual = false
-local meditating = false
-local lastPayload = nil
+local channeling = false
 
 -- Aufbereitung der Baumdaten -------------------------------------------------
 
@@ -92,6 +91,27 @@ local function buildPerks(profile)
     return result
 end
 
+--- Segen mit Bezahlbarkeit.
+local function buildBlessings(profile)
+    if not MysticConfig.Blessings.enabled then return {} end
+
+    local points = profile.meditationPoints or 0
+    local result = {}
+
+    for _, entry in ipairs(MysticConfig.Blessings.list) do
+        result[#result + 1] = {
+            id          = entry.id,
+            label       = entry.label,
+            icon        = entry.icon,
+            cost        = entry.cost,
+            description = entry.description,
+            affordable  = points >= entry.cost,
+        }
+    end
+
+    return result
+end
+
 local function buildBarSlots(profile)
     local slots = {}
 
@@ -143,7 +163,6 @@ end
 
 local function openUi(payload)
     local profile = payload.profile
-    lastPayload = payload
 
     local stoneCounts = payload.stones or {}
     local classStone = profile.classStone
@@ -235,7 +254,17 @@ local function openUi(payload)
                 enabled  = payload.canMeditate or false,
                 left     = payload.meditationLeft or 0,
                 duration = MysticConfig.Meditation.duration,
+                points   = MysticConfig.Meditation.points,
             },
+            ritual          = {
+                enabled  = (payload.ritual or MysticConfig.Ritual).enabled,
+                left     = payload.ritualLeft or 0,
+                duration = (payload.ritual or MysticConfig.Ritual).duration,
+                reward   = (payload.ritual or MysticConfig.Ritual).reward.amount,
+                cost     = (payload.ritual or MysticConfig.Ritual).costPoints or 0,
+            },
+            blessings       = buildBlessings(profile),
+            meditationPoints = profile.meditationPoints or 0,
         },
     })
 end
@@ -308,38 +337,81 @@ RegisterNUICallback('mysticMeditate', function(_, cb)
     cb('ok')
 end)
 
--- Meditation -----------------------------------------------------------------
+RegisterNUICallback('mysticRitual', function(_, cb)
+    closeUi()
+    TriggerServerEvent('mystic:server:performRitual')
+    cb('ok')
+end)
 
-RegisterNetEvent('mystic:client:meditationStart', function(duration)
-    if meditating then return end
-    meditating = true
+RegisterNUICallback('mysticBlessing', function(data, cb)
+    TriggerServerEvent('mystic:server:useBlessing', data.id)
+    cb('ok')
+end)
+
+-- Kanalisieren: Meditation und Ritual ----------------------------------------
+
+local CHANNEL_ANIMS = {
+    meditation = { dict = 'amb@world_human_bum_slumped@male@laying_on_left_side@base', anim = 'base' },
+    ritual     = { dict = 'amb@world_human_bum_standing@blowing@base',                 anim = 'base' },
+}
+
+RegisterNetEvent('mystic:client:channelStart', function(data)
+    if channeling then return end
+    channeling = true
 
     local ped = PlayerPedId()
-    local dict = 'amb@world_human_bum_slumped@male@laying_on_left_side@base'
+    local animation = CHANNEL_ANIMS[data.kind] or CHANNEL_ANIMS.meditation
 
-    RequestAnimDict(dict)
+    RequestAnimDict(animation.dict)
     local timeout = GetGameTimer() + 3000
-    while not HasAnimDictLoaded(dict) and GetGameTimer() < timeout do Wait(10) end
+    while not HasAnimDictLoaded(animation.dict) and GetGameTimer() < timeout do Wait(10) end
 
-    if HasAnimDictLoaded(dict) then
-        TaskPlayAnim(ped, dict, 'base', 8.0, -8.0, duration * 1000, 1, 0.0, false, false, false)
+    if HasAnimDictLoaded(animation.dict) then
+        TaskPlayAnim(ped, animation.dict, animation.anim, 8.0, -8.0,
+            data.duration * 1000, 1, 0.0, false, false, false)
     end
 
-    MS.Notify('Du versenkst dich in Meditation.', 'info', 5000)
+    MS.Notify(('%s begonnen.'):format(data.label or 'Handlung'), 'info', 5000)
 
     CreateThread(function()
-        local endTime = GetGameTimer() + duration * 1000
+        local endTime = GetGameTimer() + data.duration * 1000
 
         while GetGameTimer() < endTime do
             local coords = GetEntityCoords(PlayerPedId())
             MS.DrawText3D(coords + vector3(0.0, 0.0, 1.1),
-                ('Meditation ~y~%d s'):format(math.ceil((endTime - GetGameTimer()) / 1000)))
+                ('%s ~y~%d s'):format(data.label or '', math.ceil((endTime - GetGameTimer()) / 1000)))
             Wait(0)
         end
 
         ClearPedTasks(PlayerPedId())
-        meditating = false
+        channeling = false
     end)
+end)
+
+--- Segen wirken lassen.
+RegisterNetEvent('mystic:client:blessing', function(blessing)
+    local ped = PlayerPedId()
+
+    if blessing.kind == 'heal' then
+        SetEntityHealth(ped, GetEntityMaxHealth(ped))
+        ClearPedBloodDamage(ped)
+        Mystic.Effects.slow = nil
+        ClearTimecycleModifier()
+
+    elseif blessing.kind == 'buff' then
+        Mystic.Buffs['blessing_' .. blessing.id] = {
+            expires    = GetGameTimer() + (blessing.duration or 60) * 1000,
+            damageMult = blessing.damageMult,
+            meleeMult  = blessing.meleeMult,
+            speedMult  = blessing.speedMult,
+        }
+
+        if blessing.armor then
+            SetPedArmour(ped, math.max(GetPedArmour(ped), blessing.armor))
+        end
+    end
+
+    AnimpostfxPlay('HeistCelebPass', 2000, false)
 end)
 
 -- Marker und Blips -----------------------------------------------------------
@@ -364,7 +436,7 @@ CreateThread(function()
     while true do
         local sleep = 800
 
-        if MS.IsPlayerLoaded and not uiOpen and not meditating then
+        if MS.IsPlayerLoaded and not uiOpen and not channeling then
             local coords = GetEntityCoords(PlayerPedId())
 
             for _, point in ipairs(MysticConfig.RitualPoints) do

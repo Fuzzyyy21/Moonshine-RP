@@ -28,9 +28,9 @@ werden vollständig erstattet.
 
 1. **Erwecken** – Am Ritualpunkt `E`, Klasse links auswählen. Zum Start gibt es
    20 Klassensteine.
-2. **Grundsteine sammeln** – beim Weltboss (1–4 Runen- und 1–4 Seelensteine),
-   beim Steinhändler (je 1000 $) oder per Meditation am Ritualpunkt.
-   Daraus am Ritualpunkt einen Klassenstein binden: **10 + 10 → 1**.
+2. **Grundsteine sammeln** – beim Weltboss (1–4 Runen- und 1–4 Seelensteine)
+   oder beim Steinhändler (je 1000 $). Daraus am Ritualpunkt einen Klassenstein
+   binden: **10 + 10 → 1**. Der erste Skill kostet 5 Klassensteine.
 3. **Skillen** – Reiter *Skilltree*: Knoten anklicken, Stufenliste prüfen,
    *Skillen*. Kostet ausschließlich Klassensteine; tiefe Knoten zusätzlich eine
    Mindest-Klassenstufe (= Anzahl bereits geskillter Stufen).
@@ -82,6 +82,8 @@ XP gibt es unabhängig von der Klasse — auch ohne Erweckung:
 | je getroffenem Ziel | 8 |
 | Meditation abgeschlossen | 150 |
 
+Meditation gibt zusätzlich Meditationspunkte — eine eigene Währung, siehe unten.
+
 Zum Start gibt es 500 XP. Das Guthaben wird beim Kauf einer Perkstufe abgezogen;
 die *persönliche Stufe* im Reiter *Persönliche Skills* richtet sich nach der
 insgesamt verdienten Erfahrung (`500 + Stufe × 650` je Aufstieg) und sinkt beim
@@ -111,8 +113,8 @@ Es gibt nur **zwei Grundsteine**, aus denen alles andere entsteht:
 
 | Stein | Woher |
 |---|---|
-| **Runenstein** | Weltboss (1–4), Steinhändler (1000 $), Meditation |
-| **Seelenstein** | Weltboss (1–4), Steinhändler (1000 $), Meditation |
+| **Runenstein** | Weltboss (1–4), Steinhändler (1000 $) |
+| **Seelenstein** | Weltboss (1–4), Steinhändler (1000 $) |
 
 **Binden** am Ritualpunkt, Reiter *Steine*:
 
@@ -150,6 +152,44 @@ Bezahlt wird mit **XP**. Die Kosten steigen je Stufe: `costBase + (Stufe−1) ×
 
 Zurücksetzen geht am Ritualpunkt und erstattet die volle ausgegebene Erfahrung.
 
+## Am Ritualpunkt
+
+Drei Dinge passieren dort, jeweils mit eigener Abklingzeit:
+
+| Handlung | Dauer | Abklingzeit | Ertrag |
+|---|---|---|---|
+| **Meditation** | 20 s | 15 Min | 1–3 Meditationspunkte + 150 XP |
+| **Ritual** | 30 s | 30 Min | 10.000 $ auf die Bank |
+| **Segen** | sofort | – | kostet Meditationspunkte |
+
+### Meditationspunkte
+
+Meditation gibt **ausschließlich Meditationspunkte** — keine Steine. Sie sind
+eine eigene Währung neben Klassensteinen und XP.
+
+Aktuell kauft man damit **Segen**: sofort wirkende Vorteile am Ritualpunkt.
+
+| Segen | Kosten | Wirkung |
+|---|---|---|
+| Segen der Klarheit | 1 | Essenz sofort voll |
+| Segen der Genesung | 2 | volle Heilung, reinigt Flüche |
+| Segen der Eile | 2 | alle Abklingzeiten zurückgesetzt |
+| Segen des Schutzes | 3 | 5 Min lang 75 Weste |
+| Segen der Stärke | 4 | 5 Min lang +25 % Schaden |
+
+Das ist ein erster Entwurf — die Liste steht komplett in
+`MysticConfig.Blessings` und lässt sich frei umbauen. Weitere Ideen für
+Meditationspunkte stehen in [`ROADMAP.md`](ROADMAP.md).
+
+### Rituale
+
+Ein Ritual bringt **vorerst nur Geld**: 10.000 $ auf die Bank, alle 30 Minuten.
+Was sonst noch dabei herausspringen soll, ist bewusst offen gelassen —
+Vorschläge dazu in [`ROADMAP.md`](ROADMAP.md).
+
+`MysticConfig.Ritual` regelt Dauer, Abklingzeit, Belohnung und einen optionalen
+Einsatz an Meditationspunkten (`costPoints`, standardmäßig 0).
+
 ## Ritualpunkte
 
 Sechs Standorte in `MysticConfig.RitualPoints` (Vinewood Friedhof, Mount
@@ -165,6 +205,7 @@ vor dem Livegang einmal im Spiel prüfen.
 | `/skillleiste` | – | Leiste aus-/einklappen (F5) |
 | `/setrasse [id] [klasse]` | 3 | Klasse setzen |
 | `/givexp [id] [xp]` | 3 | Erfahrung für den persönlichen Baum vergeben |
+| `/givemeditation [id] [n]` | 3 | Meditationspunkte vergeben |
 | `/givestein [id] [stein] [n]` | 3 | Steine vergeben |
 | `/unlockall [id]` | 3 | Alle Knoten auf Maximalstufe (Test) |
 | `/resetmystic [id]` | 3 | Klasse, Skills, Stufe und Perks zurücksetzen |

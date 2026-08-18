@@ -79,7 +79,7 @@ MysticConfig.Stones = {
     base = { 'runenstein', 'seelenstein' },
 
     --- Startguthaben beim Erwecken (Klassensteine).
-    startAmount = 3,
+    startAmount = 1,
 }
 
 -- Steinhaendler --------------------------------------------------------------
@@ -120,17 +120,56 @@ MysticConfig.RitualBlip = {
 }
 
 -- Meditation -----------------------------------------------------------------
--- Am Ritualpunkt meditieren, um ein paar Grundsteine zu erhalten.
+-- Meditation gibt ausschliesslich Meditationspunkte, keine Steine.
 MysticConfig.Meditation = {
-    enabled   = true,
-    duration  = 20,    -- Sekunden
-    cooldown  = 900,   -- Sekunden bis zur naechsten Meditation
-    -- Gewichtete Ausbeute. Es faellt genau ein Eintrag.
-    loot = {
-        { item = 'runenstein',  count = 1, weight = 40 },
-        { item = 'runenstein',  count = 2, weight = 15 },
-        { item = 'seelenstein', count = 1, weight = 35 },
-        { item = 'seelenstein', count = 2, weight = 10 },
+    enabled  = true,
+    duration = 20,     -- Sekunden Versenkung
+    cooldown = 900,    -- Sekunden bis zur naechsten Meditation
+    points   = { min = 1, max = 3 },
+}
+
+-- Rituale --------------------------------------------------------------------
+-- Ein Ritual am Ritualpunkt bringt vorerst nur Geld. Was noch dazukommt,
+-- steht in docs/ROADMAP.md unter "Rituale".
+MysticConfig.Ritual = {
+    enabled  = true,
+    duration = 30,      -- Sekunden Konzentration
+    cooldown = 1800,    -- 30 Minuten
+    reward   = { account = 'bank', amount = 10000 },
+    -- Einsatz an Meditationspunkten (0 = keiner).
+    costPoints = 0,
+}
+
+-- Segen ----------------------------------------------------------------------
+-- Verwendung der Meditationspunkte. Erster Entwurf, leicht austauschbar.
+MysticConfig.Blessings = {
+    enabled = true,
+    list = {
+        {
+            id = 'klarheit', label = 'Segen der Klarheit', icon = '🔵', cost = 1,
+            description = 'Fuellt deine Essenz sofort vollstaendig auf.',
+            kind = 'essence',
+        },
+        {
+            id = 'genesung', label = 'Segen der Genesung', icon = '💚', cost = 2,
+            description = 'Heilt dich vollstaendig und reinigt Flueche.',
+            kind = 'heal',
+        },
+        {
+            id = 'eile', label = 'Segen der Eile', icon = '⏱', cost = 2,
+            description = 'Setzt alle Abklingzeiten deiner Faehigkeiten zurueck.',
+            kind = 'cooldowns',
+        },
+        {
+            id = 'schutz', label = 'Segen des Schutzes', icon = '🛡', cost = 3,
+            description = '5 Minuten lang 75 Weste und mehr Widerstand.',
+            kind = 'buff', duration = 300, armor = 75,
+        },
+        {
+            id = 'staerke', label = 'Segen der Staerke', icon = '💪', cost = 4,
+            description = '5 Minuten lang 25 Prozent mehr Schaden.',
+            kind = 'buff', duration = 300, damageMult = 1.25, meleeMult = 1.25,
+        },
     },
 }
 

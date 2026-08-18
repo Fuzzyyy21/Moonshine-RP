@@ -1,4 +1,4 @@
---- Ritualpunkte: Erweckung, Klassenwechsel, Meditation und Steinumwandlung.
+--- Ritualpunkte: Erweckung, Craften, Meditation, Rituale und Segen.
 
 local MS = exports['moonshine-core']:GetCoreObject()
 
@@ -251,31 +251,7 @@ RegisterNetEvent('mystic:server:requestMerchant', function()
 end)
 
 -- Meditation -----------------------------------------------------------------
-
-local function rollLoot(race)
-    local raceStone = race and Mystic.RaceStones[race] or nil
-    local entries, total = {}, 0
-
-    for _, entry in ipairs(MysticConfig.Meditation.loot) do
-        local weight = entry.weight
-        if raceStone and entry.item == raceStone then
-            weight = weight * (MysticConfig.Meditation.raceBonus or 1)
-        end
-
-        total = total + weight
-        entries[#entries + 1] = { item = entry.item, count = entry.count, weight = weight }
-    end
-
-    local roll = math.random() * total
-    local sum = 0
-
-    for _, entry in ipairs(entries) do
-        sum = sum + entry.weight
-        if roll <= sum then return entry end
-    end
-
-    return entries[1]
-end
+-- Meditation gibt ausschliesslich Meditationspunkte.
 
 RegisterNetEvent('mystic:server:meditate', function()
     local source = source
@@ -290,12 +266,16 @@ RegisterNetEvent('mystic:server:meditate', function()
 
     local remaining = (profile.lastMeditation + MysticConfig.Meditation.cooldown) - os.time()
     if remaining > 0 then
-        profile:Notify(('Die Steine schweigen noch %d Minuten.'):format(math.ceil(remaining / 60)), 'warning')
+        profile:Notify(('Deine Gedanken sind noch %d Minuten unruhig.'):format(math.ceil(remaining / 60)), 'warning')
         return
     end
 
     profile.lastMeditation = os.time()
-    TriggerClientEvent('mystic:client:meditationStart', source, MysticConfig.Meditation.duration)
+    TriggerClientEvent('mystic:client:channelStart', source, {
+        kind     = 'meditation',
+        duration = MysticConfig.Meditation.duration,
+        label    = 'Meditation',
+    })
 
     SetTimeout(MysticConfig.Meditation.duration * 1000, function()
         if not Mystic.Profiles[source] or not MS.GetPlayer(source) then return end
@@ -304,15 +284,110 @@ RegisterNetEvent('mystic:server:meditate', function()
             return
         end
 
-        local loot = rollLoot(profile.race)
-        if player:AddItem(loot.item, loot.count) then
-            local stone = Mystic.Stones[loot.item]
-            profile:Notify(('Die Erde gibt dir %dx %s.'):format(loot.count, stone and stone.label or loot.item), 'success')
+        local points = math.random(MysticConfig.Meditation.points.min, MysticConfig.Meditation.points.max)
+        profile:AddMeditationPoints(points)
+        profile:AddXp(MysticConfig.Progression.xpPerMeditation)
+
+        profile:Notify(('%d Meditationspunkt(e) erhalten.'):format(points), 'success')
+        profile:Save()
+        profile:Sync()
+        TriggerClientEvent('mystic:client:refreshRitual', source)
+        TriggerEvent('mystic:server:meditated', source, points)
+    end)
+end)
+
+-- Ritual ---------------------------------------------------------------------
+-- Bringt vorerst nur Geld. Weitere Belohnungen sind noch offen.
+
+RegisterNetEvent('mystic:server:performRitual', function()
+    local source = source
+    local profile = Mystic.Profiles[source]
+    local player  = MS.GetPlayer(source)
+    if not profile or not player or not MysticConfig.Ritual.enabled then return end
+
+    if not atRitualPoint(source) then
+        profile:Notify('Du musst an einem Ritualpunkt stehen.', 'error')
+        return
+    end
+
+    local remaining = (profile.lastRitual + MysticConfig.Ritual.cooldown) - os.time()
+    if remaining > 0 then
+        profile:Notify(('Der Ort ist noch %d Minuten erschoepft.'):format(math.ceil(remaining / 60)), 'warning')
+        return
+    end
+
+    local cost = MysticConfig.Ritual.costPoints or 0
+    if cost > 0 and not profile:SpendMeditationPoints(cost) then
+        profile:Notify(('Dafuer brauchst du %d Meditationspunkte.'):format(cost), 'error')
+        return
+    end
+
+    profile.lastRitual = os.time()
+    TriggerClientEvent('mystic:client:channelStart', source, {
+        kind     = 'ritual',
+        duration = MysticConfig.Ritual.duration,
+        label    = 'Ritual',
+    })
+
+    SetTimeout(MysticConfig.Ritual.duration * 1000, function()
+        if not Mystic.Profiles[source] or not MS.GetPlayer(source) then return end
+        if not atRitualPoint(source) then
+            profile:Notify('Das Ritual wurde unterbrochen.', 'error')
+            return
         end
 
-        profile:AddXp(MysticConfig.Progression.xpPerMeditation)
+        local reward = MysticConfig.Ritual.reward
+        player:AddMoney(reward.amount, reward.account, 'ritual')
+        profile:Notify(('Das Ritual bringt dir %s.'):format(MS.Utils.FormatMoney(reward.amount)), 'success', 8000)
+
+        profile:Save()
         profile:Sync()
+        TriggerClientEvent('mystic:client:refreshRitual', source)
+        TriggerEvent('mystic:server:ritualPerformed', source, reward.amount)
     end)
+end)
+
+-- Segen ----------------------------------------------------------------------
+
+local function findBlessing(id)
+    for _, entry in ipairs(MysticConfig.Blessings.list) do
+        if entry.id == id then return entry end
+    end
+end
+
+RegisterNetEvent('mystic:server:useBlessing', function(id)
+    local source = source
+    local profile = Mystic.Profiles[source]
+    if not profile or not MysticConfig.Blessings.enabled then return end
+
+    local blessing = findBlessing(id)
+    if not blessing then return end
+
+    if not atRitualPoint(source) then
+        profile:Notify('Segen wirken nur am Ritualpunkt.', 'error')
+        return
+    end
+
+    if not profile:SpendMeditationPoints(blessing.cost) then
+        profile:Notify(('Dir fehlen %d Meditationspunkte.'):format(
+            blessing.cost - profile.meditationPoints), 'error')
+        return
+    end
+
+    -- Wirkung serverseitig, soweit sie den Zustand betrifft.
+    if blessing.kind == 'essence' then
+        profile:SetEssence(profile:GetMaxEssence())
+    elseif blessing.kind == 'cooldowns' then
+        profile.cooldowns = {}
+    end
+
+    TriggerClientEvent('mystic:client:blessing', source, blessing)
+    profile:Notify(('%s wirkt.'):format(blessing.label), 'success')
+
+    profile:Save()
+    profile:Sync()
+    TriggerClientEvent('mystic:client:refreshRitual', source)
+    TriggerEvent('mystic:server:blessingUsed', source, blessing.id)
 end)
 
 -- Daten fuer die Oberflaeche -------------------------------------------------
@@ -330,6 +405,7 @@ function Mystic.BuildRitualPayload(source, atRitual)
     end
 
     local meditationLeft = math.max(0, (profile.lastMeditation + MysticConfig.Meditation.cooldown) - os.time())
+    local ritualLeft     = math.max(0, (profile.lastRitual + MysticConfig.Ritual.cooldown) - os.time())
 
     return {
         profile        = profile:GetData(),
@@ -337,6 +413,9 @@ function Mystic.BuildRitualPayload(source, atRitual)
         atRitual       = atRitual,
         meditationLeft = meditationLeft,
         canMeditate    = MysticConfig.Meditation.enabled,
+        ritualLeft     = ritualLeft,
+        ritual         = MysticConfig.Ritual,
+        blessings      = MysticConfig.Blessings,
         recipe         = MysticConfig.Stones.recipe,
         craftable      = maxCrafts(player),
     }

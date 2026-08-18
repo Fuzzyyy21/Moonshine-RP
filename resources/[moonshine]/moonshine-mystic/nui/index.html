@@ -71,6 +71,7 @@
                 <button class="tab" data-tab="perks">Persoenliche Skills</button>
                 <button class="tab" data-tab="bar">Skillleiste</button>
                 <button class="tab" data-tab="stones">Steine</button>
+                <button class="tab" data-tab="ritual">Ritualpunkt</button>
             </div>
 
             <div class="tab-panel" id="panel-tree">
@@ -110,6 +111,37 @@
                 </div>
             </div>
 
+
+            <div class="tab-panel hidden" id="panel-ritual">
+                <div class="ritual-grid">
+                    <div class="ritual-card">
+                        <div class="ritual-head">
+                            <h3>Meditation</h3>
+                            <span class="points"><span id="med-points">0</span> Punkte</span>
+                        </div>
+                        <p class="muted">Versenke dich am Ritualpunkt und sammle
+                            Meditationspunkte. Sie sind die Waehrung fuer Segen.</p>
+                        <div class="muted" id="meditation-state"></div>
+                        <button class="btn primary" id="btn-meditate">Meditieren</button>
+                    </div>
+
+                    <div class="ritual-card">
+                        <div class="ritual-head">
+                            <h3>Ritual</h3>
+                            <span class="points" id="ritual-reward">10.000 $</span>
+                        </div>
+                        <p class="muted">Ein vollstaendiges Ritual am Ort der Kraft.
+                            Es bringt derzeit nur Geld.</p>
+                        <div class="muted" id="ritual-state"></div>
+                        <button class="btn primary" id="btn-ritual">Ritual beginnen</button>
+                    </div>
+                </div>
+
+                <h3 class="spaced">Segen</h3>
+                <p class="muted">Bezahlt mit Meditationspunkten, wirkt sofort.</p>
+                <div class="blessing-grid" id="blessing-grid"></div>
+            </div>
+
             <div class="tab-panel hidden" id="panel-stones">
                 <div class="stone-columns">
                     <div class="stone-grid" id="stone-grid"></div>
@@ -126,14 +158,9 @@
                             <button class="btn primary" id="btn-craft">Binden</button>
                         </div>
 
-                        <h3 class="spaced">Meditation</h3>
-                        <p class="muted">Versenke dich am Ritualpunkt fuer ein paar Grundsteine.</p>
-                        <div id="meditation-state" class="muted"></div>
-                        <button class="btn" id="btn-meditate">Meditieren</button>
-
                         <h3 class="spaced">Weitere Quellen</h3>
-                        <p class="muted">Weltbosse lassen Grund&shy;steine fallen, und der
-                            Steinhaendler verkauft sie gegen Bargeld.</p>
+                        <p class="muted">Grundsteine gibt es beim Weltboss und beim
+                            Steinhaendler gegen Bargeld.</p>
                     </div>
                 </div>
             </div>
@@ -171,6 +198,8 @@
             <span class="stone-count" id="stone-count-2">0</span>
             <span class="muted spaced-left">Erfahrung</span>
             <span class="stone-count" id="xp-balance-2">0</span>
+            <span class="muted spaced-left">Meditation</span>
+            <span class="stone-count" id="med-points-2">0</span>
         </div>
 
         <button class="foot-action right" id="btn-close">

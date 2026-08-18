@@ -60,6 +60,28 @@ exports('GetModifiers', function(source)
     return profile and profile:GetModifiers() or nil
 end)
 
+exports('GetMeditationPoints', function(source)
+    local profile = Mystic.GetProfile(source)
+    return profile and profile.meditationPoints or 0
+end)
+
+exports('AddMeditationPoints', function(source, amount)
+    local profile = Mystic.GetProfile(source)
+    if not profile then return false end
+
+    profile:AddMeditationPoints(amount)
+    profile:Sync()
+    return true
+end)
+
+exports('SpendMeditationPoints', function(source, amount)
+    local profile = Mystic.GetProfile(source)
+    if not profile or not profile:SpendMeditationPoints(amount) then return false end
+
+    profile:Sync()
+    return true
+end)
+
 exports('GetXp', function(source)
     local profile = Mystic.GetProfile(source)
     return profile and profile.xp or 0

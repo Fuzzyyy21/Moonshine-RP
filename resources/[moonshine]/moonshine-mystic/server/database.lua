@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `ms_mystic` (
     `race`            VARCHAR(32) DEFAULT NULL,
     `xp`              INT         NOT NULL DEFAULT 0,
     `xp_total`        INT         NOT NULL DEFAULT 0,
+    `meditation`      INT         NOT NULL DEFAULT 0,
     `personal_points` INT         NOT NULL DEFAULT 0,
     `unlocked`        LONGTEXT    DEFAULT NULL,
     `skillbar`        LONGTEXT    DEFAULT NULL,
@@ -35,6 +36,11 @@ local function migrate()
     if not present.xp then
         MySQL.query.await('ALTER TABLE `ms_mystic` ADD COLUMN `xp` INT NOT NULL DEFAULT 0')
         print('^3[Mystic]^7 Spalte ms_mystic.xp ergaenzt.')
+    end
+
+    if not present.meditation then
+        MySQL.query.await('ALTER TABLE `ms_mystic` ADD COLUMN `meditation` INT NOT NULL DEFAULT 0')
+        print('^3[Mystic]^7 Spalte ms_mystic.meditation ergaenzt.')
     end
 
     if not present.xp_total then
@@ -90,13 +96,14 @@ end
 function Mystic.DB.Save(characterId, payload)
     return MySQL.update.await([[
         UPDATE ms_mystic
-        SET race = ?, xp = ?, xp_total = ?, unlocked = ?,
+        SET race = ?, xp = ?, xp_total = ?, meditation = ?, unlocked = ?,
             skillbar = ?, perks = ?, seconds_played = ?
         WHERE character_id = ?
     ]], {
         payload.race,
         payload.xp,
         payload.xpTotal,
+        payload.meditationPoints,
         json.encode(payload.ranks),
         json.encode(payload.skillbar),
         json.encode(payload.perks),

@@ -56,6 +56,9 @@ function Mystic.CreateProfile(source, characterId, row)
         xp             = row.xp or MysticConfig.Progression.startXp,
         xpTotal        = row.xp_total or row.xp or MysticConfig.Progression.startXp,
 
+        -- Meditationspunkte: eigene Waehrung fuer Segen.
+        meditationPoints = row.meditation or 0,
+
         ranks          = ranks,
         skillbar       = skillbar,
         perks          = decode(row.perks, {}),
@@ -65,6 +68,7 @@ function Mystic.CreateProfile(source, characterId, row)
         cooldowns      = {},   -- [skillId] = Ablaufzeitpunkt (os.time)
         lastCast       = 0,
         lastMeditation = 0,
+        lastRitual     = 0,
     }, Profile)
 
     self.essence = self:GetMaxEssence()
@@ -139,6 +143,24 @@ end
 --- Erstattet XP, ohne die Gesamterfahrung zu veraendern.
 function Profile:RefundXp(amount)
     self.xp = self.xp + math.max(0, math.floor(tonumber(amount) or 0))
+end
+
+-- Meditationspunkte ----------------------------------------------------------
+
+function Profile:AddMeditationPoints(amount)
+    amount = math.floor(tonumber(amount) or 0)
+    if amount == 0 then return end
+
+    self.meditationPoints = math.max(0, self.meditationPoints + amount)
+end
+
+---@return boolean
+function Profile:SpendMeditationPoints(amount)
+    amount = math.floor(tonumber(amount) or 0)
+    if amount <= 0 or self.meditationPoints < amount then return false end
+
+    self.meditationPoints = self.meditationPoints - amount
+    return true
 end
 
 -- Skills ---------------------------------------------------------------------
@@ -316,6 +338,7 @@ function Profile:GetData()
         xp             = self.xp,
         xpTotal        = self.xpTotal,
         personalLevel  = personalLevel,
+        meditationPoints = self.meditationPoints,
         xpIntoLevel    = xpIntoLevel,
         xpForNext      = xpForNext,
 
@@ -348,10 +371,11 @@ function Profile:Save()
     if not Mystic.DB.Ready then return false end
 
     Mystic.DB.Save(self.characterId, {
-        race          = self.race,
-        xp            = self.xp,
-        xpTotal       = self.xpTotal,
-        ranks         = self.ranks,
+        race             = self.race,
+        xp               = self.xp,
+        xpTotal          = self.xpTotal,
+        meditationPoints = self.meditationPoints,
+        ranks            = self.ranks,
         skillbar      = self.skillbar,
         perks         = self.perks,
         secondsPlayed = self.secondsPlayed,

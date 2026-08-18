@@ -90,6 +90,26 @@ register('givexp', 'Gibt Erfahrung fuer den persoenlichen Skillbaum', {
     reply(source, ('%d XP vergeben, Guthaben %d.'):format(amount, profile.xp), 'success')
 end)
 
+register('givemeditation', 'Gibt Meditationspunkte', {
+    { name = 'id', help = 'Spieler-ID' },
+    { name = 'anzahl', help = 'Anzahl' },
+}, function(source, args)
+    local profile = targetProfile(source, args[1])
+    if not profile then return end
+
+    local amount = tonumber(args[2])
+    if not amount then
+        reply(source, 'Verwendung: /givemeditation [id] [anzahl]', 'error')
+        return
+    end
+
+    profile:AddMeditationPoints(amount)
+    profile:Save()
+    profile:Sync()
+    profile:Notify(('%d Meditationspunkt(e) erhalten.'):format(amount), 'success')
+    reply(source, ('Guthaben: %d'):format(profile.meditationPoints), 'success')
+end)
+
 register('givestein', 'Gibt einem Spieler Ritualsteine', {
     { name = 'id', help = 'Spieler-ID' },
     { name = 'stein', help = 'runenstein, seelenstein, blutstein, ...' },

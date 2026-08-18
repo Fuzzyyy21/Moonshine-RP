@@ -1,10 +1,51 @@
 # Ideen und Ausbaustufen
 
-Stand: Core, Mystik-System, Sterbesystem, Steinadern und Beispiel-Shop sind
+Stand: Core, Mystik-System, Sterbesystem, Weltbosse und Beispiel-Shop sind
 gebaut. Was hier steht, ist noch nicht umgesetzt — sortiert nach dem Nutzen für
 einen mystischen Roleplay-Server.
 
+## Offene Fragen aus dem Design
+
+Zwei Dinge sind bewusst als Platzhalter gebaut und warten auf eine Entscheidung.
+
+### Wofür sind Meditationspunkte da?
+
+Aktuell kauft man damit Segen (sofortige Vorteile). Weitere Möglichkeiten:
+
+| Idee | Was es bringt |
+|---|---|
+| **Klassenwechsel-Token** | Ein Wechsel kostet z. B. 50 Punkte statt Steine — teuer, aber ohne Echtgeld-Gefühl |
+| **Perk-Reset ohne Verlust** | Persönliche Skills umverteilen, ohne XP zu verlieren |
+| **Steinsegen** | Kleine Chance, beim nächsten Boss doppelte Beute zu bekommen |
+| **Bossortung** | Zeigt den nächsten Weltboss 10 Minuten früher an |
+| **Zirkelbeitrag** | Punkte in eine Fraktionskasse einzahlen, daraus Gruppenrituale bezahlen |
+| **Handelbar machen** | Punkte an andere Spieler übertragen — schafft einen echten Markt |
+| **Zweite Skillleiste** | Dauerhaft mehr Slots freischalten |
+| **Schutz vor Verlust** | Beim nächsten Tod keine Behandlungskosten |
+
+Mein Vorschlag: **Klassenwechsel-Token und Perk-Reset** zuerst — beides löst ein
+echtes Problem (falsche Wahl bereuen), ohne die Kampfbalance anzufassen.
+
+### Was sollen Rituale außer Geld noch geben?
+
+Derzeit 10.000 $ alle 30 Minuten. Naheliegende Erweiterungen:
+
+| Idee | Was es bringt |
+|---|---|
+| **Gruppenritual** | Je Teilnehmer mehr Ertrag — belohnt Verabredungen |
+| **Ritualarten** | Blutritual (Steine), Mondritual (Meditationspunkte), Totenritual (XP) — der Spieler wählt |
+| **Bossbeschwörung** | Ein aufwändiges Ritual ruft den Weltboss sofort herbei |
+| **Klassenbonus** | Vampire ernten nachts mehr, Feen bei Tag |
+| **Ritualzutaten** | Braucht ein Opfer (Item), dafür deutlich höherer Ertrag |
+| **Umkämpfte Punkte** | Während eines Rituals ist der Punkt für alle sichtbar — wer stört, unterbricht es |
+| **Zirkelritual** | Nur mit Fraktion, Ertrag geht in die gemeinsame Kasse |
+
+Mein Vorschlag: **Ritualarten mit Auswahl** — dieselbe Handlung, aber der
+Spieler entscheidet, ob er Geld, Steine oder Punkte will. Das kostet wenig Code
+und gibt dem Ritualpunkt sofort Tiefe.
+
 ## Zuerst: das macht den Server rund
+
 
 ### 1. Zirkel (Fraktionen der Klassen) — großer Brocken
 Vampirzirkel, Rudel, Hexenzirkel, Jägerorden. Gründen kostet Seelensteine,
