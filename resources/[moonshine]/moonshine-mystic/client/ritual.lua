@@ -67,6 +67,7 @@ local function buildLinks(skills)
     return links
 end
 
+--- Perks werden mit Erfahrung bezahlt, nicht mit Klassensteinen.
 local function buildPerks(profile)
     local result = {}
 
@@ -82,7 +83,9 @@ local function buildPerks(profile)
             level       = level,
             maxLevel    = perk.maxLevel,
             nextCost    = nextCost,
-            affordable  = nextCost ~= nil and profile.personalPoints >= nextCost,
+            affordable  = nextCost ~= nil and (profile.xp or 0) >= nextCost,
+            currentText = level > 0 and Mystic.DescribePerkLevel(perk, level) or nil,
+            nextText    = nextCost and Mystic.DescribePerkLevel(perk, level + 1) or nil,
         }
     end
 
@@ -185,7 +188,13 @@ local function openUi(payload)
             raceTraits      = race and race.traits or {},
             essenceLabel    = profile.essenceLabel,
 
+            -- Klassenbaum: Stufe = gekaufte Stufen, bezahlt mit Steinen
             level           = profile.level,
+            maxRanks        = profile.maxRanks,
+
+            -- Persoenlicher Baum: Erfahrung
+            xp              = profile.xp,
+            personalLevel   = profile.personalLevel,
             xpIntoLevel     = profile.xpIntoLevel,
             xpForNext       = profile.xpForNext,
             maxLevel        = MysticConfig.Progression.maxLevel,
@@ -202,7 +211,6 @@ local function openUi(payload)
                 result    = conversion.result,
             },
 
-            personalPoints  = profile.personalPoints,
             nodes           = nodes,
             links           = buildLinks(skills),
             classes         = buildClasses(profile),

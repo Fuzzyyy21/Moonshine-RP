@@ -31,31 +31,60 @@ werden vollständig erstattet.
 2. **Steine sammeln** – Reiter *Steine*: am Ritualpunkt meditieren, oder
    5 Runensteine in 1 Klassenstein umwandeln (`+` in der Kopfzeile).
 3. **Skillen** – Reiter *Skilltree*: Knoten anklicken, Stufenliste prüfen,
-   *Skillen*. Kostet Klassensteine; hohe Knoten zusätzlich eine Klassenstufe.
+   *Skillen*. Kostet ausschließlich Klassensteine; tiefe Knoten zusätzlich eine
+   Mindest-Klassenstufe (= Anzahl bereits geskillter Stufen).
 4. **Leiste belegen** – Im Detailfenster oder im Reiter *Skillleiste*.
    `F5` klappt die Leiste im Spiel aus, `NUMPAD 1–6` lösen die Slots aus.
 5. **Persönliche Skills** – Reiter *Persönliche Skills*, bezahlt aus
-   persönlichen Punkten (unabhängig von der Klasse).
+   Erfahrung (XP), unabhängig von der Klasse.
 
 `/mystik` öffnet dieselbe Oberfläche überall – nur ohne Skillen.
 
-## Klassenstufe und XP
+## Zwei getrennte Währungen
 
-Jede Klasse hat eine eigene Stufe (max. 50). XP kommen aus:
+Das ist die wichtigste Regel des Systems:
+
+| Baum | Währung | Quelle |
+|---|---|---|
+| **Klassenbaum** (Fähigkeiten der Klasse) | **Klassensteine** | Meditation, Umwandlung von Runensteinen, Admin |
+| **Persönlicher Baum** (Leben, Ausdauer, Schaden, …) | **Erfahrung (XP)** | Onlinezeit und Aktivität |
+
+XP können **nicht** in Klassenfähigkeiten gesteckt werden, Steine **nicht** in
+persönliche Skills. Wer nur online steht, wächst persönlich; wer Steine sammelt,
+wächst in seiner Klasse.
+
+### Klassenstufe
+
+Die Klassenstufe ist keine XP-Stufe: **sie zählt die im Klassenbaum gekauften
+Stufen**. Wer 12 Stufen geskillt hat, ist Klassenstufe 12. Sie steigt also
+ausschließlich durch ausgegebene Klassensteine.
+
+Tiefere Knoten setzen eine Mindest-Klassenstufe voraus und zeigen bis dahin ein
+Schloss:
+
+| Reihe | Voraussetzung |
+|---|---|
+| Reihe 1–3 | nur die vorherige Fähigkeit |
+| Reihe 4 (starke Knoten) | Klassenstufe 8 bzw. 12 |
+| Abschlussknoten | Klassenstufe 18 |
+
+Ein voll ausgebauter Baum hat je nach Klasse rund 40 Stufen.
+
+### Erfahrung
+
+XP gibt es unabhängig von der Klasse — auch ohne Erweckung:
 
 | Quelle | XP |
 |---|---|
-| Onlinezeit | 12 pro Minute |
-| Fähigkeit eingesetzt | 8 |
-| je getroffenem Ziel | 6 |
-| Meditation abgeschlossen | 120 |
-| Stufe geskillt | 150 |
+| Onlinezeit | 20 pro Minute |
+| Fähigkeit eingesetzt | 10 |
+| je getroffenem Ziel | 8 |
+| Meditation abgeschlossen | 150 |
 
-Benötigte XP für den nächsten Aufstieg: `500 + Stufe × 650`. Alles in
-`MysticConfig.Progression`.
-
-Die Stufe schaltet die unteren Baumreihen frei: Reihe 4 ab Stufe 10 bzw. 15,
-der Abschlussknoten ab Stufe 25. Gesperrte Knoten zeigen ein Schloss.
+Zum Start gibt es 500 XP. Das Guthaben wird beim Kauf einer Perkstufe abgezogen;
+die *persönliche Stufe* im Reiter *Persönliche Skills* richtet sich nach der
+insgesamt verdienten Erfahrung (`500 + Stufe × 650` je Aufstieg) und sinkt beim
+Ausgeben nicht. Alles einstellbar in `MysticConfig.Progression`.
 
 ## Klassen
 
@@ -71,8 +100,8 @@ der Abschlussknoten ab Stufe 25. Gesperrte Knoten zeigen ein Schloss.
 | 🏹 Jäger | Fokus | Silberstein | Höchster Schusswaffenschaden, volle Weste |
 
 Jede Klasse hat **11 Knoten in 5 Reihen**: ein Wurzelknoten, drei Zweige mit je
-zwei Ausbaustufen, drei starke Knoten ab Stufe 10/15 und ein Abschlussknoten ab
-Stufe 25. Fähigkeiten haben 1, 3 oder 5 Stufen; jede Stufe verbessert die Werte
+zwei Ausbaustufen, drei starke Knoten ab Klassenstufe 8 bzw. 12 und ein
+Abschlussknoten ab Klassenstufe 18. Fähigkeiten haben 1, 3 oder 5 Stufen; jede Stufe verbessert die Werte
 und wird im Detailfenster einzeln aufgelistet.
 
 ## Steine
@@ -89,20 +118,21 @@ unverändert.
 
 ## Persönliche Skills
 
-| Perk | Wirkung pro Stufe | Max |
-|---|---|---|
-| Vitalität | +12 max. Leben | 10 |
-| Ausdauer | längerer Sprint | 8 |
-| Stärke | +4 % Waffen-, +5 % Nahkampfschaden | 10 |
-| Regeneration | +1 Leben alle 5 Sekunden | 8 |
-| Essenz | +10 max. Essenz | 10 |
-| Fokus | +0,4 Essenz pro Tick | 8 |
-| Zähigkeit | +8 Weste beim Spawn | 6 |
-| Schnelligkeit | +2 % Tempo | 5 |
-| Meisterung | −4 % Abklingzeit | 5 |
+Bezahlt wird mit **XP**. Die Kosten steigen je Stufe: `costBase + (Stufe−1) × costStep`.
 
-Punkte gibt es alle 15 Minuten Onlinezeit (3 zum Start). Zurücksetzen geht am
-Ritualpunkt und erstattet alles.
+| Perk | Wirkung pro Stufe | Max | Stufe 1 | Aufschlag |
+|---|---|---|---|---|
+| Vitalität | +12 max. Leben | 10 | 300 XP | +200 |
+| Ausdauer | längerer Sprint | 8 | 250 XP | +150 |
+| Stärke | +4 % Waffen-, +5 % Nahkampfschaden | 10 | 400 XP | +250 |
+| Regeneration | +1 Leben alle 5 Sekunden | 8 | 400 XP | +250 |
+| Essenz | +10 max. Essenz | 10 | 300 XP | +200 |
+| Fokus | +0,4 Essenz pro Tick | 8 | 400 XP | +250 |
+| Zähigkeit | +8 Weste beim Spawn | 6 | 350 XP | +250 |
+| Schnelligkeit | +2 % Tempo | 5 | 600 XP | +400 |
+| Meisterung | −4 % Abklingzeit | 5 | 600 XP | +400 |
+
+Zurücksetzen geht am Ritualpunkt und erstattet die volle ausgegebene Erfahrung.
 
 ## Ritualpunkte
 
@@ -118,9 +148,7 @@ vor dem Livegang einmal im Spiel prüfen.
 | `/mystik` | – | Skilltree-Übersicht öffnen |
 | `/skillleiste` | – | Leiste aus-/einklappen (F5) |
 | `/setrasse [id] [klasse]` | 3 | Klasse setzen |
-| `/givexp [id] [xp]` | 3 | Klassen-XP vergeben |
-| `/setlevel [id] [stufe]` | 3 | Klassenstufe setzen |
-| `/givepunkte [id] [n]` | 3 | Persönliche Punkte vergeben |
+| `/givexp [id] [xp]` | 3 | Erfahrung für den persönlichen Baum vergeben |
 | `/givestein [id] [stein] [n]` | 3 | Steine vergeben |
 | `/unlockall [id]` | 3 | Alle Knoten auf Maximalstufe (Test) |
 | `/resetmystic [id]` | 3 | Klasse, Skills, Stufe und Perks zurücksetzen |
@@ -130,8 +158,9 @@ vor dem Livegang einmal im Spiel prüfen.
 * **Klassenwerte** – `shared/races.lua`: `stats` und `essence`.
 * **Baum** – `shared/skills.lua`: Position (`row`, `col`), `maxRank`,
   `requires`, `level`, `stones`, `essence`, `cooldown`, `effect`.
-* **Fortschritt** – `MysticConfig.Progression` (XP-Kurve und Quellen),
-  `MysticConfig.Stones` (Startguthaben, Umwandlung), `MysticConfig.Meditation`.
+* **Fortschritt** – `MysticConfig.Progression` (XP-Quellen und -Kurve für den
+  persönlichen Baum), `MysticConfig.Stones` (Startguthaben, Umwandlung) und
+  `MysticConfig.Meditation` (Steinnachschub) für den Klassenbaum.
 * **Perks** – `shared/perks.lua`.
 * **Schutzzonen** – `MysticConfig.Combat.safeZones`.
 
@@ -194,8 +223,10 @@ local Mystic = exports['moonshine-mystic']:GetMysticObject()
 local profile = Mystic.GetProfile(source)
 profile.race                            -- 'vampir', 'werwolf', ...
 profile:GetRank('vampir_blutsinn')      -- 0 = nicht gelernt
-profile:GetLevel()
-profile:AddXp(250)
+profile:GetLevel()          -- geskillte Stufen im Klassenbaum
+profile:GetPersonalProgress() -- Stufe, XP in der Stufe, XP bis zur naechsten
+profile:AddXp(250)          -- Erfahrung fuer den persoenlichen Baum
+profile:SpendXp(300)
 profile:GetModifiers()
 profile:CanSwitchClass()
 profile:Sync()
@@ -209,10 +240,12 @@ profile:Sync()
 | `IsRace(source, race)` | boolean |
 | `HasSkill(source, skillId)` | boolean |
 | `GetSkillRank(source, skillId)` | number |
-| `GetLevel(source)` | number |
+| `GetLevel(source)` | number (geskillte Stufen im Klassenbaum) |
+| `GetPersonalLevel(source)` | number (Stufe aus verdienter XP) |
+| `GetXp(source)` | number (XP-Guthaben) |
 | `AddXp(source, n)` | boolean |
+| `SpendXp(source, n)` | boolean |
 | `GetModifiers(source)` | Tabelle |
-| `AddPersonalPoints(source, n)` | boolean |
 | `AddEssence(source, n)` | boolean |
 | `SetRace(source, race)` | boolean |
 
@@ -224,7 +257,7 @@ profile:Sync()
 | `mystic:server:playerAwakened` | `source, race` |
 | `mystic:server:skillUpgraded` | `source, skillId, rank` |
 | `mystic:server:skillUsed` | `source, skillId, targetSource, hits` |
-| `mystic:server:levelUp` | `source, level` |
+| `mystic:server:levelUp` | `source, level` (persönliche Stufe) |
 | `mystic:server:perkUpgraded` | `source, perkId, level` |
 
 **Events (Client)**

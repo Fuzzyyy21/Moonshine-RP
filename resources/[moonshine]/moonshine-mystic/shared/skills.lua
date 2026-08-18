@@ -6,7 +6,8 @@
 ---   row / col   Position im Baum (col darf halbe Schritte nutzen)
 ---   maxRank     Anzahl der Stufen (1, 3 oder 5)
 ---   requires    Liste von Knoten-IDs, die mindestens Stufe 1 haben muessen
----   level       benoetigte Klassenstufe
+---   level       benoetigte Klassenstufe = Anzahl der bereits im Baum
+---               gekauften Stufen (der Baum kostet nur Klassensteine, keine XP)
 ---   stones      Klassensteine je Stufe: { base, step } oder { 10, 16, 22 }
 ---   essence     Essenzkosten (Zahl oder Liste je Stufe)
 ---   cooldown    Sekunden (Zahl oder Liste je Stufe)
@@ -82,20 +83,20 @@ node{ id = 'vampir_fledermausschwarm', race = 'vampir', row = 2, col = 3, maxRan
                  damage = { 30, 42, 55 }, ragdoll = true } }
 
 node{ id = 'vampir_raserei', race = 'vampir', row = 3, col = 0.5, maxRank = 5,
-      label = 'Raserei', icon = '💢', passive = true, level = 10,
+      label = 'Raserei', icon = '💢', passive = true, level = 8,
       description = 'Der Durst treibt dich an: dauerhaft mehr Nahkampfschaden und Tempo.',
       requires = { 'vampir_blitztritt' }, stones = { base = 30, step = 12 },
       effect = { kind = 'passive', meleeMult = { 0.08, 0.16, 0.24, 0.32, 0.45 },
                  speedMult = { 0.01, 0.02, 0.03, 0.04, 0.06 } } }
 
 node{ id = 'vampir_regeneration', race = 'vampir', row = 3, col = 2, maxRank = 3,
-      label = 'Regeneration', icon = '➕', passive = true, level = 10,
+      label = 'Regeneration', icon = '➕', passive = true, level = 8,
       description = 'Dein Koerper flickt sich selbst zusammen.',
       requires = { 'vampir_blutschild' }, stones = { base = 30, step = 15 },
       effect = { kind = 'passive', regenPerTick = { 2, 4, 7 }, healthBonus = { 10, 20, 35 } } }
 
 node{ id = 'vampir_unsichtbarkeit', race = 'vampir', row = 3, col = 3.5, maxRank = 5,
-      label = 'Unsichtbarkeit', icon = '👻', level = 15,
+      label = 'Unsichtbarkeit', icon = '👻', level = 12,
       description = 'Du verschwindest vollstaendig aus der Sicht der Lebenden.',
       requires = { 'vampir_fledermausschwarm' }, stones = { base = 35, step = 15 },
       essence = 55, cooldown = { 150, 140, 130, 120, 105 },
@@ -103,7 +104,7 @@ node{ id = 'vampir_unsichtbarkeit', race = 'vampir', row = 3, col = 3.5, maxRank
                  alpha = { 40, 32, 25, 18, 0 }, speedMult = 1.25 } }
 
 node{ id = 'vampir_urvampir', race = 'vampir', row = 4, col = 2, maxRank = 1,
-      label = 'Ur-Vampir', icon = '🧛', passive = true, level = 25,
+      label = 'Ur-Vampir', icon = '🧛', passive = true, level = 18,
       description = 'Das Sonnenlicht verliert seinen Schrecken und dein Blut wird uralt.',
       requires = { 'vampir_raserei', 'vampir_regeneration', 'vampir_unsichtbarkeit' },
       stones = { 120 },
@@ -165,20 +166,20 @@ node{ id = 'werwolf_heulen', race = 'werwolf', row = 2, col = 3, maxRank = 3,
       effect = { kind = 'fear', radius = { 10.0, 14.0, 18.0 }, duration = { 5, 7, 9 } } }
 
 node{ id = 'werwolf_rudelfuehrer', race = 'werwolf', row = 3, col = 0.5, maxRank = 5,
-      label = 'Rudelfuehrer', icon = '🏅', passive = true, level = 10,
+      label = 'Rudelfuehrer', icon = '🏅', passive = true, level = 8,
       description = 'Du fuehrst das Rudel an: mehr Schaden, mehr Ausdauer.',
       requires = { 'werwolf_satzsprung' }, stones = { base = 30, step = 12 },
       effect = { kind = 'passive', meleeMult = { 0.1, 0.2, 0.3, 0.4, 0.55 },
                  stamina = { 10, 20, 30, 40, 55 } } }
 
 node{ id = 'werwolf_wildherz', race = 'werwolf', row = 3, col = 2, maxRank = 3,
-      label = 'Wildherz', icon = '❤‍🔥', passive = true, level = 10,
+      label = 'Wildherz', icon = '❤‍🔥', passive = true, level = 8,
       description = 'Dein Herz schlaegt schneller und heilt schneller.',
       requires = { 'werwolf_zerfleischen' }, stones = { base = 30, step = 15 },
       effect = { kind = 'passive', regenPerTick = { 3, 5, 8 }, healthBonus = { 20, 35, 55 } } }
 
 node{ id = 'werwolf_verwandlung', race = 'werwolf', row = 3, col = 3.5, maxRank = 3,
-      label = 'Verwandlung', icon = '🐺', level = 15,
+      label = 'Verwandlung', icon = '🐺', level = 12,
       description = 'Du nimmst deine wahre Gestalt an.',
       requires = { 'werwolf_heulen' }, stones = { base = 40, step = 20 },
       essence = 60, cooldown = { 240, 210, 180 },
@@ -187,7 +188,7 @@ node{ id = 'werwolf_verwandlung', race = 'werwolf', row = 3, col = 3.5, maxRank 
                  speedMult = { 1.2, 1.3, 1.4 } } }
 
 node{ id = 'werwolf_alpha', race = 'werwolf', row = 4, col = 2, maxRank = 1,
-      label = 'Alpha', icon = '👑', passive = true, level = 25,
+      label = 'Alpha', icon = '👑', passive = true, level = 18,
       description = 'Du bist das Alpha. Der Mond gehoert dir.',
       requires = { 'werwolf_rudelfuehrer', 'werwolf_wildherz', 'werwolf_verwandlung' },
       stones = { 120 },
@@ -249,20 +250,20 @@ node{ id = 'daemon_furcht', race = 'daemon', row = 2, col = 3, maxRank = 3,
       effect = { kind = 'fear', radius = { 10.0, 14.0, 18.0 }, duration = { 5, 7, 9 } } }
 
 node{ id = 'daemon_daemonenblut', race = 'daemon', row = 3, col = 0.5, maxRank = 5,
-      label = 'Daemonenblut', icon = '🩸', passive = true, level = 10,
+      label = 'Daemonenblut', icon = '🩸', passive = true, level = 8,
       description = 'Schwefel statt Blut: mehr Leben, schnellere Heilung.',
       requires = { 'daemon_aschesprung' }, stones = { base = 30, step = 12 },
       effect = { kind = 'passive', healthBonus = { 15, 30, 45, 60, 80 },
                  regenPerTick = { 1, 2, 3, 4, 6 } } }
 
 node{ id = 'daemon_brandmal', race = 'daemon', row = 3, col = 2, maxRank = 3,
-      label = 'Brandmal', icon = '🔱', passive = true, level = 10,
+      label = 'Brandmal', icon = '🔱', passive = true, level = 8,
       description = 'Deine Angriffe brennen sich dauerhaft tiefer ein.',
       requires = { 'daemon_feuersbrunst' }, stones = { base = 30, step = 15 },
       effect = { kind = 'passive', damageMult = { 0.1, 0.2, 0.35 }, meleeMult = { 0.1, 0.2, 0.3 } } }
 
 node{ id = 'daemon_hoellentor', race = 'daemon', row = 3, col = 3.5, maxRank = 3,
-      label = 'Hoellentor', icon = '🚪', level = 15,
+      label = 'Hoellentor', icon = '🚪', level = 12,
       description = 'Ein Riss in die Unterwelt reisst alles in der Naehe mit.',
       requires = { 'daemon_furcht' }, stones = { base = 40, step = 20 },
       essence = 70, cooldown = { 180, 165, 150 },
@@ -270,7 +271,7 @@ node{ id = 'daemon_hoellentor', race = 'daemon', row = 3, col = 3.5, maxRank = 3
                  damage = { 70, 90, 115 }, fire = true, ragdoll = true } }
 
 node{ id = 'daemon_erzdaemon', race = 'daemon', row = 4, col = 2, maxRank = 1,
-      label = 'Erzdaemon', icon = '😈', passive = true, level = 25,
+      label = 'Erzdaemon', icon = '😈', passive = true, level = 18,
       description = 'Feuer kann dir nichts mehr anhaben. Du bist das Feuer.',
       requires = { 'daemon_daemonenblut', 'daemon_brandmal', 'daemon_hoellentor' },
       stones = { 120 },
@@ -330,27 +331,27 @@ node{ id = 'fee_elfenlicht', race = 'fee', row = 2, col = 3, maxRank = 3,
       effect = { kind = 'reveal', radius = { 80, 110, 140 }, duration = { 15, 20, 26 } } }
 
 node{ id = 'fee_lebenshauch', race = 'fee', row = 3, col = 0.5, maxRank = 5,
-      label = 'Lebenshauch', icon = '💚', passive = true, level = 10,
+      label = 'Lebenshauch', icon = '💚', passive = true, level = 8,
       description = 'Die Natur haelt dich dauerhaft am Leben.',
       requires = { 'fee_schimmer' }, stones = { base = 30, step = 12 },
       effect = { kind = 'passive', regenPerTick = { 2, 3, 4, 5, 7 },
                  essenceRegen = { 0.3, 0.6, 0.9, 1.2, 1.6 }, noFallDamage = true } }
 
 node{ id = 'fee_windgeist', race = 'fee', row = 3, col = 2, maxRank = 3,
-      label = 'Windgeist', icon = '🌬', passive = true, level = 10,
+      label = 'Windgeist', icon = '🌬', passive = true, level = 8,
       description = 'Der Wind traegt dich schneller als alle anderen.',
       requires = { 'fee_pollen' }, stones = { base = 30, step = 15 },
       effect = { kind = 'passive', speedMult = { 0.03, 0.06, 0.1 }, stamina = { 15, 30, 50 } } }
 
 node{ id = 'fee_wiedergeburt', race = 'fee', row = 3, col = 3.5, maxRank = 3,
-      label = 'Wiedergeburt', icon = '🌱', level = 15,
+      label = 'Wiedergeburt', icon = '🌱', level = 12,
       description = 'Holt ein gefallenes Wesen zurueck ins Leben.',
       requires = { 'fee_elfenlicht' }, stones = { base = 40, step = 20 },
       essence = 70, cooldown = { 300, 260, 220 },
       effect = { kind = 'revive_target', range = { 5.0, 7.0, 9.0 }, health = { 100, 140, 180 } } }
 
 node{ id = 'fee_waldherrin', race = 'fee', row = 4, col = 2, maxRank = 1,
-      label = 'Herrin des Waldes', icon = '🌳', passive = true, level = 25,
+      label = 'Herrin des Waldes', icon = '🌳', passive = true, level = 18,
       description = 'Die Natur selbst steht auf deiner Seite.',
       requires = { 'fee_lebenshauch', 'fee_windgeist', 'fee_wiedergeburt' },
       stones = { 120 },
@@ -412,27 +413,27 @@ node{ id = 'magier_zeitdehnung', race = 'magier', row = 2, col = 3, maxRank = 3,
                  damageMult = { 1.1, 1.2, 1.3 }, timeScale = { 0.8, 0.72, 0.65 } } }
 
 node{ id = 'magier_arkanemacht', race = 'magier', row = 3, col = 0.5, maxRank = 5,
-      label = 'Arkane Macht', icon = '📘', passive = true, level = 10,
+      label = 'Arkane Macht', icon = '📘', passive = true, level = 8,
       description = 'Deine Zauber schlagen dauerhaft haerter ein.',
       requires = { 'magier_frostnova' }, stones = { base = 30, step = 12 },
       effect = { kind = 'passive', damageMult = { 0.08, 0.16, 0.24, 0.32, 0.45 } } }
 
 node{ id = 'magier_fokus', race = 'magier', row = 3, col = 2, maxRank = 3,
-      label = 'Fokus', icon = '🎯', passive = true, level = 10,
+      label = 'Fokus', icon = '🎯', passive = true, level = 8,
       description = 'Zauber kosten weniger und sind schneller wieder bereit.',
       requires = { 'magier_kettenblitz' }, stones = { base = 30, step = 15 },
       effect = { kind = 'passive', costMult = { 0.92, 0.85, 0.75 },
                  cooldownMult = { 0.95, 0.9, 0.82 } } }
 
 node{ id = 'magier_sphaere', race = 'magier', row = 3, col = 3.5, maxRank = 3,
-      label = 'Arkane Sphaere', icon = '🔵', level = 15,
+      label = 'Arkane Sphaere', icon = '🔵', level = 12,
       description = 'Eine Sphaere reiner Magie zerreisst alles im Umkreis.',
       requires = { 'magier_zeitdehnung' }, stones = { base = 40, step = 20 },
       essence = 75, cooldown = { 160, 145, 130 },
       effect = { kind = 'aoe_damage', radius = { 11.0, 13.0, 16.0 }, damage = { 70, 90, 115 } } }
 
 node{ id = 'magier_erzmagier', race = 'magier', row = 4, col = 2, maxRank = 1,
-      label = 'Erzmagier', icon = '🧙', passive = true, level = 25,
+      label = 'Erzmagier', icon = '🧙', passive = true, level = 18,
       description = 'Die arkanen Kuenste haben keine Geheimnisse mehr fuer dich.',
       requires = { 'magier_arkanemacht', 'magier_fokus', 'magier_sphaere' },
       stones = { 120 },
@@ -493,19 +494,19 @@ node{ id = 'hexer_schattenschritt', race = 'hexer', row = 2, col = 3, maxRank = 
       effect = { kind = 'blink', distance = { 18.0, 24.0, 30.0 } } }
 
 node{ id = 'hexer_verderben', race = 'hexer', row = 3, col = 0.5, maxRank = 5,
-      label = 'Verderben', icon = '☠', passive = true, level = 10,
+      label = 'Verderben', icon = '☠', passive = true, level = 8,
       description = 'Alles, was du beruehrst, verdirbt schneller.',
       requires = { 'hexer_bann' }, stones = { base = 30, step = 12 },
       effect = { kind = 'passive', damageMult = { 0.08, 0.16, 0.24, 0.32, 0.45 } } }
 
 node{ id = 'hexer_zaehigkeit', race = 'hexer', row = 3, col = 2, maxRank = 3,
-      label = 'Alte Knochen', icon = '🦴', passive = true, level = 10,
+      label = 'Alte Knochen', icon = '🦴', passive = true, level = 8,
       description = 'Zaeher, als dein Aussehen vermuten laesst.',
       requires = { 'hexer_blutopfer' }, stones = { base = 30, step = 15 },
       effect = { kind = 'passive', healthBonus = { 20, 40, 65 }, regenPerTick = { 1, 2, 4 } } }
 
 node{ id = 'hexer_massenfluch', race = 'hexer', row = 3, col = 3.5, maxRank = 3,
-      label = 'Massenfluch', icon = '🌀', level = 15,
+      label = 'Massenfluch', icon = '🌀', level = 12,
       description = 'Der Fluch springt auf alle in deiner Naehe ueber.',
       requires = { 'hexer_schattenschritt' }, stones = { base = 40, step = 20 },
       essence = 70, cooldown = { 150, 135, 120 },
@@ -513,7 +514,7 @@ node{ id = 'hexer_massenfluch', race = 'hexer', row = 3, col = 3.5, maxRank = 3,
                  slow = { 0.55, 0.45, 0.35 }, damageOverTime = { 5, 7, 9 } } }
 
 node{ id = 'hexer_erzhexer', race = 'hexer', row = 4, col = 2, maxRank = 1,
-      label = 'Erzhexer', icon = '🔮', passive = true, level = 25,
+      label = 'Erzhexer', icon = '🔮', passive = true, level = 18,
       description = 'Die alten Kuenste gehorchen dir vollstaendig.',
       requires = { 'hexer_verderben', 'hexer_zaehigkeit', 'hexer_massenfluch' },
       stones = { 120 },
@@ -573,26 +574,26 @@ node{ id = 'nekro_grabesruf', race = 'nekromant', row = 2, col = 3, maxRank = 3,
       effect = { kind = 'reveal', radius = { 80, 110, 140 }, duration = { 15, 20, 26 } } }
 
 node{ id = 'nekro_todesmagie', race = 'nekromant', row = 3, col = 0.5, maxRank = 5,
-      label = 'Todesmagie', icon = '☠', passive = true, level = 10,
+      label = 'Todesmagie', icon = '☠', passive = true, level = 8,
       description = 'Der Tod arbeitet fuer dich, nicht gegen dich.',
       requires = { 'nekro_verwesung' }, stones = { base = 30, step = 12 },
       effect = { kind = 'passive', damageMult = { 0.08, 0.16, 0.24, 0.32, 0.45 } } }
 
 node{ id = 'nekro_untotesfleisch', race = 'nekromant', row = 3, col = 2, maxRank = 3,
-      label = 'Untotes Fleisch', icon = '🧟', passive = true, level = 10,
+      label = 'Untotes Fleisch', icon = '🧟', passive = true, level = 8,
       description = 'Was schon tot ist, stirbt nicht so schnell.',
       requires = { 'nekro_schattenriss' }, stones = { base = 30, step = 15 },
       effect = { kind = 'passive', healthBonus = { 25, 45, 70 }, regenPerTick = { 2, 3, 5 } } }
 
 node{ id = 'nekro_wiedererweckung', race = 'nekromant', row = 3, col = 3.5, maxRank = 3,
-      label = 'Wiedererweckung', icon = '⚰', level = 15,
+      label = 'Wiedererweckung', icon = '⚰', level = 12,
       description = 'Holt einen Gefallenen zurueck ins Leben.',
       requires = { 'nekro_grabesruf' }, stones = { base = 40, step = 20 },
       essence = 70, cooldown = { 300, 260, 220 },
       effect = { kind = 'revive_target', range = { 5.0, 7.0, 9.0 }, health = { 110, 150, 190 } } }
 
 node{ id = 'nekro_herrdertoten', race = 'nekromant', row = 4, col = 2, maxRank = 1,
-      label = 'Herr der Toten', icon = '👑', passive = true, level = 25,
+      label = 'Herr der Toten', icon = '👑', passive = true, level = 18,
       description = 'Zwischen Leben und Tod entscheidest nur noch du.',
       requires = { 'nekro_todesmagie', 'nekro_untotesfleisch', 'nekro_wiedererweckung' },
       stones = { 120 },
@@ -654,27 +655,27 @@ node{ id = 'jaeger_rauchbombe', race = 'jaeger', row = 2, col = 3, maxRank = 3,
       effect = { kind = 'stealth', duration = { 8, 11, 14 }, alpha = { 50, 35, 20 }, speedMult = 1.1 } }
 
 node{ id = 'jaeger_scharfschuetze', race = 'jaeger', row = 3, col = 0.5, maxRank = 5,
-      label = 'Scharfschuetze', icon = '🎯', passive = true, level = 10,
+      label = 'Scharfschuetze', icon = '🎯', passive = true, level = 8,
       description = 'Jeder Schuss sitzt dauerhaft besser.',
       requires = { 'jaeger_adrenalin' }, stones = { base = 30, step = 12 },
       effect = { kind = 'passive', damageMult = { 0.1, 0.2, 0.3, 0.4, 0.55 } } }
 
 node{ id = 'jaeger_feldarzt', race = 'jaeger', row = 3, col = 2, maxRank = 3,
-      label = 'Feldarzt', icon = '🩹', level = 10,
+      label = 'Feldarzt', icon = '🩹', level = 8,
       description = 'Du versorgst auch andere im Feld.',
       requires = { 'jaeger_splitter' }, stones = { base = 30, step = 15 },
       essence = 35, cooldown = { 60, 52, 45 },
       effect = { kind = 'heal_target', range = { 8.0, 11.0, 14.0 }, amount = { 45, 65, 90 } } }
 
 node{ id = 'jaeger_weihwasser', race = 'jaeger', row = 3, col = 3.5, maxRank = 3,
-      label = 'Weihwasser', icon = '⚱', level = 15,
+      label = 'Weihwasser', icon = '⚱', level = 12,
       description = 'Geweihtes Wasser verbrennt alles Uebernatuerliche.',
       requires = { 'jaeger_rauchbombe' }, stones = { base = 40, step = 20 },
       essence = 60, cooldown = { 120, 108, 95 },
       effect = { kind = 'aoe_damage', radius = { 8.0, 10.0, 12.0 }, damage = { 55, 75, 100 } } }
 
 node{ id = 'jaeger_veteran', race = 'jaeger', row = 4, col = 2, maxRank = 1,
-      label = 'Veteran', icon = '🎖', passive = true, level = 25,
+      label = 'Veteran', icon = '🎖', passive = true, level = 18,
       description = 'Du hast alles gejagt, was es zu jagen gibt.',
       requires = { 'jaeger_scharfschuetze', 'jaeger_feldarzt', 'jaeger_weihwasser' },
       stones = { 120 },

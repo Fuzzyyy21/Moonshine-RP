@@ -7,7 +7,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | Resource | Inhalt |
 |---|---|
 | `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
-| `moonshine-mystic` | Klassen mit Skilltree (Stufen, Klassen-Level, Klassensteine), Skillleiste, persönliche Perks → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
+| `moonshine-mystic` | Klassen mit Skilltree (Ränge, bezahlt mit Klassensteinen), Skillleiste, persönlicher Skillbaum (bezahlt mit XP) → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
@@ -71,7 +71,7 @@ resources/[moonshine]/
 │   ├── server/              Datenbank, Spielerobjekt, Inventar, Commands, API
 │   ├── client/              Charakterauswahl, HUD, Inventar, Callbacks
 │   └── nui/                 Oberfläche (Charakterauswahl, HUD, Inventar)
-├── moonshine-mystic/        Rassen, Skilltree, Skillleiste, Perks
+├── moonshine-mystic/        Klassen, Skilltree, Skillleiste, Perks
 │   ├── shared/              Config, Rassen, Skills, Perks, Steine
 │   ├── server/              Profile, Skills, Perks, Ritualpunkte, API
 │   ├── client/              Fähigkeiten, Skillleiste, Ritual-UI, Rassenmechanik

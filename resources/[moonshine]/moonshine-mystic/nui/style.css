@@ -364,6 +364,24 @@ html, body {
 .foot-center { display: flex; align-items: center; gap: 10px; font-size: 12px; }
 .foot-center .stone-count { font-size: 16px; }
 
+/* XP-Kopfzeile im persoenlichen Baum */
+
+.xp-header {
+    display: flex; align-items: center; gap: 24px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 20px;
+}
+.xp-block.grow { flex: 1; }
+.xp-level { font-size: 30px; font-weight: 700; line-height: 1; }
+.xp-value { font-size: 22px; font-weight: 700; color: var(--gold); }
+.xp-note { margin: 10px 2px 14px; }
+
+.perk-effect { margin-top: 6px; font-size: 11px; line-height: 1.4; }
+.perk-effect.owned { color: #cdc7dd; }
+.perk-effect.next { color: var(--class); }
+
 /* Perks */
 
 .perk-grid {

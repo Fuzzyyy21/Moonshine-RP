@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `ms_mystic` (
     `character_id`    INT         NOT NULL,
     `race`            VARCHAR(32) DEFAULT NULL,
     `xp`              INT         NOT NULL DEFAULT 0,
-    `skill_points`    INT         NOT NULL DEFAULT 0,
+    `xp_total`        INT         NOT NULL DEFAULT 0,
     `personal_points` INT         NOT NULL DEFAULT 0,
     `unlocked`        LONGTEXT    DEFAULT NULL,
     `skillbar`        LONGTEXT    DEFAULT NULL,
@@ -36,6 +36,12 @@ local function migrate()
         MySQL.query.await('ALTER TABLE `ms_mystic` ADD COLUMN `xp` INT NOT NULL DEFAULT 0')
         print('^3[Mystic]^7 Spalte ms_mystic.xp ergaenzt.')
     end
+
+    if not present.xp_total then
+        MySQL.query.await('ALTER TABLE `ms_mystic` ADD COLUMN `xp_total` INT NOT NULL DEFAULT 0')
+        MySQL.query.await('UPDATE `ms_mystic` SET `xp_total` = `xp` WHERE `xp_total` = 0')
+        print('^3[Mystic]^7 Spalte ms_mystic.xp_total ergaenzt.')
+    end
 end
 
 MySQL.ready(function()
@@ -58,23 +64,22 @@ function Mystic.DB.Load(characterId)
     local row = MySQL.single.await('SELECT * FROM ms_mystic WHERE character_id = ?', { characterId })
 
     if not row then
+        local startXp = MysticConfig.Progression.startXp
+
         MySQL.insert.await([[
-            INSERT INTO ms_mystic (character_id, personal_points, unlocked, skillbar, perks)
-            VALUES (?, ?, '{}', '[]', '{}')
-        ]], {
-            characterId,
-            MysticConfig.Points.startPersonalPoints,
-        })
+            INSERT INTO ms_mystic (character_id, xp, xp_total, unlocked, skillbar, perks)
+            VALUES (?, ?, ?, '{}', '[]', '{}')
+        ]], { characterId, startXp, startXp })
 
         row = {
-            character_id    = characterId,
-            race            = nil,
-            xp              = 0,
-            personal_points = MysticConfig.Points.startPersonalPoints,
-            unlocked        = '{}',
-            skillbar        = '[]',
-            perks           = '{}',
-            seconds_played  = 0,
+            character_id   = characterId,
+            race           = nil,
+            xp             = startXp,
+            xp_total       = startXp,
+            unlocked       = '{}',
+            skillbar       = '[]',
+            perks          = '{}',
+            seconds_played = 0,
         }
     end
 
@@ -85,13 +90,13 @@ end
 function Mystic.DB.Save(characterId, payload)
     return MySQL.update.await([[
         UPDATE ms_mystic
-        SET race = ?, xp = ?, personal_points = ?, unlocked = ?,
+        SET race = ?, xp = ?, xp_total = ?, unlocked = ?,
             skillbar = ?, perks = ?, seconds_played = ?
         WHERE character_id = ?
     ]], {
         payload.race,
         payload.xp,
-        payload.personalPoints,
+        payload.xpTotal,
         json.encode(payload.ranks),
         json.encode(payload.skillbar),
         json.encode(payload.perks),

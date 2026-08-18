@@ -1,15 +1,18 @@
---- Klassenstufe und Erfahrung.
---- Gespeichert wird nur die Gesamt-XP, die Stufe ergibt sich daraus.
+--- Erfahrung des persoenlichen Skillbaums.
+---
+--- XP sind zweierlei:
+---   xp       verfuegbares Guthaben, wird fuer Perks ausgegeben
+---   xpTotal  insgesamt verdiente XP, daraus ergibt sich die persoenliche Stufe
+---
+--- Der Klassenbaum nutzt keine XP - er kostet ausschliesslich Klassensteine.
 
 --- Benoetigte XP fuer den Aufstieg von `level` auf `level + 1`.
----@return number
 function Mystic.GetXpForLevel(level)
     local progression = MysticConfig.Progression
     return math.floor(progression.xpBase + level * progression.xpStep)
 end
 
---- Rechnet Gesamt-XP in Stufe und Fortschritt um.
----@param totalXp number
+--- Rechnet insgesamt verdiente XP in Stufe und Fortschritt um.
 ---@return number level, number xpIntoLevel, number xpForNext
 function Mystic.GetLevelFromXp(totalXp)
     local maxLevel = MysticConfig.Progression.maxLevel

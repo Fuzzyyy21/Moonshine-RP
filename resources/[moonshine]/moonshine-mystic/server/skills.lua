@@ -78,9 +78,12 @@ RegisterNetEvent('mystic:server:upgradeSkill', function(skillId)
         return
     end
 
+    -- Klassenstufe = bereits gekaufte Stufen im Baum, keine XP.
     local level = profile:GetLevel()
     if level < (skill.level or 1) then
-        profile:Notify(('Dafuer brauchst du Klassenstufe %d (aktuell %d).'):format(skill.level, level), 'error')
+        profile:Notify(
+            ('Dafuer brauchst du Klassenstufe %d (aktuell %d gelernte Stufen).'):format(skill.level, level),
+            'error')
         return
     end
 
@@ -111,7 +114,6 @@ RegisterNetEvent('mystic:server:upgradeSkill', function(skillId)
         end
     end
 
-    profile:AddXp(MysticConfig.Progression.xpPerUnlock)
     profile:Save()
     profile:Sync()
     profile:Notify(('%s auf Stufe %d.'):format(skill.label, nextRank), 'success')

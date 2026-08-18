@@ -1,9 +1,11 @@
 --- Persoenliche Skills ("Perks").
---- Sie sind rassenunabhaengig und werden mit persoenlichen Punkten gekauft,
---- die es fuer Onlinezeit gibt.
+---
+--- Sie sind klassenunabhaengig und werden mit ERFAHRUNG (XP) bezahlt. XP gibt
+--- es fuer Onlinezeit und Aktivitaet. Der Klassenbaum benutzt keine XP, sondern
+--- ausschliesslich Klassensteine.
 ---
 ---   maxLevel   hoechste Stufe
----   costBase   Punktekosten fuer Stufe 1
+---   costBase   XP-Kosten fuer Stufe 1
 ---   costStep   Aufschlag je weiterer Stufe
 ---   perLevel   Wirkung pro Stufe (wird mit der Stufe multipliziert)
 
@@ -11,65 +13,56 @@ Mystic.Perks = {
     {
         id = 'vitalitaet', label = 'Vitalitaet', icon = '❤',
         description = 'Erhoeht deine maximalen Lebenspunkte.',
-        maxLevel = 10, costBase = 1, costStep = 1,
+        maxLevel = 10, costBase = 300, costStep = 200,
         perLevel = { healthBonus = 12 },
-        format = '+%d max. Leben',
     },
     {
         id = 'ausdauer', label = 'Ausdauer', icon = '🏃',
         description = 'Du kannst deutlich laenger sprinten.',
-        maxLevel = 8, costBase = 1, costStep = 1,
+        maxLevel = 8, costBase = 250, costStep = 150,
         perLevel = { stamina = 12 },
-        format = '+%d%% Ausdauer',
     },
     {
         id = 'staerke', label = 'Staerke', icon = '💪',
         description = 'Erhoeht deinen Waffen- und Nahkampfschaden.',
-        maxLevel = 10, costBase = 2, costStep = 1,
+        maxLevel = 10, costBase = 400, costStep = 250,
         perLevel = { damageMult = 0.04, meleeMult = 0.05 },
-        format = '+%d%% Schaden',
     },
     {
         id = 'regeneration', label = 'Regeneration', icon = '💚',
         description = 'Deine Wunden schliessen sich von selbst.',
-        maxLevel = 8, costBase = 2, costStep = 1,
+        maxLevel = 8, costBase = 400, costStep = 250,
         perLevel = { regenPerTick = 1 },
-        format = '+%d Leben alle 5 Sekunden',
     },
     {
         id = 'essenz', label = 'Essenz', icon = '🔵',
         description = 'Vergroessert deinen Essenzvorrat.',
-        maxLevel = 10, costBase = 1, costStep = 1,
+        maxLevel = 10, costBase = 300, costStep = 200,
         perLevel = { essenceBonus = 10 },
-        format = '+%d max. Essenz',
     },
     {
         id = 'fokus', label = 'Fokus', icon = '🧘',
         description = 'Deine Essenz regeneriert schneller.',
-        maxLevel = 8, costBase = 2, costStep = 1,
+        maxLevel = 8, costBase = 400, costStep = 250,
         perLevel = { essenceRegen = 0.4 },
-        format = '+%.1f Essenz pro Tick',
     },
     {
         id = 'zaehigkeit', label = 'Zaehigkeit', icon = '🛡',
         description = 'Du erhaeltst beim Spawnen zusaetzliche Weste.',
-        maxLevel = 6, costBase = 2, costStep = 2,
+        maxLevel = 6, costBase = 350, costStep = 250,
         perLevel = { armorBonus = 8 },
-        format = '+%d Weste',
     },
     {
         id = 'schnelligkeit', label = 'Schnelligkeit', icon = '⚡',
         description = 'Du bewegst dich schneller zu Fuss.',
-        maxLevel = 5, costBase = 3, costStep = 2,
+        maxLevel = 5, costBase = 600, costStep = 400,
         perLevel = { speedMult = 0.02 },
-        format = '+%d%% Tempo',
     },
     {
         id = 'meisterung', label = 'Meisterung', icon = '⏱',
-        description = 'Verkuerzt die Abklingzeit deiner Rassenskills.',
-        maxLevel = 5, costBase = 3, costStep = 2,
+        description = 'Verkuerzt die Abklingzeit deiner Klassenskills.',
+        maxLevel = 5, costBase = 600, costStep = 400,
         perLevel = { cooldownMult = -0.04 },
-        format = '-%d%% Abklingzeit',
     },
 }
 
@@ -84,16 +77,49 @@ function Mystic.GetPerk(id)
     return Mystic.PerksById[id]
 end
 
---- Punktekosten fuer die naechste Stufe.
+--- XP-Kosten fuer die naechste Stufe.
 ---@return number|nil nil wenn die Maximalstufe erreicht ist
 function Mystic.GetPerkCost(perk, nextLevel)
     if nextLevel < 1 or nextLevel > perk.maxLevel then return nil end
     return perk.costBase + (nextLevel - 1) * perk.costStep
 end
 
+--- Beschreibt die Wirkung einer Perkstufe.
+function Mystic.DescribePerkLevel(perk, level)
+    local parts = {}
+
+    for key, value in pairs(perk.perLevel) do
+        local total = value * level
+
+        if key == 'healthBonus' then
+            parts[#parts + 1] = ('+%d max. Leben'):format(total)
+        elseif key == 'armorBonus' then
+            parts[#parts + 1] = ('+%d Weste'):format(total)
+        elseif key == 'stamina' then
+            parts[#parts + 1] = ('+%d%% Ausdauer'):format(total)
+        elseif key == 'damageMult' then
+            parts[#parts + 1] = ('+%d%% Schaden'):format(math.floor(total * 100 + 0.5))
+        elseif key == 'meleeMult' then
+            parts[#parts + 1] = ('+%d%% Nahkampf'):format(math.floor(total * 100 + 0.5))
+        elseif key == 'speedMult' then
+            parts[#parts + 1] = ('+%d%% Tempo'):format(math.floor(total * 100 + 0.5))
+        elseif key == 'regenPerTick' then
+            parts[#parts + 1] = ('+%d Leben alle 5 s'):format(total)
+        elseif key == 'essenceBonus' then
+            parts[#parts + 1] = ('+%d max. Essenz'):format(total)
+        elseif key == 'essenceRegen' then
+            parts[#parts + 1] = ('+%.1f Essenz/Tick'):format(total)
+        elseif key == 'cooldownMult' then
+            parts[#parts + 1] = ('%d%% Abklingzeit'):format(math.floor(total * 100 - 0.5))
+        end
+    end
+
+    table.sort(parts)
+    return table.concat(parts, ' · ')
+end
+
 --- Rechnet die Perk-Stufen in Gesamtboni um.
 ---@param levels table { [perkId] = level }
----@return table Summierte Modifikatoren
 function Mystic.SumPerks(levels)
     local total = {
         healthBonus = 0, stamina = 0, damageMult = 0, meleeMult = 0,
@@ -111,5 +137,14 @@ function Mystic.SumPerks(levels)
         end
     end
 
+    return total
+end
+
+--- Gesamte XP-Kosten aller gekauften Stufen (fuer die Erstattung).
+function Mystic.GetSpentXp(perk, level)
+    local total = 0
+    for step = 1, level do
+        total = total + (Mystic.GetPerkCost(perk, step) or 0)
+    end
     return total
 end

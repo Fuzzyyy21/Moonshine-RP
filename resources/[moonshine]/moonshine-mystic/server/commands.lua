@@ -71,27 +71,7 @@ register('setrasse', 'Setzt die Rasse eines Spielers', {
     reply(source, ('Rasse gesetzt: %s'):format(race.label), 'success')
 end)
 
-register('givepunkte', 'Gibt persoenliche Punkte', {
-    { name = 'id', help = 'Spieler-ID' },
-    { name = 'anzahl', help = 'Anzahl' },
-}, function(source, args)
-    local profile = targetProfile(source, args[1])
-    if not profile then return end
-
-    local amount = tonumber(args[2])
-    if not amount then
-        reply(source, 'Verwendung: /givepunkte [id] [anzahl]', 'error')
-        return
-    end
-
-    profile:AddPersonalPoints(amount)
-    profile:Save()
-    profile:Sync()
-    profile:Notify(('%d persoenliche Punkte erhalten.'):format(amount), 'success')
-    reply(source, 'Punkte vergeben.', 'success')
-end)
-
-register('givexp', 'Gibt Klassen-Erfahrung', {
+register('givexp', 'Gibt Erfahrung fuer den persoenlichen Skillbaum', {
     { name = 'id', help = 'Spieler-ID' },
     { name = 'xp', help = 'Menge' },
 }, function(source, args)
@@ -99,35 +79,15 @@ register('givexp', 'Gibt Klassen-Erfahrung', {
     if not profile then return end
 
     local amount = tonumber(args[2])
-    if not amount or not profile.race then
-        reply(source, 'Verwendung: /givexp [id] [xp] (Spieler braucht eine Klasse)', 'error')
+    if not amount then
+        reply(source, 'Verwendung: /givexp [id] [xp]', 'error')
         return
     end
 
     profile:AddXp(amount)
     profile:Save()
     profile:Sync()
-    reply(source, ('%d XP vergeben, Stufe %d.'):format(amount, profile:GetLevel()), 'success')
-end)
-
-register('setlevel', 'Setzt die Klassenstufe', {
-    { name = 'id', help = 'Spieler-ID' },
-    { name = 'stufe', help = '1-50' },
-}, function(source, args)
-    local profile = targetProfile(source, args[1])
-    if not profile then return end
-
-    local level = tonumber(args[2])
-    if not level or level < 1 or level > MysticConfig.Progression.maxLevel then
-        reply(source, ('Stufe muss zwischen 1 und %d liegen.'):format(MysticConfig.Progression.maxLevel), 'error')
-        return
-    end
-
-    profile.xp = Mystic.GetTotalXpForLevel(level)
-    profile:Save()
-    profile:Sync()
-    profile:Notify(('Deine Klassenstufe ist jetzt %d.'):format(level), 'info')
-    reply(source, ('Stufe %d gesetzt.'):format(level), 'success')
+    reply(source, ('%d XP vergeben, Guthaben %d.'):format(amount, profile.xp), 'success')
 end)
 
 register('givestein', 'Gibt einem Spieler Ritualsteine', {

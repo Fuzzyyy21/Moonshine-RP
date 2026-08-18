@@ -31,9 +31,19 @@ exports('GetSkillRank', function(source, skillId)
     return profile and profile:GetRank(skillId) or 0
 end)
 
+--- Klassenstufe = Anzahl der im Klassenbaum gekauften Stufen.
 exports('GetLevel', function(source)
     local profile = Mystic.GetProfile(source)
     return profile and profile:GetLevel() or 0
+end)
+
+--- Persoenliche Stufe aus der gesamten verdienten Erfahrung.
+exports('GetPersonalLevel', function(source)
+    local profile = Mystic.GetProfile(source)
+    if not profile then return 0 end
+
+    local level = profile:GetPersonalProgress()
+    return level
 end)
 
 exports('AddXp', function(source, amount)
@@ -50,11 +60,15 @@ exports('GetModifiers', function(source)
     return profile and profile:GetModifiers() or nil
 end)
 
-exports('AddPersonalPoints', function(source, amount)
+exports('GetXp', function(source)
     local profile = Mystic.GetProfile(source)
-    if not profile then return false end
+    return profile and profile.xp or 0
+end)
 
-    profile:AddPersonalPoints(amount)
+exports('SpendXp', function(source, amount)
+    local profile = Mystic.GetProfile(source)
+    if not profile or not profile:SpendXp(amount) then return false end
+
     profile:Sync()
     return true
 end)

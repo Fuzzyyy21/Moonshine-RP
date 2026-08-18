@@ -33,28 +33,34 @@ MysticConfig.SkillBar = {
     requireVisible = true,
 }
 
--- Punkte ---------------------------------------------------------------------
-MysticConfig.Points = {
-    -- Persoenliche Punkte (Perks) durch Onlinezeit.
-    minutesPerPersonalPoint = 15,
-    startPersonalPoints     = 3,
+-- Klassenstufe ---------------------------------------------------------------
+-- Der Klassenbaum kostet ausschliesslich Klassensteine. Die Klassenstufe ist
+-- keine XP-Stufe, sondern zaehlt die im Baum gekauften Stufen. Tiefe Knoten
+-- verlangen darueber eine Mindestanzahl (Feld `level` in shared/skills.lua).
+MysticConfig.ClassLevel = {
+    -- Wird nur fuer die Anzeige gebraucht.
+    label = 'Stufe',
 }
 
--- Klassenstufe ---------------------------------------------------------------
--- Klassenskills brauchen Klassensteine; hohe Knoten zusaetzlich eine Stufe.
+-- Erfahrung (nur persoenlicher Skillbaum) ------------------------------------
+-- XP sind die Waehrung fuer Leben, Ausdauer, Schaden und die uebrigen Perks.
+-- Der Klassenbaum verwendet sie bewusst nicht.
 MysticConfig.Progression = {
     maxLevel = 50,
 
-    -- Benoetigte XP fuer den Aufstieg von Stufe n auf n+1.
+    -- XP-Guthaben zum Start.
+    startXp = 500,
+
+    -- Kurve fuer die persoenliche Stufe (reine Anzeige des Fortschritts).
     xpBase = 500,
     xpStep = 650,
 
     -- XP-Quellen
-    xpPerMinute     = 12,   -- Onlinezeit
-    xpPerSkillCast  = 8,    -- eingesetzter Skill
-    xpPerSkillHit   = 6,    -- je getroffenem Ziel
-    xpPerMeditation = 120,  -- abgeschlossene Meditation
-    xpPerUnlock     = 150,  -- geskillte Stufe
+    xpPerMinute     = 20,   -- Onlinezeit
+    xpPerSkillCast  = 10,   -- eingesetzter Skill
+    xpPerSkillHit   = 8,    -- je getroffenem Ziel
+    xpPerMeditation = 150,  -- abgeschlossene Meditation
+    xpPerKill       = 0,    -- optional, von eigenen Scripts vergebbar
 }
 
 -- Klassensteine --------------------------------------------------------------

@@ -35,10 +35,12 @@
         <div class="level-box" id="level-box">
             <div class="level-caption" id="level-caption">Stufe</div>
             <div class="level-body">
-                <span class="level-value" id="level-value">1</span>
+                <span class="level-value" id="level-value">0</span>
                 <div class="xp">
-                    <div class="xp-text"><span id="xp-current">0</span> / <span id="xp-next">0</span> XP</div>
-                    <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+                    <div class="xp-text">
+                        <span id="ranks-current">0</span> / <span id="ranks-max">0</span> Stufen geskillt
+                    </div>
+                    <div class="xp-track"><div class="xp-fill" id="ranks-fill"></div></div>
                 </div>
             </div>
         </div>
@@ -79,6 +81,24 @@
             </div>
 
             <div class="tab-panel hidden" id="panel-perks">
+                <div class="xp-header">
+                    <div class="xp-block">
+                        <div class="section-caption">Persoenliche Stufe</div>
+                        <span class="xp-level" id="personal-level">1</span>
+                    </div>
+                    <div class="xp-block grow">
+                        <div class="xp-text">
+                            <span id="xp-into">0</span> / <span id="xp-next">0</span> XP bis zur naechsten Stufe
+                        </div>
+                        <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+                    </div>
+                    <div class="xp-block">
+                        <div class="section-caption">Verfuegbare XP</div>
+                        <span class="xp-value" id="xp-balance">0</span>
+                    </div>
+                </div>
+                <p class="muted xp-note">Erfahrung gibt es fuer Onlinezeit und Aktivitaet.
+                    Sie zaehlt ausschliesslich hier - der Klassenbaum kostet Klassensteine.</p>
                 <div class="perk-grid" id="perk-grid"></div>
             </div>
 
@@ -130,7 +150,7 @@
             <span class="foot-icon">↻</span>
             <span>
                 <strong>Perks zuruecksetzen</strong>
-                <em>Persoenliche Punkte erstatten</em>
+                <em>Erfahrung zurueckerstatten</em>
             </span>
         </button>
 
@@ -138,8 +158,8 @@
             <span class="muted">Verfuegbare Steine</span>
             <span class="gem">◆</span>
             <span class="stone-count" id="stone-count-2">0</span>
-            <span class="muted spaced-left">Persoenliche Punkte</span>
-            <span class="stone-count" id="personal-points">0</span>
+            <span class="muted spaced-left">Erfahrung</span>
+            <span class="stone-count" id="xp-balance-2">0</span>
         </div>
 
         <button class="foot-action right" id="btn-close">

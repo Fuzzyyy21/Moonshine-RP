@@ -88,36 +88,21 @@ CreateThread(function()
     end
 end)
 
--- Onlinezeit: Klassen-XP und persoenliche Punkte -----------------------------
+-- Onlinezeit: Erfahrung fuer den persoenlichen Baum --------------------------
 
 CreateThread(function()
-    local personalSeconds = math.max(1, MysticConfig.Points.minutesPerPersonalPoint) * 60
-
     while true do
         Wait(60000)
 
         for _, profile in pairs(Mystic.Profiles) do
-            local before = profile.secondsPlayed
-            profile.secondsPlayed = before + 60
+            profile.secondsPlayed = profile.secondsPlayed + 60
 
-            local changed = false
-
-            -- Klassenstufe steigt nur mit einer Klasse.
-            if profile.race and MysticConfig.Progression.xpPerMinute > 0 then
+            -- XP gibt es unabhaengig von der Klasse, sie zaehlen nur fuer
+            -- den persoenlichen Skillbaum.
+            if MysticConfig.Progression.xpPerMinute > 0 then
                 profile:AddXp(MysticConfig.Progression.xpPerMinute)
-                changed = true
+                profile:Sync()
             end
-
-            local gainedPersonal = math.floor(profile.secondsPlayed / personalSeconds)
-                                 - math.floor(before / personalSeconds)
-
-            if gainedPersonal > 0 then
-                profile:AddPersonalPoints(gainedPersonal)
-                profile:Notify(('%d persoenliche(r) Punkt(e) erhalten.'):format(gainedPersonal), 'success')
-                changed = true
-            end
-
-            if changed then profile:Sync() end
         end
     end
 end)

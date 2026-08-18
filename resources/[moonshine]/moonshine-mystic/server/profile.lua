@@ -51,8 +51,11 @@ function Mystic.CreateProfile(source, characterId, row)
         source         = source,
         characterId    = characterId,
         race           = row.race,
-        xp             = row.xp or 0,
-        personalPoints = row.personal_points or 0,
+
+        -- XP sind ausschliesslich die Waehrung des persoenlichen Baums.
+        xp             = row.xp or MysticConfig.Progression.startXp,
+        xpTotal        = row.xp_total or row.xp or MysticConfig.Progression.startXp,
+
         ranks          = ranks,
         skillbar       = skillbar,
         perks          = decode(row.perks, {}),
@@ -74,38 +77,68 @@ function Mystic.GetProfile(source)
     return Mystic.Profiles[tonumber(source)]
 end
 
--- Stufen und Erfahrung -------------------------------------------------------
+-- Klassenstufe ---------------------------------------------------------------
 
----@return number Klassenstufe
+--- Die Klassenstufe zaehlt die im Klassenbaum gekauften Stufen.
+--- Sie hat nichts mit Erfahrung zu tun - der Baum kostet nur Klassensteine.
+---@return number
 function Profile:GetLevel()
-    local level = Mystic.GetLevelFromXp(self.xp)
-    return level
+    return self:GetTotalRanks()
 end
 
---- Fortschritt fuer die Oberflaeche.
+--- Wie viele Stufen der Baum der aktuellen Klasse insgesamt hergibt.
+function Profile:GetMaxRanks()
+    if not self.race then return 0 end
+
+    local total = 0
+    for _, skill in ipairs(Mystic.GetSkillsForRace(self.race)) do
+        total = total + skill.maxRank
+    end
+    return total
+end
+
+-- Erfahrung (persoenlicher Baum) ---------------------------------------------
+
+--- Persoenliche Stufe und Fortschritt aus der gesamten verdienten Erfahrung.
 ---@return number level, number xpIntoLevel, number xpForNext
-function Profile:GetProgress()
-    return Mystic.GetLevelFromXp(self.xp)
+function Profile:GetPersonalProgress()
+    return Mystic.GetLevelFromXp(self.xpTotal)
 end
 
---- Vergibt Erfahrung und meldet Stufenaufstiege.
+--- Vergibt Erfahrung fuer den persoenlichen Baum.
 ---@return boolean levelUp
 function Profile:AddXp(amount)
     amount = math.floor(tonumber(amount) or 0)
-    if amount <= 0 or not self.race then return false end
+    if amount <= 0 then return false end
 
-    local before = self:GetLevel()
+    local before = self:GetPersonalProgress()
     self.xp = self.xp + amount
-    local after = self:GetLevel()
+    self.xpTotal = self.xpTotal + amount
+    local after = self:GetPersonalProgress()
 
     if after > before then
-        self:Notify(('Klassenstufe %d erreicht.'):format(after), 'success')
+        self:Notify(('Persoenliche Stufe %d erreicht.'):format(after), 'success')
         TriggerClientEvent('mystic:client:levelUp', self.source, after)
         TriggerEvent('mystic:server:levelUp', self.source, after)
         return true
     end
 
     return false
+end
+
+--- Gibt XP aus (nur persoenlicher Baum).
+---@return boolean
+function Profile:SpendXp(amount)
+    amount = math.floor(tonumber(amount) or 0)
+    if amount <= 0 or self.xp < amount then return false end
+
+    self.xp = self.xp - amount
+    return true
+end
+
+--- Erstattet XP, ohne die Gesamterfahrung zu veraendern.
+function Profile:RefundXp(amount)
+    self.xp = self.xp + math.max(0, math.floor(tonumber(amount) or 0))
 end
 
 -- Skills ---------------------------------------------------------------------
@@ -254,12 +287,6 @@ function Profile:UseEssence(amount)
     return true
 end
 
--- Punkte ---------------------------------------------------------------------
-
-function Profile:AddPersonalPoints(amount)
-    self.personalPoints = math.max(0, self.personalPoints + amount)
-end
-
 -- Synchronisation ------------------------------------------------------------
 
 --- Daten fuer den Client (inklusive verbleibender Abklingzeiten).
@@ -271,7 +298,7 @@ function Profile:GetData()
     end
 
     local race = Mystic.GetRace(self.race)
-    local level, xpIntoLevel, xpForNext = self:GetProgress()
+    local personalLevel, xpIntoLevel, xpForNext = self:GetPersonalProgress()
     local stoneName, stoneLabel = Mystic.GetClassStone(self.race)
 
     return {
@@ -281,14 +308,19 @@ function Profile:GetData()
         raceColor      = race and race.color or nil,
         essenceLabel   = race and race.essence.label or 'Essenz',
 
-        level          = level,
+        -- Klassenbaum: Stufe = gekaufte Stufen, bezahlt mit Klassensteinen
+        level          = self:GetLevel(),
+        maxRanks       = self:GetMaxRanks(),
+
+        -- Persoenlicher Baum: Erfahrung
         xp             = self.xp,
+        xpTotal        = self.xpTotal,
+        personalLevel  = personalLevel,
         xpIntoLevel    = xpIntoLevel,
         xpForNext      = xpForNext,
 
         essence        = math.floor(self.essence),
         maxEssence     = self:GetMaxEssence(),
-        personalPoints = self.personalPoints,
 
         ranks          = self.ranks,
         totalRanks     = self:GetTotalRanks(),
@@ -316,13 +348,13 @@ function Profile:Save()
     if not Mystic.DB.Ready then return false end
 
     Mystic.DB.Save(self.characterId, {
-        race           = self.race,
-        xp             = self.xp,
-        personalPoints = self.personalPoints,
-        ranks          = self.ranks,
-        skillbar       = self.skillbar,
-        perks          = self.perks,
-        secondsPlayed  = self.secondsPlayed,
+        race          = self.race,
+        xp            = self.xp,
+        xpTotal       = self.xpTotal,
+        ranks         = self.ranks,
+        skillbar      = self.skillbar,
+        perks         = self.perks,
+        secondsPlayed = self.secondsPlayed,
     })
     return true
 end

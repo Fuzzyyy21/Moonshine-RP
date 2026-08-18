@@ -239,7 +239,7 @@ function renderTree() {
             const lock = document.createElement('div');
             lock.className = 'lock';
             lock.textContent = '🔒';
-            lock.title = `Klassenstufe ${node.levelNeeded} noetig`;
+            lock.title = `Klassenstufe ${node.levelNeeded} noetig (geskillte Stufen im Baum)`;
             element.appendChild(lock);
         }
 
@@ -324,7 +324,8 @@ function renderDetail() {
     if (node.levelLocked) {
         const note = document.createElement('div');
         note.className = 'note';
-        note.textContent = `Klassenstufe ${node.levelNeeded} noetig (aktuell ${data.level}).`;
+        note.textContent = `Klassenstufe ${node.levelNeeded} noetig - das sind `
+            + `${node.levelNeeded} geskillte Stufen im Baum (aktuell ${data.level}).`;
         requirement.appendChild(note);
     } else if (node.locked) {
         const note = document.createElement('div');
@@ -402,7 +403,22 @@ function renderPerks() {
         card.querySelector('.icon').textContent = perk.icon;
         card.querySelector('.title').textContent = perk.label;
         card.querySelector('.level').textContent = `${perk.level} / ${perk.maxLevel}`;
-        card.querySelector('.desc').textContent = perk.description;
+
+        const desc = card.querySelector('.desc');
+        desc.textContent = perk.description;
+
+        if (perk.currentText) {
+            const current = document.createElement('div');
+            current.className = 'perk-effect owned';
+            current.textContent = `Aktuell: ${perk.currentText}`;
+            desc.appendChild(current);
+        }
+        if (perk.nextText) {
+            const next = document.createElement('div');
+            next.className = 'perk-effect next';
+            next.textContent = `Naechste Stufe: ${perk.nextText}`;
+            desc.appendChild(next);
+        }
 
         const track = card.querySelector('.level-track');
         for (let index = 0; index < perk.maxLevel; index++) {
@@ -416,7 +432,7 @@ function renderPerks() {
             card.querySelector('.cost').textContent = 'Maximalstufe';
             button.disabled = true;
         } else {
-            card.querySelector('.cost').textContent = `${perk.nextCost} Punkte`;
+            card.querySelector('.cost').textContent = `${number(perk.nextCost)} XP`;
             button.disabled = !perk.affordable;
             button.onclick = () => post('mysticUpgradePerk', { id: perk.id });
         }
@@ -519,18 +535,27 @@ function renderTreeScreen() {
     $('class-desc').textContent = data.raceDescription || 'Waehle deine Klasse an einem Ritualpunkt.';
 
     $('level-caption').textContent = data.raceLabel ? `${data.raceLabel} Stufe` : 'Stufe';
-    $('level-value').textContent = data.level || 1;
-    $('xp-current').textContent = number(data.xpIntoLevel);
-    $('xp-next').textContent = number(data.xpForNext);
-    $('xp-fill').style.width = data.xpForNext > 0
-        ? Math.min(100, (data.xpIntoLevel / data.xpForNext) * 100) + '%'
-        : '100%';
+    $('level-value').textContent = data.level || 0;
+    $('ranks-current').textContent = number(data.level);
+    $('ranks-max').textContent = number(data.maxRanks);
+    $('ranks-fill').style.width = data.maxRanks > 0
+        ? Math.min(100, (data.level / data.maxRanks) * 100) + '%'
+        : '0%';
 
     $('stone-caption').textContent = (data.stone && data.stone.label) || 'Steine';
     $('stone-count').textContent = number(data.stone && data.stone.count);
     $('stone-count-2').textContent = number(data.stone && data.stone.count);
-    $('personal-points').textContent = number(data.personalPoints);
     $('btn-convert').disabled = !data.atRitual || !data.race;
+
+    // Erfahrung gehoert allein zum persoenlichen Baum.
+    $('personal-level').textContent = data.personalLevel || 1;
+    $('xp-into').textContent = number(data.xpIntoLevel);
+    $('xp-next').textContent = number(data.xpForNext);
+    $('xp-fill').style.width = data.xpForNext > 0
+        ? Math.min(100, (data.xpIntoLevel / data.xpForNext) * 100) + '%'
+        : '100%';
+    $('xp-balance').textContent = number(data.xp);
+    $('xp-balance-2').textContent = number(data.xp);
 
     renderClasses();
     renderTree();

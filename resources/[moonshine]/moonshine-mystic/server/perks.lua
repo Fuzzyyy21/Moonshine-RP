@@ -1,4 +1,5 @@
---- Persoenliche Skills: Stufen kaufen und zuruecksetzen.
+--- Persoenlicher Skillbaum: Stufen mit Erfahrung kaufen und zuruecksetzen.
+--- XP sind hier die einzige Waehrung; der Klassenbaum nutzt Klassensteine.
 
 RegisterNetEvent('mystic:server:upgradePerk', function(perkId)
     local source = source
@@ -17,12 +18,11 @@ RegisterNetEvent('mystic:server:upgradePerk', function(perkId)
         return
     end
 
-    if profile.personalPoints < cost then
-        profile:Notify(('Dir fehlen %d persoenliche Punkte.'):format(cost - profile.personalPoints), 'error')
+    if not profile:SpendXp(cost) then
+        profile:Notify(('Dir fehlen %d XP.'):format(cost - profile.xp), 'error')
         return
     end
 
-    profile:AddPersonalPoints(-cost)
     profile.perks[perkId] = nextLevel
 
     -- Groesserer Essenzvorrat wirkt sofort.
@@ -34,7 +34,7 @@ RegisterNetEvent('mystic:server:upgradePerk', function(perkId)
     TriggerEvent('mystic:server:perkUpgraded', source, perkId, nextLevel)
 end)
 
---- Setzt alle Perks zurueck und erstattet die Punkte.
+--- Setzt alle Perks zurueck und erstattet die ausgegebene Erfahrung.
 RegisterNetEvent('mystic:server:resetPerks', function()
     local source = source
     local profile = Mystic.Profiles[source]
@@ -48,23 +48,19 @@ RegisterNetEvent('mystic:server:resetPerks', function()
     local refund = 0
     for perkId, level in pairs(profile.perks) do
         local perk = Mystic.GetPerk(perkId)
-        if perk then
-            for step = 1, level do
-                refund = refund + (Mystic.GetPerkCost(perk, step) or 0)
-            end
-        end
+        if perk then refund = refund + Mystic.GetSpentXp(perk, level) end
     end
 
     if refund == 0 then
-        profile:Notify('Du hast noch keine Perks gelernt.', 'info')
+        profile:Notify('Du hast noch keine persoenlichen Skills gelernt.', 'info')
         return
     end
 
     profile.perks = {}
-    profile:AddPersonalPoints(refund)
+    profile:RefundXp(refund)
     profile:SetEssence(profile.essence)
 
     profile:Save()
     profile:Sync()
-    profile:Notify(('Perks zurueckgesetzt, %d Punkte erstattet.'):format(refund), 'success')
+    profile:Notify(('Zurueckgesetzt, %d XP erstattet.'):format(refund), 'success')
 end)
