@@ -169,6 +169,51 @@ RegisterNetEvent('appearance:server:cancel', function()
     sessions[source] = nil
 end)
 
+--- Zaehlt, was sich zwischen zwei Aussehen unterscheidet.
+---
+--- Der Client darf nicht sagen, wie viel er geaendert hat - sonst kauft er
+--- fuer null. Der Server hat beide Zustaende und rechnet selbst.
+---@return number kleidung, number accessoires
+local function countChanges(before, after)
+    before = type(before) == 'table' and before or {}
+    after = type(after) == 'table' and after or {}
+
+    local kleidung, accessoires = 0, 0
+
+    local function differs(oldEntry, newEntry)
+        oldEntry = type(oldEntry) == 'table' and oldEntry or {}
+        newEntry = type(newEntry) == 'table' and newEntry or {}
+
+        return (oldEntry.drawable or 0) ~= (newEntry.drawable or 0)
+            or (oldEntry.texture or 0) ~= (newEntry.texture or 0)
+    end
+
+    for _, component in ipairs(Appearance.Components) do
+        local key = tostring(component.id)
+
+        if differs((before.components or {})[key], (after.components or {})[key]) then
+            if component.group == 'accessoires' then
+                accessoires = accessoires + 1
+            else
+                kleidung = kleidung + 1
+            end
+        end
+    end
+
+    for _, prop in ipairs(Appearance.Props) do
+        local key = tostring(prop.id)
+        local oldEntry = (before.props or {})[key] or { drawable = -1 }
+        local newEntry = (after.props or {})[key] or { drawable = -1 }
+
+        if (oldEntry.drawable or -1) ~= (newEntry.drawable or -1)
+            or (oldEntry.texture or 0) ~= (newEntry.texture or 0) then
+            accessoires = accessoires + 1
+        end
+    end
+
+    return kleidung, accessoires
+end
+
 -- Editor oeffnen ---------------------------------------------------------------------
 
 --- Zahlt die Sitzung und gibt den Editor frei.
@@ -260,25 +305,28 @@ RegisterNetEvent('appearance:server:open', function(kind, id)
 end)
 
 --- Kaufen: der Client meldet, wie viele Teile er geaendert hat.
-RegisterNetEvent('appearance:server:buy', function(appearance, changed)
+RegisterNetEvent('appearance:server:buy', function(appearance)
     local source = source
     if not MS.RateLimit(source, 'appearance:buy', 10, 10) then return end
 
     local player = MS.GetPlayer(source)
     local session = sessions[source]
-    if not player or not session or session.kind ~= 'shop' then return end
+
+    if not player or not session or session.kind ~= 'shop' then
+        TriggerClientEvent('appearance:client:buyFailed', source)
+        return
+    end
 
     local shop = findShop(session.id)
-    if not shop or not near(source, shop.coords) then return end
+    if not shop or not near(source, shop.coords) then
+        player:Notify('Du stehst nicht mehr im Laden.', 'error')
+        TriggerClientEvent('appearance:client:buyFailed', source)
+        return
+    end
 
-    changed = type(changed) == 'table' and changed or {}
-
-    local kleidung = math.max(0, math.floor(tonumber(changed.kleidung) or 0))
-    local accessoires = math.max(0, math.floor(tonumber(changed.accessoires) or 0))
-
-    -- Mehr als es Teile gibt, kann niemand geaendert haben.
-    kleidung = math.min(kleidung, #Appearance.Components + 2)
-    accessoires = math.min(accessoires, #Appearance.Props + #Appearance.Components)
+    -- Der Server vergleicht selbst, was sich geaendert hat.
+    local clean = sanitize(appearance, player.gender)
+    local kleidung, accessoires = countChanges(player.appearance, clean)
 
     local total = kleidung * Appearance.GetPrice('kleidung', shop.tier)
         + accessoires * Appearance.GetPrice('accessoires', shop.tier)
@@ -291,13 +339,15 @@ RegisterNetEvent('appearance:server:buy', function(appearance, changed)
         end
     end
 
-    if not store(source, appearance) then return end
+    player.appearance = clean
+    player:Save()
 
     sessions[source] = nil
 
     player:Notify(total > 0
-        and ('Gekauft fuer %s.'):format(MS.Utils.FormatMoney(total))
-        or 'Aussehen gespeichert.', 'success')
+        and ('%d Teile fuer %s gekauft.'):format(kleidung + accessoires,
+            MS.Utils.FormatMoney(total))
+        or 'Nichts geaendert.', total > 0 and 'success' or 'info')
 
     TriggerClientEvent('appearance:client:bought', source)
     TriggerEvent('appearance:server:changed', source)

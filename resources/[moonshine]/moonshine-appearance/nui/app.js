@@ -303,28 +303,63 @@ function renderGroups() {
 
 /* ------------------------------------------------------------- Werte anzeigen */
 
-/** Merkt sich, dass etwas geändert wurde (für den Preis). */
-function markTouched(groupId, priced) {
-    if (touched[groupId]) return;
-
-    touched[groupId] = true;
-
-    if (priced) {
-        changed[priced] = (changed[priced] || 0) + 1;
-        updateCost();
+/** Merkt sich, dass eine Gruppe angefasst wurde (nur für den Punkt daneben). */
+function markTouched(groupId) {
+    if (!touched[groupId]) {
+        touched[groupId] = true;
+        renderGroups();
     }
 
-    renderGroups();
+    updateCost();
+}
+
+/**
+ * Zählt genauso wie der Server: was sich vom Ausgangszustand unterscheidet.
+ * Wer etwas ändert und zurücknimmt, zahlt dafür nicht.
+ */
+function countChanges() {
+    const before = config.appearance || {};
+    let kleidung = 0;
+    let accessoires = 0;
+
+    const differs = (a, b) => (a || {}).drawable !== (b || {}).drawable
+        || (a || {}).texture !== (b || {}).texture;
+
+    config.data.components.forEach((entry) => {
+        const key = String(entry.id);
+
+        if (differs((before.components || {})[key], (state.components || {})[key])) {
+            if (entry.group === 'accessoires') accessoires += 1;
+            else kleidung += 1;
+        }
+    });
+
+    config.data.props.forEach((entry) => {
+        const key = String(entry.id);
+        const old = (before.props || {})[key] || { drawable: -1, texture: 0 };
+        const now = (state.props || {})[key] || { drawable: -1, texture: 0 };
+
+        if (old.drawable !== now.drawable || old.texture !== now.texture) {
+            accessoires += 1;
+        }
+    });
+
+    return { kleidung, accessoires };
 }
 
 function updateCost() {
     if (config.kind !== 'shop') return;
+
+    changed = countChanges();
 
     const total = changed.kleidung * (config.prices.kleidung || 0)
         + changed.accessoires * (config.prices.accessoires || 0);
 
     $('cost').textContent = money(total);
     $('cost-box').classList.toggle('hidden', total === 0);
+
+    const parts = changed.kleidung + changed.accessoires;
+    $('cost-box').title = parts > 0 ? `${parts} geänderte Teile` : '';
 
     const button = $('btn-save');
     const affordable = total <= config.balance;
@@ -347,8 +382,10 @@ async function renderControls(group) {
 
     /* --- Kleidungsstück ------------------------------------------------- */
     if (kind === 'component') {
-        const entry = state.components[String(id)]
-            || { drawable: 0, texture: 0 };
+        if (!state.components[String(id)]) {
+            state.components[String(id)] = { drawable: 0, texture: 0 };
+        }
+        const entry = state.components[String(id)];
 
         const result = await ask('setComponent', {
             id, drawable: entry.drawable, texture: entry.texture,
@@ -365,7 +402,7 @@ async function renderControls(group) {
                     { id, drawable: value, texture: 0 });
 
                 counts[group.id] = next || counts[group.id];
-                markTouched(group.id, group.priced);
+                markTouched(group.id);
                 renderControls(group);
             }));
 
@@ -373,7 +410,7 @@ async function renderControls(group) {
             counts[group.id].textures, (value) => {
                 entry.texture = value;
                 post('setComponent', { id, drawable: entry.drawable, texture: value });
-                markTouched(group.id, group.priced);
+                markTouched(group.id);
             }));
 
         $('group-hint').textContent =
@@ -383,7 +420,10 @@ async function renderControls(group) {
 
     /* --- Anbauteil ------------------------------------------------------- */
     if (kind === 'prop') {
-        const entry = state.props[String(id)] || { drawable: -1, texture: 0 };
+        if (!state.props[String(id)]) {
+            state.props[String(id)] = { drawable: -1, texture: 0 };
+        }
+        const entry = state.props[String(id)];
 
         const result = await ask('setProp', {
             id, drawable: entry.drawable, texture: entry.texture,
@@ -401,7 +441,7 @@ async function renderControls(group) {
                     { id, drawable: entry.drawable, texture: 0 });
 
                 counts[group.id] = next || counts[group.id];
-                markTouched(group.id, group.priced);
+                markTouched(group.id);
                 renderControls(group);
             }, (value) => (value === 0 ? 'nichts' : String(value))));
 
@@ -410,7 +450,7 @@ async function renderControls(group) {
                 counts[group.id].textures, (value) => {
                     entry.texture = value;
                     post('setProp', { id, drawable: entry.drawable, texture: value });
-                    markTouched(group.id, group.priced);
+                    markTouched(group.id);
                 }));
         }
 
@@ -420,8 +460,12 @@ async function renderControls(group) {
     /* --- Gesichtsauflage -------------------------------------------------- */
     if (kind === 'overlay') {
         const definition = config.data.overlays.find((entry) => entry.id === id);
-        const entry = state.overlays[String(id)]
-            || { index: 255, opacity: 1.0, colour: 0, secondColour: 0 };
+        if (!state.overlays[String(id)]) {
+            state.overlays[String(id)] = {
+                index: 255, opacity: 1.0, colour: 0, secondColour: 0,
+            };
+        }
+        const entry = state.overlays[String(id)];
 
         const result = await ask('setOverlay', {
             id, index: entry.index, opacity: entry.opacity,
@@ -486,6 +530,9 @@ async function renderControls(group) {
 
     /* --- Haare ------------------------------------------------------------ */
     if (group.id === 'haare') {
+        if (!state.hair) {
+            state.hair = { drawable: 0, texture: 0, colour: 1, highlight: 1 };
+        }
         const hair = state.hair;
 
         const result = await ask('setHair', hair);
@@ -516,6 +563,15 @@ async function renderControls(group) {
 
     /* --- Gesicht ---------------------------------------------------------- */
     if (group.id === 'gesicht') {
+        if (!state.headBlend) {
+            state.headBlend = {
+                shapeFirst: 0, shapeSecond: 0, shapeThird: 0,
+                skinFirst: 0, skinSecond: 0, skinThird: 0,
+                shapeMix: 0.5, skinMix: 0.5, thirdMix: 0.0,
+            };
+        }
+        if (!state.features) state.features = {};
+
         const blend = state.headBlend;
         const parents = config.data.parents;
 
@@ -639,9 +695,7 @@ document.querySelectorAll('.view').forEach((button) => {
 
 /* ----------------------------------------------------------------- Aktionen */
 
-$('btn-save').addEventListener('click', () => {
-    post('save', { changed });
-});
+$('btn-save').addEventListener('click', () => post('save'));
 
 $('btn-cancel').addEventListener('click', () => post('cancel'));
 

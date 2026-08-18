@@ -1,0 +1,32 @@
+name: Pruefen
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lua bereitstellen
+        run: sudo apt-get update && sudo apt-get install -y lua5.4
+
+      - name: Node bereitstellen
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Framework pruefen
+        run: python3 tools/pruefen.py
+
+      - name: SQL gegen MariaDB einspielen
+        run: |
+          sudo systemctl start mysql || sudo service mysql start
+          mysql -uroot -proot -e "CREATE DATABASE moonshine CHARACTER SET utf8mb4;"
+          mysql -uroot -proot moonshine < sql/moonshine.sql
+          echo "Tabellen:"
+          mysql -uroot -proot moonshine -e "SHOW TABLES;"

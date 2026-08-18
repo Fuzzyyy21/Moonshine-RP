@@ -4,6 +4,17 @@ Der Server ist inhaltlich vollständig: 14 Resources, alle Systeme greifen
 ineinander. **Nichts davon lief bisher auf einem laufenden FXServer.** Diese
 Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
+## 0. Vorher: die statische Prüfung
+
+```bash
+python3 tools/pruefen.py
+```
+
+Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
+Seitenzuordnung und Command-Kollisionen — bevor der Server überhaupt startet.
+Bei jedem Push läuft sie ohnehin. Was sie **nicht** kann: Koordinaten prüfen,
+Spielmechanik testen, Balancing beurteilen. Dafür ist der Rest dieser Liste da.
+
 ## 1. Aufsetzen
 
 ```cfg

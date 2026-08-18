@@ -4,6 +4,23 @@ local MS = exports['moonshine-core']:GetCoreObject()
 
 local refuelling = false
 
+--- Tankstand aus moonshine-vehicles holen. Fehlt die Resource, gibt es kein
+--- Tanksystem - Bank und Schwarzmarkt laufen trotzdem weiter.
+---@return number|nil
+function Services.GetFuel(plate)
+    local ok, value = pcall(function()
+        return exports['moonshine-vehicles']:GetFuel(plate)
+    end)
+
+    return ok and value or nil
+end
+
+function Services.SetFuel(plate, value)
+    return (pcall(function()
+        exports['moonshine-vehicles']:SetFuel(plate, value)
+    end))
+end
+
 --- Das Kanister-Item muss auch der Client kennen (Inventaranzeige).
 CreateThread(function()
     local config = ServiceConfig.Fuel.canister
@@ -82,10 +99,9 @@ RegisterNetEvent('services:client:fuelGranted', function(plate, amount)
         for index = 1, steps do
             Wait(math.floor(ServiceConfig.Fuel.speed * (total / steps)))
 
-            local current = exports['moonshine-vehicles']:GetFuel(plate)
+            local current = Services.GetFuel(plate)
             if current ~= nil then
-                exports['moonshine-vehicles']:SetFuel(plate,
-                    math.min(100.0, current + perStep))
+                Services.SetFuel(plate, math.min(100.0, current + perStep))
             end
 
             SendNUIMessage({ action = 'services:fuelProgress',
@@ -165,7 +181,12 @@ function Services.OpenFuel(station)
     end
 
     local plate = GetVehicleNumberPlateText(vehicle):gsub('%s+$', '')
-    local current = exports['moonshine-vehicles']:GetFuel(plate)
+    local current = Services.GetFuel(plate)
+
+    if current == nil then
+        MS.Notify('Dieses Fahrzeug hat keinen verwalteten Tank.', 'error')
+        return
+    end
 
     Services.Open('fuel', {
         label   = station.label,

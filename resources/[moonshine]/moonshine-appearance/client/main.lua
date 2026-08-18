@@ -169,7 +169,8 @@ RegisterNUICallback('save', function(data, cb)
     Appearance.Current = Appearance.Read()
 
     if mode == 'shop' then
-        TriggerServerEvent('appearance:server:buy', Appearance.Current, data.changed)
+        -- Was es kostet, rechnet der Server aus dem Unterschied selbst aus.
+        TriggerServerEvent('appearance:server:buy', Appearance.Current)
     else
         TriggerServerEvent('appearance:server:save', Appearance.Current)
         close(false)

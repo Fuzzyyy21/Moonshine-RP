@@ -94,7 +94,7 @@ RegisterNetEvent('services:client:repairGranted', function(plate, duration, part
 
             -- Neuen Zustand melden.
             local plateNow = GetVehicleNumberPlateText(vehicle):gsub('%s+$', '')
-            local fuel = exports['moonshine-vehicles']:GetFuel(plateNow)
+            local fuel = Services.GetFuel(plateNow)
 
             if fuel then
                 TriggerServerEvent('vehicles:server:report', plateNow, fuel,
