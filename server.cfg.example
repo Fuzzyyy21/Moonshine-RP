@@ -27,6 +27,7 @@ ensure oxmysql
 
 # Moonshine ------------------------------------------------------------------
 ensure moonshine-core
+ensure moonshine-appearance
 ensure moonshine-world
 ensure moonshine-mystic
 ensure moonshine-death

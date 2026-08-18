@@ -100,6 +100,10 @@ function MS.SpawnPlayer(position)
     ShutdownLoadingScreen()
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'setHudVisible', data = true })
+
+    -- Aussehen und alles, was am fertigen Ped haengt, kommt jetzt dran.
+    TriggerEvent('moonshine:client:playerSpawned', MS.PlayerData)
+
     DoScreenFadeIn(800)
 end
 

@@ -7,6 +7,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | Resource | Inhalt |
 |---|---|
 | `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
+| `moonshine-appearance` | Charaktereditor, Kleidungsläden, Friseure und Outfits → [`docs/APPEARANCE.md`](docs/APPEARANCE.md) |
 | `moonshine-world` | Serverzeit, Wetter, Mondphasen und mystische Weltereignisse → [`docs/WORLD.md`](docs/WORLD.md) |
 | `moonshine-mystic` | Klassen-Skilltree (Klassensteine) und persönlicher Skillbaum mit 6 Kategorien (Fähigkeitspunkte), Skillleiste, Ritualpunkte → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
 | `moonshine-death` | Bewusstlosigkeit statt Sofort-Respawn, Notruf, Wiederbelebung → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
@@ -33,6 +34,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **HUD** | Name, Server-ID, Job, Geld, Leben, Weste, Hunger, Durst |
 | **Persistenz** | Autosave, Speichern bei Disconnect, Resource-Stop und Server-Shutdown |
 | **API** | Exports, Server-Callbacks, Events – für eigene Resources dokumentiert in [`docs/API.md`](docs/API.md) |
+| **Aussehen** | Charaktereditor mit Gesichtsmischung, 20 Gesichtszügen, 13 Auflagen und aller Kleidung; 6 Läden in drei Preisstufen, 5 Friseure, 10 Outfits je Charakter |
 | **Welt** | Serverzeit mit 48-Minuten-Tag, Wetterzyklus, acht Mondphasen und acht Weltereignissen, die Klassenkräfte, Bossintervall und Ritualertrag verschieben |
 | **Fortschritt** | Spielzeit-Meilensteine, drei tägliche und drei wöchentliche Missionen, Battle Pass über 50 Stufen, vier Kistenarten |
 | **Fraktionen** | Wappen-Baukasten, bis zu acht Ränge mit 13 Rechten, eigener Skilltree, Kasse, Tresor, Shop, Garage, acht Gebiete mit Einnahme und Einkommen |
@@ -68,6 +70,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ```cfg
    ensure oxmysql
    ensure moonshine-core
+   ensure moonshine-appearance
    ensure moonshine-world
    ensure moonshine-mystic
    ensure moonshine-death
@@ -99,6 +102,7 @@ resources/[moonshine]/
 │   ├── server/              Datenbank, Spielerobjekt, Inventar, Commands, API
 │   ├── client/              Charakterauswahl, HUD, Inventar, Callbacks
 │   └── nui/                 Oberfläche (Charakterauswahl, HUD, Inventar)
+├── moonshine-appearance/    Charaktereditor, Kleidung, Friseure, Outfits
 ├── moonshine-world/         Zeit, Wetter, Mondphasen, Weltereignisse
 │   ├── shared/              Config, Mondphasen, Ereignisse
 │   ├── server/              Uhr, Wetter, Ereignissteuerung, API
@@ -130,6 +134,7 @@ resources/[moonshine]/
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
 docs/API.md                  API-Dokumentation des Frameworks
+docs/APPEARANCE.md           Charaktereditor, Kleidung und Friseure
 docs/WORLD.md                Zeit, Wetter, Mondphasen, Weltereignisse
 docs/MYSTIC.md               Dokumentation des Mystik-Systems
 docs/SURVIVAL.md             Sterbesystem und Weltbosse
@@ -172,7 +177,7 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 | `F10` | Fraktion |
 | `L` | Fahrzeug ver-/entriegeln |
 | `NUMPAD 1–6` | Skill-Slots auslösen |
-| `E` | Aufheben / Laden / Ritualpunkt / Auktionator / Garage / Tanken / Bank / Notruf |
+| `E` | Aufheben / Laden / Ritualpunkt / Auktionator / Garage / Tanken / Bank / Friseur / Notruf |
 | `G` | Wiederbeleben bzw. aufgeben, wenn bewusstlos |
 
 Die Tasten lassen sich im FiveM-Menü unter *Einstellungen → Tastenbelegung → FiveM*
@@ -199,7 +204,7 @@ frei ändern.
 | `/saveall` | 4 | Alle Charaktere speichern |
 
 Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
-[Welt](docs/WORLD.md), [Mystik](docs/MYSTIC.md),
+[Aussehen](docs/APPEARANCE.md), [Welt](docs/WORLD.md), [Mystik](docs/MYSTIC.md),
 [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
 [Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md),
 [Auktionshaus](docs/AUCTION.md), [Fahrzeuge](docs/VEHICLES.md) und
@@ -232,8 +237,8 @@ Vollständige Referenz: [`docs/API.md`](docs/API.md).
 * Alle Geld- und Item-Aktionen laufen serverseitig; der Client schickt nur Absichten.
 * Positionen werden alle 30 Sekunden gemeldet und beim Speichern übernommen.
 * Bodenitems leben nur zur Laufzeit und verfallen nach 10 Minuten.
-* Skins/Kleidung sind bewusst nicht enthalten – `appearance` liegt als Spalte und
-  Feld bereit, damit ein Clothing-Script direkt andocken kann.
+* Kleidung und Charaktereditor liegen in `moonshine-appearance` und schreiben in
+  die Spalte `appearance`, die dafür von Anfang an vorgesehen war.
 * **Nichts davon lief bisher auf einem laufenden FXServer.** Die Checkliste vor
   dem Livegang — vor allem die nachzumessenden Koordinaten — steht in
   [`docs/LAUNCH.md`](docs/LAUNCH.md).

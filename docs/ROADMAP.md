@@ -1,6 +1,6 @@
 # Ideen und Ausbaustufen
 
-Stand: 13 Resources sind gebaut — Core, Welt, Mystik, Sterbesystem,
+Stand: 14 Resources sind gebaut — Core, Aussehen, Welt, Mystik, Sterbesystem,
 Weltbosse, Fortschritt, Fraktionen, Auktionshaus, Fahrzeuge,
 Dienstleistungen, Arbeit, Administration und der Beispiel-Shop.
 
@@ -65,11 +65,10 @@ könnte dort passiv Steine bekommen und andere beim Ritual stören. **Warum:**
 Verbindet Gebietskontrolle und Steinwirtschaft zu einem Kreislauf statt zwei
 getrennten.
 
-### 3. Kleidung und Charaktereditor — mittel
-Aktuell bekommt jeder das Standardmodell. Die Spalte `appearance` ist bereits
-vorbereitet, der Gestaltwandel meldet sein Ende über
-`mystic:client:transformEnded`. **Warum:** Der einzige Punkt, an dem der Server
-sichtbar unfertig wirkt — alle sehen gleich aus.
+### 3. Tattoos — klein
+Der Editor deckt alles ab außer Tattoos. `SetPedDecoration` und die
+Overlay-Sammlungen wären der nächste Schritt; die Struktur in
+`ms_characters.appearance` trägt das mit.
 
 ## Danach: mehr Tiefe
 
@@ -135,4 +134,6 @@ steht in [`LAUNCH.md`](LAUNCH.md).
   Beobachten und Protokollansicht
 * **Anticheat-Grundlagen** — Wachhund mit Strikes plus `MS.RateLimit`, das an
   allen geldbewegenden Ereignissen hängt
+* **Kleidung und Charaktereditor** — als `moonshine-appearance` gebaut, mit
+  Gesichtsmischung, Läden in drei Preisstufen, Friseuren und Outfits
 * **Steinadern** — durch Weltbosse und den Steinhändler ersetzt

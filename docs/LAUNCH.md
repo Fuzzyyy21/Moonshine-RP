@@ -1,6 +1,6 @@
 # Vor dem Livegang
 
-Der Server ist inhaltlich vollständig: 13 Resources, alle Systeme greifen
+Der Server ist inhaltlich vollständig: 14 Resources, alle Systeme greifen
 ineinander. **Nichts davon lief bisher auf einem laufenden FXServer.** Diese
 Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
@@ -67,6 +67,9 @@ Config korrigieren.
 | Jobcenter | `moonshine-jobs/shared/config.lua` | 1 |
 | Auftrags-Anmeldungen | `moonshine-jobs/shared/jobs.lua` | 4 |
 | Auftrags-Stationen | `moonshine-jobs/shared/jobs.lua` | 40 |
+| Kleidungsläden | `moonshine-appearance/shared/config.lua` | 6 |
+| Friseure | `moonshine-appearance/shared/config.lua` | 5 |
+| Umkleiden | `moonshine-appearance/shared/config.lua` | 4 |
 
 Besonders heikel sind die **Fahrzeug-Ausgabepunkte** (Autohäuser, Garagen,
 Arbeitsfahrzeuge): Steht der Punkt in einer Wand, erscheint das Fahrzeug gar
@@ -76,7 +79,8 @@ nicht oder fällt durch die Welt.
 
 Ein Durchlauf, der alle Systeme berührt:
 
-1. **Charakter anlegen**, Inventar öffnen (`F2`), HUD prüfen (`F7`)
+1. **Charakter anlegen** — der Editor muss von selbst aufgehen. Gesicht
+   mischen, Frisur wählen, anziehen. Danach Inventar (`F2`) und HUD (`F7`)
 2. **Erwecken** an einem Ritualpunkt, Klasse wählen
 3. **Steine kaufen** beim Händler, 10+10 zum Klassenstein binden
 4. **Ersten Skill** kaufen (5 Steine) — danach muss die Klassenliste
@@ -91,7 +95,9 @@ Ein Durchlauf, der alle Systeme berührt:
 12. **Schicht** beim Postdienst, alle sechs Stationen, Abschlussbonus
 13. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
     anders sein (`/mystik` zeigt sie)
-14. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+14. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
+    Umkleide wieder wechseln
+15. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 
@@ -126,10 +132,6 @@ Am wichtigsten zuerst:
 
 ## 8. Was noch fehlt
 
-Ehrlich gesagt: **Kleidung**. Aktuell sieht jeder gleich aus. Die Spalte
-`appearance` liegt in `ms_characters` bereit und wird gespeichert — es fehlt
-nur ein Clothing-Script, das sie füllt. Das ist der einzige Punkt, an dem der
-Server sichtbar unfertig wirkt.
-
-Alles andere ist Ausbau, kein Loch: Telefon, Zufluchtsorte, Fahrzeug-Tuning,
-Discord-Anbindung. Der Server läuft ohne sie.
+Nichts, was den Server unfertig aussehen ließe. Alles Weitere ist Ausbau:
+Telefon, Zufluchtsorte, Fahrzeug-Tuning, Discord-Anbindung. Der Server läuft
+ohne sie.

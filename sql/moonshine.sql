@@ -273,3 +273,17 @@ CREATE TABLE IF NOT EXISTS `ms_work` (
     `updated_at`   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`character_id`, `job`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Aussehen (moonshine-appearance)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_outfits` (
+    `id`           INT         NOT NULL AUTO_INCREMENT,
+    `character_id` INT         NOT NULL,
+    `label`        VARCHAR(32) NOT NULL,
+    `data`         LONGTEXT    NOT NULL,
+    `created_at`   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `character_id` (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

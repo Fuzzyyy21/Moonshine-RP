@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Aussehen</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="screen" class="hidden">
+
+    <!-- Seitenleiste links --------------------------------------------------->
+    <aside class="sidebar">
+        <header class="brand">
+            <div class="crest" id="crest">👤</div>
+            <div>
+                <h1 id="title">Kleidung</h1>
+                <p class="sub" id="subtitle">Such dir etwas aus</p>
+            </div>
+        </header>
+
+        <nav class="groups" id="group-list"></nav>
+
+        <div class="sidebar-foot">
+            <div class="balance">
+                <span class="caption">Konto</span>
+                <span class="value" id="balance">0 $</span>
+            </div>
+            <div class="cost hidden" id="cost-box">
+                <span class="caption">Warenkorb</span>
+                <span class="value gold" id="cost">0 $</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Mitte: nur Kameraknöpfe, der Rest ist das Spiel ---------------------->
+    <div class="stage">
+        <div class="views" id="view-row">
+            <button class="view" data-view="kopf">Kopf</button>
+            <button class="view" data-view="koerper">Oberkörper</button>
+            <button class="view" data-view="beine">Beine</button>
+            <button class="view active" data-view="ganz">Ganz</button>
+        </div>
+
+        <div class="hint">
+            <span>Ziehen mit der <b>linken Maustaste</b> oder <b>← →</b> dreht dich.</span>
+        </div>
+    </div>
+
+    <!-- Werteleiste rechts --------------------------------------------------->
+    <aside class="panel">
+        <div class="panel-head">
+            <h2 id="group-title">Oberteil</h2>
+            <p class="muted" id="group-hint"></p>
+        </div>
+
+        <div class="controls" id="controls"></div>
+
+        <div class="panel-foot">
+            <div class="outfit-box hidden" id="outfit-box">
+                <div class="caption">Outfits</div>
+                <div class="outfit-list" id="outfit-list"></div>
+                <div class="outfit-new">
+                    <input type="text" id="outfit-name" maxlength="32" placeholder="Name">
+                    <button class="btn small" id="btn-save-outfit">Sichern</button>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn" id="btn-cancel">Abbrechen</button>
+                <button class="btn primary" id="btn-save">Übernehmen</button>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
