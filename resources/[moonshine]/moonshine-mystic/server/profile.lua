@@ -61,7 +61,10 @@ function Mystic.CreateProfile(source, characterId, row)
 
         ranks          = ranks,
         skillbar       = skillbar,
-        perks          = decode(row.perks, {}),
+
+        -- Persoenlicher Baum: Stufen je Knoten und Faehigkeitspunkte.
+        personal       = decode(row.perks, {}),
+        skillPoints    = row.personal_points or MysticConfig.Progression.startPoints,
         secondsPlayed  = row.seconds_played or 0,
 
         essence        = 0,
@@ -115,14 +118,25 @@ function Profile:AddXp(amount)
     amount = math.floor(tonumber(amount) or 0)
     if amount <= 0 then return false end
 
+    -- Bonus aus dem persoenlichen Baum (Gelehrsamkeit, Weiser).
+    local bonus = self:GetModifiers().xpBonus or 0
+    if bonus > 0 then
+        amount = math.floor(amount * (1.0 + bonus))
+    end
+
     local before = self:GetPersonalProgress()
     self.xp = self.xp + amount
     self.xpTotal = self.xpTotal + amount
     local after = self:GetPersonalProgress()
 
     if after > before then
-        self:Notify(('Persoenliche Stufe %d erreicht.'):format(after), 'success')
-        TriggerClientEvent('mystic:client:levelUp', self.source, after)
+        -- Jeder Aufstieg bringt Faehigkeitspunkte fuer den persoenlichen Baum.
+        local gained = (after - before) * MysticConfig.Progression.pointsPerLevel
+        self.skillPoints = self.skillPoints + gained
+
+        self:Notify(('Persoenliche Stufe %d erreicht, %d Faehigkeitspunkte erhalten.')
+            :format(after, gained), 'success')
+        TriggerClientEvent('mystic:client:levelUp', self.source, after, gained)
         TriggerEvent('mystic:server:levelUp', self.source, after)
         return true
     end
@@ -130,7 +144,8 @@ function Profile:AddXp(amount)
     return false
 end
 
---- Gibt XP aus (nur persoenlicher Baum).
+--- Gibt XP aus. Wird vom persoenlichen Baum nicht mehr genutzt, bleibt aber
+--- fuer eigene Scripts verfuegbar.
 ---@return boolean
 function Profile:SpendXp(amount)
     amount = math.floor(tonumber(amount) or 0)
@@ -140,9 +155,52 @@ function Profile:SpendXp(amount)
     return true
 end
 
---- Erstattet XP, ohne die Gesamterfahrung zu veraendern.
 function Profile:RefundXp(amount)
     self.xp = self.xp + math.max(0, math.floor(tonumber(amount) or 0))
+end
+
+-- Faehigkeitspunkte ----------------------------------------------------------
+
+function Profile:AddSkillPoints(amount)
+    self.skillPoints = math.max(0, self.skillPoints + math.floor(tonumber(amount) or 0))
+end
+
+---@return boolean
+function Profile:SpendSkillPoints(amount)
+    amount = math.floor(tonumber(amount) or 0)
+    if amount <= 0 or self.skillPoints < amount then return false end
+
+    self.skillPoints = self.skillPoints - amount
+    return true
+end
+
+---@return number Stufe eines Knotens im persoenlichen Baum
+function Profile:GetPersonalRank(nodeId)
+    return self.personal[nodeId] or 0
+end
+
+--- Gesetzte Stufen je Kategorie.
+function Profile:GetCategoryRanks(categoryId)
+    local total = 0
+
+    for nodeId, rank in pairs(self.personal) do
+        local entry = Mystic.GetPersonalNode(nodeId)
+        if entry and entry.category == categoryId then total = total + rank end
+    end
+
+    return total
+end
+
+--- Insgesamt ausgegebene Faehigkeitspunkte.
+function Profile:GetSpentSkillPoints()
+    local total = 0
+
+    for nodeId, rank in pairs(self.personal) do
+        local entry = Mystic.GetPersonalNode(nodeId)
+        if entry then total = total + Mystic.GetSpentPoints(entry, rank) end
+    end
+
+    return total
 end
 
 -- Meditationspunkte ----------------------------------------------------------
@@ -262,17 +320,38 @@ function Profile:GetModifiers()
         end
     end
 
-    local perks = Mystic.SumPerks(self.perks)
-    mods.healthBonus  = mods.healthBonus + perks.healthBonus
-    mods.armorBonus   = mods.armorBonus + perks.armorBonus
-    mods.stamina      = mods.stamina + perks.stamina
-    mods.damageMult   = mods.damageMult + perks.damageMult
-    mods.meleeMult    = mods.meleeMult + perks.meleeMult
-    mods.speedMult    = mods.speedMult + perks.speedMult
-    mods.regenPerTick = mods.regenPerTick + perks.regenPerTick
-    mods.essenceBonus = mods.essenceBonus + perks.essenceBonus
-    mods.essenceRegen = mods.essenceRegen + perks.essenceRegen
-    mods.cooldownMult = math.max(0.4, mods.cooldownMult + perks.cooldownMult)
+    -- Persoenlicher Baum
+    local personal = Mystic.SumPersonal(self.personal)
+
+    mods.healthBonus  = mods.healthBonus + personal.healthBonus
+    mods.armorBonus   = mods.armorBonus + personal.armorBonus
+    mods.stamina      = mods.stamina + personal.stamina
+    mods.damageMult   = mods.damageMult + personal.damageMult
+    mods.meleeMult    = mods.meleeMult + personal.meleeMult
+    mods.speedMult    = mods.speedMult + personal.speedMult
+    mods.regenPerTick = mods.regenPerTick + personal.regenPerTick
+    mods.essenceBonus = mods.essenceBonus + personal.essenceBonus
+    mods.essenceRegen = mods.essenceRegen + personal.essenceRegen
+    mods.cooldownMult = math.max(0.4, mods.cooldownMult + personal.cooldownMult)
+    mods.costMult     = math.max(0.4, mods.costMult + personal.costMult)
+    mods.noFallDamage = mods.noFallDamage or personal.noFallDamage
+
+    -- Nur aus dem persoenlichen Baum
+    mods.sprintMult      = personal.sprintMult
+    mods.swimMult        = personal.swimMult
+    mods.breath          = personal.breath
+    mods.jumpBonus       = personal.jumpBonus
+    mods.damageReduction = personal.damageReduction
+    mods.fallReduction   = personal.fallReduction
+    mods.ragdollResist   = personal.ragdollResist
+    mods.lifesteal       = personal.lifesteal
+    mods.critChance      = personal.critChance
+    mods.critBonus       = personal.critBonus
+    mods.xpBonus         = personal.xpBonus
+    mods.moneyBonus      = personal.moneyBonus
+    mods.lootChance      = personal.lootChance
+    mods.lootAmount      = personal.lootAmount
+    mods.meditationBonus = personal.meditationBonus
 
     return mods
 end
@@ -349,7 +428,10 @@ function Profile:GetData()
         totalRanks     = self:GetTotalRanks(),
         canSwitchClass = self:CanSwitchClass(),
         skillbar       = self.skillbar,
-        perks          = self.perks,
+
+        personal       = self.personal,
+        skillPoints    = self.skillPoints,
+        spentPoints    = self:GetSpentSkillPoints(),
         modifiers      = self:GetModifiers(),
         cooldowns      = cooldowns,
 
@@ -375,10 +457,11 @@ function Profile:Save()
         xp               = self.xp,
         xpTotal          = self.xpTotal,
         meditationPoints = self.meditationPoints,
+        skillPoints      = self.skillPoints,
         ranks            = self.ranks,
-        skillbar      = self.skillbar,
-        perks         = self.perks,
-        secondsPlayed = self.secondsPlayed,
+        skillbar         = self.skillbar,
+        personal         = self.personal,
+        secondsPlayed    = self.secondsPlayed,
     })
     return true
 end

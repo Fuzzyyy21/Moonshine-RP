@@ -96,15 +96,42 @@ function setClassColor(hex) {
 
 /* ------------------------------------------------------------------- Tabs */
 
-document.querySelectorAll('.tab').forEach((tab) => {
-    tab.onclick = () => {
-        document.querySelectorAll('.tab').forEach((other) => other.classList.remove('active'));
-        tab.classList.add('active');
+function activateTab(name) {
+    document.querySelectorAll('.tab').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.tab === name);
+    });
 
-        ['tree', 'perks', 'bar', 'stones', 'ritual'].forEach((name) => {
-            $('panel-' + name).classList.toggle('hidden', name !== tab.dataset.tab);
-        });
-    };
+    ['tree', 'perks', 'bar', 'stones', 'ritual'].forEach((panel) => {
+        $('panel-' + panel).classList.toggle('hidden', panel !== name);
+    });
+
+    // Der persoenliche Baum hat eine eigene Kopfzeile und Seitenleiste.
+    const personal = name === 'perks';
+    $('head-class').classList.toggle('hidden', personal);
+    $('head-personal').classList.toggle('hidden', !personal);
+    $('sidebar-classes').classList.toggle('hidden', personal);
+    $('sidebar-categories').classList.toggle('hidden', !personal);
+    $('legend').classList.toggle('hidden', personal);
+    $('statistics').classList.toggle('hidden', !personal);
+
+    $('class-name').textContent = personal
+        ? 'Personal Skills'
+        : (state.tree && state.tree.raceLabel) || 'Nicht erweckt';
+    $('subtitle').textContent = personal ? 'Skillbaum' : 'Skilltree';
+    $('class-desc').textContent = personal
+        ? 'Staerke dich. Werde legendaer.'
+        : (state.tree && state.tree.raceDescription) || 'Waehle deine Klasse an einem Ritualpunkt.';
+
+    if (personal) {
+        renderPersonal();
+    } else if (state.tree) {
+        setClassColor(state.tree.raceColor || '#c0392f');
+        renderDetail();
+    }
+}
+
+document.querySelectorAll('.tab').forEach((tab) => {
+    tab.onclick = () => activateTab(tab.dataset.tab);
 });
 
 /* -------------------------------------------------------------- Klassen */
@@ -377,69 +404,286 @@ function addSlotButtons(container, node) {
     container.appendChild(wrap);
 }
 
-/* ---------------------------------------------------------------- Perks */
+/* ------------------------------------------------- Persoenlicher Baum */
 
-function renderPerks() {
+state.category = 'vitalitaet';
+state.personalSelected = null;
+
+function setCategoryColor(hex) {
+    document.documentElement.style.setProperty('--cat', hex);
+
+    const match = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+    if (match) {
+        const [r, g, b] = [1, 2, 3].map((index) => parseInt(match[index], 16));
+        document.documentElement.style.setProperty('--cat-dim', `rgba(${r}, ${g}, ${b}, 0.28)`);
+    }
+}
+
+function currentCategory() {
     const data = state.tree;
-    const grid = $('perk-grid');
-    grid.innerHTML = '';
+    return (data.categories || []).find((entry) => entry.id === state.category)
+        || (data.categories || [])[0];
+}
 
-    data.perks.forEach((perk) => {
-        const card = document.createElement('div');
-        card.className = 'perk';
-        card.innerHTML = `
-            <div class="head">
-                <span class="icon"></span>
-                <span class="title"></span>
-                <span class="level"></span>
-            </div>
-            <div class="desc"></div>
-            <div class="level-track"></div>
-            <div class="footer">
-                <span class="cost"></span>
-                <button class="btn primary">Verbessern</button>
+function renderCategories() {
+    const data = state.tree;
+    const list = $('category-list');
+    list.innerHTML = '';
+
+    (data.categories || []).forEach((category) => {
+        const entry = document.createElement('div');
+        entry.className = 'category-entry' + (category.id === state.category ? ' active' : '');
+        entry.style.setProperty('--cat', category.color);
+        entry.innerHTML = `
+            <span class="icon"></span>
+            <div class="info">
+                <div class="name"></div>
+                <div class="progress"></div>
             </div>`;
 
-        card.querySelector('.icon').textContent = perk.icon;
-        card.querySelector('.title').textContent = perk.label;
-        card.querySelector('.level').textContent = `${perk.level} / ${perk.maxLevel}`;
+        entry.querySelector('.icon').textContent = category.icon;
+        entry.querySelector('.name').textContent = category.label;
+        entry.querySelector('.progress').textContent = `${category.spent} / ${category.max}`;
+        entry.title = category.description || '';
 
-        const desc = card.querySelector('.desc');
-        desc.textContent = perk.description;
+        entry.onclick = () => {
+            state.category = category.id;
+            state.personalSelected = null;
+            renderPersonal();
+        };
 
-        if (perk.currentText) {
-            const current = document.createElement('div');
-            current.className = 'perk-effect owned';
-            current.textContent = `Aktuell: ${perk.currentText}`;
-            desc.appendChild(current);
+        list.appendChild(entry);
+    });
+
+    $('p-spent').textContent = number(data.spentPoints);
+}
+
+function personalNodeState(node) {
+    if (node.maxed) return 'maxed learned';
+    if (node.rank > 0) return 'learned';
+    if (node.locked) return 'locked';
+    if (node.affordable) return 'open';
+    return '';
+}
+
+function renderPersonalTree() {
+    const data = state.tree;
+    const canvas = $('personal-canvas');
+    const layer = $('personal-nodes');
+    const svg = $('personal-links');
+    const category = currentCategory();
+
+    layer.innerHTML = '';
+    svg.innerHTML = '';
+    if (!category) return;
+
+    const nodes = (data.personalNodes && data.personalNodes.nodes[category.id]) || [];
+    const links = (data.personalNodes && data.personalNodes.links[category.id]) || [];
+
+    const positions = {};
+    let maxX = 0;
+    let maxY = 0;
+
+    nodes.forEach((node) => {
+        const position = nodePosition(node);
+        positions[node.id] = position;
+        maxX = Math.max(maxX, position.x + GRID.paddingX);
+        maxY = Math.max(maxY, position.y + GRID.rowHeight);
+    });
+
+    canvas.style.width = maxX + 'px';
+    canvas.style.height = maxY + 'px';
+    svg.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
+    svg.setAttribute('width', maxX);
+    svg.setAttribute('height', maxY);
+
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+
+    links.forEach((link) => {
+        const from = positions[link.from];
+        const to = positions[link.to];
+        if (!from || !to) return;
+
+        const source = byId.get(link.from);
+        const target = byId.get(link.to);
+        const active = source && source.rank > 0 && target && target.rank > 0;
+        const reachable = source && source.rank > 0;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const midY = (from.y + to.y) / 2;
+        path.setAttribute('d', `M ${from.x} ${from.y + 31} V ${midY} H ${to.x} V ${to.y - 31}`);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-width', active ? '2' : '1.5');
+        path.setAttribute('stroke', active
+            ? 'var(--cat)'
+            : (reachable ? 'rgba(216,178,95,.45)' : 'rgba(255,255,255,.12)'));
+        svg.appendChild(path);
+    });
+
+    nodes.forEach((node) => {
+        const position = positions[node.id];
+        const element = document.createElement('div');
+        element.className = 'node personal ' + personalNodeState(node);
+        if (state.personalSelected === node.id) element.classList.add('selected');
+        element.style.left = position.x + 'px';
+        element.style.top = position.y + 'px';
+
+        element.innerHTML = `
+            <div class="ring"></div>
+            <div class="label"></div>
+            <div class="rank"></div>`;
+
+        element.querySelector('.ring').textContent = node.icon || '✦';
+        element.querySelector('.label').textContent = node.label;
+        element.querySelector('.rank').textContent = `${node.rank}/${node.maxRank}`;
+
+        if (node.locked) {
+            const lock = document.createElement('div');
+            lock.className = 'lock';
+            lock.textContent = '🔒';
+            lock.title = 'Vorherige Faehigkeit fehlt';
+            element.appendChild(lock);
         }
-        if (perk.nextText) {
-            const next = document.createElement('div');
-            next.className = 'perk-effect next';
-            next.textContent = `Naechste Stufe: ${perk.nextText}`;
-            desc.appendChild(next);
-        }
 
-        const track = card.querySelector('.level-track');
-        for (let index = 0; index < perk.maxLevel; index++) {
-            const pip = document.createElement('div');
-            pip.className = 'pip' + (index < perk.level ? ' on' : '');
-            track.appendChild(pip);
-        }
+        element.onclick = () => {
+            state.personalSelected = node.id;
+            renderPersonalTree();
+            renderPersonalDetail();
+        };
 
-        const button = card.querySelector('button');
-        if (perk.nextCost === null || perk.nextCost === undefined) {
-            card.querySelector('.cost').textContent = 'Maximalstufe';
-            button.disabled = true;
-        } else {
-            card.querySelector('.cost').textContent = `${number(perk.nextCost)} XP`;
-            button.disabled = !perk.affordable;
-            button.onclick = () => post('mysticUpgradePerk', { id: perk.id });
-        }
-
-        grid.appendChild(card);
+        layer.appendChild(element);
     });
 }
+
+function renderPersonalDetail() {
+    const data = state.tree;
+    const detail = $('detail');
+    const category = currentCategory();
+    const nodes = (data.personalNodes && category && data.personalNodes.nodes[category.id]) || [];
+    const node = nodes.find((entry) => entry.id === state.personalSelected);
+
+    if (!node) {
+        detail.innerHTML = '<div class="detail-empty">Waehle einen Knoten im Baum.</div>';
+        return;
+    }
+
+    detail.innerHTML = `
+        <div class="detail-head">
+            <div class="ring"></div>
+            <h2></h2>
+            <div class="rank-line"></div>
+        </div>
+        <hr>
+        <p class="desc"></p>
+        <div class="stages-wrap hidden">
+            <hr>
+            <div class="section-caption">Stufen</div>
+            <div class="stages"></div>
+        </div>
+        <div class="requirement"></div>`;
+
+    detail.querySelector('.ring').textContent = node.icon || '✦';
+    detail.querySelector('h2').textContent = node.label;
+    detail.querySelector('.rank-line').textContent = `${node.rank} / ${node.maxRank}`;
+    detail.querySelector('.desc').textContent = node.description;
+
+    if (node.ranks && node.ranks.length > 0) {
+        detail.querySelector('.stages-wrap').classList.remove('hidden');
+        const stages = detail.querySelector('.stages');
+
+        node.ranks.forEach((rank) => {
+            const row = document.createElement('div');
+            row.className = 'stage-row'
+                + (rank.owned ? ' owned' : '')
+                + (rank.current && !node.maxed ? ' current' : '');
+            row.innerHTML = '<span class="num"></span><span class="text"></span>';
+            row.querySelector('.num').textContent = rank.level;
+            row.querySelector('.text').textContent = rank.text;
+            stages.appendChild(row);
+        });
+    }
+
+    const requirement = detail.querySelector('.requirement');
+
+    if (node.maxed) {
+        requirement.innerHTML = '<div class="section-caption">Max. Stufe erreicht</div>';
+        return;
+    }
+
+    const caption = document.createElement('div');
+    caption.className = 'section-caption';
+    caption.textContent = 'Benoetigt';
+    requirement.appendChild(caption);
+
+    const cost = document.createElement('div');
+    cost.className = 'cost-line' + (node.affordable ? '' : ' miss');
+    cost.innerHTML = '<span class="gem">◆</span><span></span>';
+    cost.querySelector('span:last-child').textContent =
+        `${node.price} Faehigkeitspunkt${node.price === 1 ? '' : 'e'} `
+        + `(du hast ${number(data.skillPoints)})`;
+    requirement.appendChild(cost);
+
+    if (node.locked) {
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = 'Die vorherige Faehigkeit fehlt noch.';
+        requirement.appendChild(note);
+    }
+
+    const button = document.createElement('button');
+    button.className = 'btn primary';
+    button.textContent = node.rank > 0 ? 'Stufe steigern' : 'Skillen';
+    button.disabled = node.locked || !node.affordable;
+    button.onclick = () => post('mysticUpgradePersonal', { id: node.id });
+    requirement.appendChild(button);
+}
+
+function renderStatistics() {
+    const data = state.tree;
+    const container = $('stat-rows');
+    container.innerHTML = '';
+
+    (data.statistics || []).forEach((row) => {
+        const element = document.createElement('div');
+        element.className = 'stat-row';
+        element.innerHTML = '<span class="icon"></span><span class="label"></span><span class="value"></span>';
+        element.querySelector('.icon').textContent = row.icon;
+        element.querySelector('.label').textContent = row.label;
+        element.querySelector('.value').textContent = row.value;
+        container.appendChild(element);
+    });
+
+    if ((data.statistics || []).length === 0) {
+        container.innerHTML = '<div class="muted">Noch keine Boni geskillt.</div>';
+    }
+
+    const category = currentCategory();
+    $('stat-motto').textContent = category ? `„${category.motto}"` : '';
+}
+
+/** Alles rund um den persoenlichen Baum neu zeichnen. */
+function renderPersonal() {
+    const data = state.tree;
+    const category = currentCategory();
+    if (category) setCategoryColor(category.color);
+
+    $('p-level').textContent = data.personalLevel || 1;
+    $('p-xp-into').textContent = number(data.xpIntoLevel);
+    $('p-xp-next').textContent = number(data.xpForNext);
+    $('p-xp-fill').style.width = data.xpForNext > 0
+        ? Math.min(100, (data.xpIntoLevel / data.xpForNext) * 100) + '%'
+        : '100%';
+    $('p-points').textContent = number(data.skillPoints);
+    $('p-reset-cost').textContent = number(data.resetCost && data.resetCost.amount);
+    $('btn-reset-personal').disabled = (data.spentPoints || 0) === 0;
+
+    renderCategories();
+    renderPersonalTree();
+    renderPersonalDetail();
+    renderStatistics();
+}
+
+$('btn-reset-personal').onclick = () => post('mysticResetPersonal');
 
 /* ----------------------------------------------------- Leiste und Steine */
 
@@ -611,7 +855,6 @@ $('btn-craft-2').onclick = () => {
     document.querySelector('.tab[data-tab="stones"]').click();
     craft();
 };
-$('btn-reset-perks').onclick = () => post('mysticResetPerks');
 
 
 /* ------------------------------------------------------------- Haendler */
@@ -693,16 +936,15 @@ function renderTreeScreen() {
     $('xp-fill').style.width = data.xpForNext > 0
         ? Math.min(100, (data.xpIntoLevel / data.xpForNext) * 100) + '%'
         : '100%';
-    $('xp-balance').textContent = number(data.xp);
-    $('xp-balance-2').textContent = number(data.xp);
+    $('xp-balance-2').textContent = number(data.skillPoints);
 
     renderClasses();
     renderTree();
     renderDetail();
-    renderPerks();
     renderBarEditor();
     renderStones();
     renderRitualTab();
+    renderPersonal();
 
     $('tree-screen').classList.remove('hidden');
 }

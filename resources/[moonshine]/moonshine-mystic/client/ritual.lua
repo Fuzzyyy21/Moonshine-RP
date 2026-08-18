@@ -66,29 +66,121 @@ local function buildLinks(skills)
     return links
 end
 
---- Perks werden mit Erfahrung bezahlt, nicht mit Klassensteinen.
-local function buildPerks(profile)
+--- Kategorien des persoenlichen Baums mit Fortschritt.
+local function buildCategories(profile)
+    local ranks = profile.personal or {}
     local result = {}
 
-    for _, perk in ipairs(Mystic.Perks) do
-        local level = (profile.perks and profile.perks[perk.id]) or 0
-        local nextCost = Mystic.GetPerkCost(perk, level + 1)
+    for _, category in ipairs(Mystic.PersonalCategories) do
+        local spent = 0
+        for nodeId, rank in pairs(ranks) do
+            local entry = Mystic.GetPersonalNode(nodeId)
+            if entry and entry.category == category.id then spent = spent + rank end
+        end
 
         result[#result + 1] = {
-            id          = perk.id,
-            label       = perk.label,
-            icon        = perk.icon,
-            description = perk.description,
-            level       = level,
-            maxLevel    = perk.maxLevel,
-            nextCost    = nextCost,
-            affordable  = nextCost ~= nil and (profile.xp or 0) >= nextCost,
-            currentText = level > 0 and Mystic.DescribePerkLevel(perk, level) or nil,
-            nextText    = nextCost and Mystic.DescribePerkLevel(perk, level + 1) or nil,
+            id          = category.id,
+            label       = category.label,
+            icon        = category.icon,
+            color       = category.color,
+            motto       = category.motto,
+            description = category.description,
+            spent       = spent,
+            max         = Mystic.GetCategoryMaxRanks(category.id),
         }
     end
 
     return result
+end
+
+--- Knoten einer Kategorie inklusive Stufen und Kosten.
+local function buildPersonalNodes(profile, categoryId)
+    local ranks = profile.personal or {}
+    local points = profile.skillPoints or 0
+    local result = {}
+
+    for _, entry in ipairs(Mystic.GetPersonalNodesFor(categoryId)) do
+        local rank = ranks[entry.id] or 0
+        local nextRank = rank + 1
+        local cost = Mystic.GetPersonalCost(entry, nextRank)
+
+        local steps = {}
+        for step = 1, entry.maxRank do
+            steps[step] = {
+                level   = step,
+                text    = Mystic.DescribePersonalRank(entry, step),
+                owned   = step <= rank,
+                current = step == nextRank,
+            }
+        end
+
+        local requirementsMet = Mystic.MeetsPersonalRequirements(entry, ranks)
+
+        result[#result + 1] = {
+            id          = entry.id,
+            label       = entry.label,
+            icon        = entry.icon,
+            row         = entry.row,
+            col         = entry.col,
+            description = entry.description,
+            rank        = rank,
+            maxRank     = entry.maxRank,
+            requires    = entry.requires,
+
+            maxed       = rank >= entry.maxRank,
+            locked      = not requirementsMet,
+            available   = requirementsMet,
+            affordable  = cost ~= nil and points >= cost,
+            price       = cost,
+
+            currentText = rank > 0 and Mystic.DescribePersonalRank(entry, rank) or nil,
+            ranks       = steps,
+        }
+    end
+
+    return result
+end
+
+--- Verbindungen im persoenlichen Baum.
+local function buildPersonalLinks(categoryId)
+    local links = {}
+
+    for _, entry in ipairs(Mystic.GetPersonalNodesFor(categoryId)) do
+        for _, requiredId in ipairs(entry.requires or {}) do
+            links[#links + 1] = { from = requiredId, to = entry.id }
+        end
+    end
+
+    return links
+end
+
+--- Zusammenfassung aller Boni fuer das Statistikfeld.
+local function buildStatistics(profile)
+    local totals = Mystic.SumPersonal(profile.personal or {})
+    local rows = {}
+
+    local function add(icon, label, text)
+        rows[#rows + 1] = { icon = icon, label = label, value = text }
+    end
+
+    local function percent(value) return math.floor(value * 100 + 0.5) end
+
+    if totals.healthBonus > 0     then add('❤', 'Max. Leben', ('+%d'):format(totals.healthBonus)) end
+    if totals.regenPerTick > 0    then add('➕', 'Regeneration', ('+%d / 5 s'):format(totals.regenPerTick)) end
+    if totals.damageReduction > 0 then add('🛡', 'Schadensreduktion', ('%d%%'):format(percent(totals.damageReduction))) end
+    if totals.armorBonus > 0      then add('🦺', 'Weste', ('+%d'):format(totals.armorBonus)) end
+    if totals.damageMult > 0      then add('🔫', 'Waffenschaden', ('+%d%%'):format(percent(totals.damageMult))) end
+    if totals.meleeMult > 0       then add('👊', 'Nahkampf', ('+%d%%'):format(percent(totals.meleeMult))) end
+    if totals.critChance > 0      then add('💥', 'Kritische Chance', ('%d%%'):format(percent(totals.critChance))) end
+    if totals.stamina > 0         then add('⚡', 'Ausdauer', ('+%d%%'):format(totals.stamina)) end
+    if totals.speedMult > 0       then add('🏃', 'Tempo', ('+%d%%'):format(percent(totals.speedMult))) end
+    if totals.essenceBonus > 0    then add('🔵', 'Max. Essenz', ('+%d'):format(totals.essenceBonus)) end
+    if totals.cooldownMult < 0    then add('⏱', 'Abklingzeit', ('%d%%'):format(percent(totals.cooldownMult))) end
+    if totals.xpBonus > 0         then add('📘', 'Erfahrung', ('+%d%%'):format(percent(totals.xpBonus))) end
+    if totals.lootChance > 0      then add('🍀', 'Extrabeute', ('%d%%'):format(percent(totals.lootChance))) end
+    if totals.moneyBonus > 0      then add('💰', 'Ritualgeld', ('+%d%%'):format(percent(totals.moneyBonus))) end
+
+    return rows
 end
 
 --- Segen mit Bezahlbarkeit.
@@ -247,7 +339,6 @@ local function openUi(payload)
             nodes           = nodes,
             links           = buildLinks(skills),
             classes         = buildClasses(profile),
-            perks           = buildPerks(profile),
             bar             = buildBarSlots(profile),
             stones          = stoneList,
             meditation      = {
@@ -264,6 +355,21 @@ local function openUi(payload)
                 cost     = (payload.ritual or MysticConfig.Ritual).costPoints or 0,
             },
             blessings       = buildBlessings(profile),
+
+            -- Persoenlicher Baum
+            categories      = buildCategories(profile),
+            personalNodes   = (function()
+                local nodes, links = {}, {}
+                for _, category in ipairs(Mystic.PersonalCategories) do
+                    nodes[category.id] = buildPersonalNodes(profile, category.id)
+                    links[category.id] = buildPersonalLinks(category.id)
+                end
+                return { nodes = nodes, links = links }
+            end)(),
+            statistics      = buildStatistics(profile),
+            skillPoints     = profile.skillPoints or 0,
+            spentPoints     = profile.spentPoints or 0,
+            resetCost       = MysticConfig.Progression.resetCost,
             meditationPoints = profile.meditationPoints or 0,
         },
     })
@@ -311,13 +417,13 @@ RegisterNUICallback('mysticAwaken', function(data, cb)
     cb('ok')
 end)
 
-RegisterNUICallback('mysticUpgradePerk', function(data, cb)
-    TriggerServerEvent('mystic:server:upgradePerk', data.id)
+RegisterNUICallback('mysticUpgradePersonal', function(data, cb)
+    TriggerServerEvent('mystic:server:upgradePersonal', data.id)
     cb('ok')
 end)
 
-RegisterNUICallback('mysticResetPerks', function(_, cb)
-    TriggerServerEvent('mystic:server:resetPerks')
+RegisterNUICallback('mysticResetPersonal', function(_, cb)
+    TriggerServerEvent('mystic:server:resetPersonal')
     cb('ok')
 end)
 

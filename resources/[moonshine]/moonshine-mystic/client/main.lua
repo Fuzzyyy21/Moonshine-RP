@@ -9,24 +9,22 @@ Mystic.Effects   = {}     -- laufende Effekte auf dem eigenen Spieler
 Mystic.Buffs     = {}     -- aktive Selbst-Buffs { [skillId] = { until, ... } }
 
 --- Aktive Modifikatoren inklusive laufender Buffs.
+--- Alle Felder aus dem Profil werden uebernommen, Buffs kommen obendrauf.
 function Mystic.GetActiveModifiers()
-    local mods = Mystic.Profile and Mystic.Profile.modifiers or {
-        healthBonus = 0, armorBonus = 0, stamina = 0, damageMult = 1.0,
-        meleeMult = 1.0, speedMult = 1.0, regenPerTick = 0,
-    }
+    local base = Mystic.Profile and Mystic.Profile.modifiers or {}
 
     local result = {
-        healthBonus  = mods.healthBonus or 0,
-        armorBonus   = mods.armorBonus or 0,
-        stamina      = mods.stamina or 0,
-        damageMult   = mods.damageMult or 1.0,
-        meleeMult    = mods.meleeMult or 1.0,
-        speedMult    = mods.speedMult or 1.0,
-        regenPerTick = mods.regenPerTick or 0,
-        noFallDamage = mods.noFallDamage or false,
-        fireImmune   = mods.fireImmune or false,
-        sunImmune    = mods.sunImmune or false,
+        healthBonus = 0, armorBonus = 0, stamina = 0, regenPerTick = 0,
+        damageMult = 1.0, meleeMult = 1.0, speedMult = 1.0,
+        sprintMult = 0, swimMult = 0, breath = 0, jumpBonus = 0,
+        damageReduction = 0, fallReduction = 0, ragdollResist = 0,
+        lifesteal = 0, critChance = 0, critBonus = 0,
+        noFallDamage = false, fireImmune = false, sunImmune = false,
     }
+
+    for key, value in pairs(base) do
+        result[key] = value
+    end
 
     local now = GetGameTimer()
     for skillId, buff in pairs(Mystic.Buffs) do
@@ -77,8 +75,10 @@ RegisterNetEvent('mystic:client:awakened', function(raceName)
     AnimpostfxPlay('HeistCelebPass', 3000, false)
 end)
 
-RegisterNetEvent('mystic:client:levelUp', function(level)
-    MS.Notify(('Klassenstufe %d erreicht.'):format(level), 'success', 7000)
+RegisterNetEvent('mystic:client:levelUp', function(level, points)
+    MS.Notify(points and points > 0
+        and ('Stufe %d erreicht, %d Faehigkeitspunkte erhalten.'):format(level, points)
+        or ('Stufe %d erreicht.'):format(level), 'success', 7000)
     AnimpostfxPlay('SuccessNeutral', 2000, false)
     PlaySoundFrontend(-1, 'RANK_UP', 'HUD_AWARDS', true)
 end)
@@ -102,6 +102,11 @@ local function takeDamage(amount, element)
     if element == 'fire' and mods.fireImmune then
         MS.Notify('Das Feuer perlt an dir ab.', 'info', 3000)
         return
+    end
+
+    -- Schadensreduktion aus dem persoenlichen Baum.
+    if (mods.damageReduction or 0) > 0 then
+        amount = amount * (1.0 - mods.damageReduction)
     end
 
     -- Weste faengt einen Teil ab.

@@ -382,32 +382,6 @@ html, body {
 .perk-effect.owned { color: #cdc7dd; }
 .perk-effect.next { color: var(--class); }
 
-/* Perks */
-
-.perk-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 12px;
-    align-content: start;
-    padding-bottom: 10px;
-}
-.perk {
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    background: var(--panel);
-    padding: 14px;
-}
-.perk .head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
-.perk .icon { font-size: 18px; }
-.perk .title { font-size: 14px; font-weight: 600; flex: 1; }
-.perk .level { font-size: 12px; color: var(--gold); }
-.perk .desc { font-size: 12px; color: var(--muted); line-height: 1.45; min-height: 34px; }
-.level-track { display: flex; gap: 3px; margin: 10px 0; }
-.pip { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.09); }
-.pip.on { background: var(--class); }
-.perk .footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.perk .cost { font-size: 11px; color: var(--muted); }
-
 /* Leiste und Steine */
 
 .bar-editor h3, .stone-side h3 { font-size: 15px; margin-bottom: 4px; }
@@ -531,6 +505,81 @@ html, body {
 .blessing .cost { font-size: 12px; color: var(--gold); }
 .blessing .desc { font-size: 11px; color: var(--muted); line-height: 1.45; min-height: 32px; }
 .blessing .btn { margin-top: auto; }
+
+/* Persoenlicher Baum */
+
+.head-group { display: flex; align-items: center; gap: 16px; }
+.level-col { text-align: center; }
+.xp-text.left { text-align: left; }
+
+.reset-box {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 18px;
+    color: var(--text); font-family: inherit; cursor: pointer;
+    text-align: left;
+    transition: border-color .15s;
+}
+.reset-box:hover:not(:disabled) { border-color: var(--class); }
+.reset-box:disabled { opacity: .4; cursor: not-allowed; }
+.reset-box strong { display: block; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+.reset-box em { display: block; font-size: 13px; color: var(--gold); font-style: normal; margin-top: 3px; }
+
+.category-entry {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--panel);
+    margin-bottom: 9px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.category-entry:hover { border-color: var(--cat-dim, var(--class-dim)); }
+.category-entry.active {
+    border-color: var(--cat, var(--class));
+    background: linear-gradient(90deg, var(--cat-dim, var(--class-dim)), transparent);
+}
+.category-entry .icon { font-size: 19px; }
+.category-entry .info { flex: 1; min-width: 0; }
+.category-entry .name { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
+.category-entry .progress { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.total-spent {
+    margin-top: 18px; padding: 16px 14px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--panel); text-align: center;
+}
+.total-value { display: block; font-size: 26px; font-weight: 700; }
+.total-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+
+.tree-hint { text-align: center; font-size: 11px; color: var(--muted); padding: 6px 0 12px; }
+
+/* Knoten im persoenlichen Baum folgen der Kategoriefarbe */
+
+.node.personal.learned .ring {
+    border-color: var(--cat);
+    box-shadow: 0 0 20px -4px var(--cat), inset 0 0 16px -6px var(--cat);
+    background: radial-gradient(circle at 50% 35%, var(--cat-dim), rgba(10,8,14,.95));
+}
+.node.personal.maxed .ring { border-color: var(--ok); box-shadow: 0 0 18px -5px var(--ok); }
+.node.personal.learned .rank { border-color: var(--cat-dim); }
+
+/* Statistiken */
+
+.stat-row {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.stat-row .icon { font-size: 13px; width: 18px; }
+.stat-row .label { flex: 1; color: var(--muted); }
+.stat-row .value { color: var(--ok); font-weight: 600; }
+
+.motto {
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 11px; font-style: italic; color: var(--muted); line-height: 1.6;
+}
 
 /* Scrollbar */
 

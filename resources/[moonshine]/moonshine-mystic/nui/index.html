@@ -27,41 +27,87 @@
             <div class="crest" id="crest">✦</div>
             <div>
                 <h1 id="class-name">Nicht erweckt</h1>
-                <div class="subtitle">Skilltree</div>
+                <div class="subtitle" id="subtitle">Skilltree</div>
                 <p class="class-desc" id="class-desc">Waehle deine Klasse an einem Ritualpunkt.</p>
             </div>
         </div>
 
-        <div class="level-box" id="level-box">
-            <div class="level-caption" id="level-caption">Stufe</div>
-            <div class="level-body">
-                <span class="level-value" id="level-value">0</span>
-                <div class="xp">
-                    <div class="xp-text">
-                        <span id="ranks-current">0</span> / <span id="ranks-max">0</span> Stufen geskillt
+        <!-- Kopf im Klassenmodus -->
+        <div class="head-group" id="head-class">
+            <div class="level-box">
+                <div class="level-caption" id="level-caption">Stufe</div>
+                <div class="level-body">
+                    <span class="level-value" id="level-value">0</span>
+                    <div class="xp">
+                        <div class="xp-text">
+                            <span id="ranks-current">0</span> / <span id="ranks-max">0</span> Stufen geskillt
+                        </div>
+                        <div class="xp-track"><div class="xp-fill" id="ranks-fill"></div></div>
                     </div>
-                    <div class="xp-track"><div class="xp-fill" id="ranks-fill"></div></div>
+                </div>
+            </div>
+
+            <div class="stone-box">
+                <div class="stone-caption" id="stone-caption">Steine</div>
+                <div class="stone-body">
+                    <span class="gem">◆</span>
+                    <span class="stone-count" id="stone-count">0</span>
+                    <button class="plus" id="btn-craft-2" title="Ritualstein binden">+</button>
                 </div>
             </div>
         </div>
 
-        <div class="stone-box">
-            <div class="stone-caption" id="stone-caption">Steine</div>
-            <div class="stone-body">
-                <span class="gem">◆</span>
-                <span class="stone-count" id="stone-count">0</span>
-                <button class="plus" id="btn-craft-2" title="Ritualstein binden">+</button>
+        <!-- Kopf im persoenlichen Modus -->
+        <div class="head-group hidden" id="head-personal">
+            <div class="level-box">
+                <div class="level-body">
+                    <div class="level-col">
+                        <div class="level-caption">Level</div>
+                        <span class="level-value" id="p-level">1</span>
+                    </div>
+                    <div class="xp">
+                        <div class="level-caption">XP</div>
+                        <div class="xp-text left">
+                            <span id="p-xp-into">0</span> / <span id="p-xp-next">0</span>
+                        </div>
+                        <div class="xp-track"><div class="xp-fill" id="p-xp-fill"></div></div>
+                    </div>
+                    <div class="level-col">
+                        <div class="level-caption">Faehigkeitspunkte</div>
+                        <div class="stone-body">
+                            <span class="gem">◆</span>
+                            <span class="stone-count" id="p-points">0</span>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <button class="reset-box" id="btn-reset-personal">
+                <span class="foot-icon">↻</span>
+                <span>
+                    <strong>Zuruecksetzen</strong>
+                    <em><span id="p-reset-cost">1.000</span> $</em>
+                </span>
+            </button>
         </div>
     </header>
 
     <div class="middle">
 
         <!-- Klassen -->
-        <aside class="classes">
+        <aside class="classes" id="sidebar-classes">
             <div class="section-caption" id="classes-caption">Klasse waehlen</div>
             <div id="class-list"></div>
             <div class="class-hint" id="class-hint"></div>
+        </aside>
+
+        <aside class="classes hidden" id="sidebar-categories">
+            <div class="section-caption">Kategorien</div>
+            <div id="category-list"></div>
+            <div class="total-spent">
+                <span class="total-value" id="p-spent">0</span>
+                <span class="total-label">Punkte insgesamt verwendet</span>
+            </div>
         </aside>
 
         <!-- Baum -->
@@ -82,25 +128,11 @@
             </div>
 
             <div class="tab-panel hidden" id="panel-perks">
-                <div class="xp-header">
-                    <div class="xp-block">
-                        <div class="section-caption">Persoenliche Stufe</div>
-                        <span class="xp-level" id="personal-level">1</span>
-                    </div>
-                    <div class="xp-block grow">
-                        <div class="xp-text">
-                            <span id="xp-into">0</span> / <span id="xp-next">0</span> XP bis zur naechsten Stufe
-                        </div>
-                        <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
-                    </div>
-                    <div class="xp-block">
-                        <div class="section-caption">Verfuegbare XP</div>
-                        <span class="xp-value" id="xp-balance">0</span>
-                    </div>
+                <div class="tree-canvas" id="personal-canvas">
+                    <svg id="personal-links"></svg>
+                    <div id="personal-nodes"></div>
                 </div>
-                <p class="muted xp-note">Erfahrung gibt es fuer Onlinezeit und Aktivitaet.
-                    Sie zaehlt ausschliesslich hier - der Klassenbaum kostet Klassensteine.</p>
-                <div class="perk-grid" id="perk-grid"></div>
+                <div class="tree-hint">Tipp: Klicke einen Knoten an, um Details zu sehen.</div>
             </div>
 
             <div class="tab-panel hidden" id="panel-bar">
@@ -172,31 +204,29 @@
                 <div class="detail-empty">Waehle einen Knoten im Baum.</div>
             </div>
 
-            <div class="legend">
+            <div class="legend" id="legend">
                 <div class="section-caption">Legende</div>
                 <div class="legend-row"><span class="dot learned"></span> Erlernt / Aktiv</div>
                 <div class="legend-row"><span class="dot open"></span> Verfuegbar</div>
                 <div class="legend-row"><span class="dot next"></span> Naechste Stufe</div>
                 <div class="legend-row"><span class="dot locked"></span> Gesperrt</div>
             </div>
+
+            <div class="legend hidden" id="statistics">
+                <div class="section-caption">Statistiken</div>
+                <div id="stat-rows"></div>
+                <div class="motto" id="stat-motto"></div>
+            </div>
         </aside>
     </div>
 
     <!-- Fusszeile -->
     <footer class="bottom">
-        <button class="foot-action" id="btn-reset-perks">
-            <span class="foot-icon">↻</span>
-            <span>
-                <strong>Perks zuruecksetzen</strong>
-                <em>Erfahrung zurueckerstatten</em>
-            </span>
-        </button>
-
         <div class="foot-center">
             <span class="muted">Verfuegbare Steine</span>
             <span class="gem">◆</span>
             <span class="stone-count" id="stone-count-2">0</span>
-            <span class="muted spaced-left">Erfahrung</span>
+            <span class="muted spaced-left">Faehigkeitspunkte</span>
             <span class="stone-count" id="xp-balance-2">0</span>
             <span class="muted spaced-left">Meditation</span>
             <span class="stone-count" id="med-points-2">0</span>

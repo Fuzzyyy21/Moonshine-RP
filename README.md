@@ -7,7 +7,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | Resource | Inhalt |
 |---|---|
 | `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
-| `moonshine-mystic` | Klassen mit Skilltree (Ränge, bezahlt mit Klassensteinen), Skillleiste, persönlicher Skillbaum (bezahlt mit XP) → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
+| `moonshine-mystic` | Klassen-Skilltree (Klassensteine) und persönlicher Skillbaum mit 6 Kategorien (Fähigkeitspunkte), Skillleiste, Ritualpunkte → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
 | `moonshine-death` | Bewusstlosigkeit statt Sofort-Respawn, Notruf, Wiederbelebung → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-boss` | Weltbosse alle 45 Minuten, lassen Runen- und Seelensteine fallen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
@@ -76,10 +76,10 @@ resources/[moonshine]/
 │   ├── client/              Charakterauswahl, HUD, Inventar, Callbacks
 │   └── nui/                 Oberfläche (Charakterauswahl, HUD, Inventar)
 ├── moonshine-mystic/        Klassen, Skilltree, Skillleiste, Perks
-│   ├── shared/              Config, Klassen, Skills, Perks, Steine
-│   ├── server/              Profile, Skills, Perks, Ritualpunkte, API
+│   ├── shared/              Config, Klassen, Skills, persoenlicher Baum, Steine
+│   ├── server/              Profile, Skills, persoenlicher Baum, Ritualpunkte, API
 │   ├── client/              Fähigkeiten, Skillleiste, Ritual-UI, Klassenmechanik
-│   └── nui/                 Oberfläche (Skillleiste, Skilltree, Perks)
+│   └── nui/                 Oberfläche (Skillleiste, beide Skilltrees, Händler)
 ├── moonshine-death/         Bewusstlosigkeit, Notruf, Wiederbelebung, Respawn
 ├── moonshine-boss/          Weltbosse als Quelle fuer Runen- und Seelensteine
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API

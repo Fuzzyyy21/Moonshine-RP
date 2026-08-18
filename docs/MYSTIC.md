@@ -48,11 +48,11 @@ Das ist die wichtigste Regel des Systems:
 | Baum | Währung | Quelle |
 |---|---|---|
 | **Klassenbaum** (Fähigkeiten der Klasse) | **Klassensteine** | aus 10 Runen- + 10 Seelensteinen gebunden |
-| **Persönlicher Baum** (Leben, Ausdauer, Schaden, …) | **Erfahrung (XP)** | Onlinezeit und Aktivität |
+| **Persönlicher Baum** (Leben, Ausdauer, Schaden, …) | **Fähigkeitspunkte** | 2 je persönlicher Stufe, Stufen kommen aus XP |
 
-XP können **nicht** in Klassenfähigkeiten gesteckt werden, Steine **nicht** in
-persönliche Skills. Wer nur online steht, wächst persönlich; wer Steine sammelt,
-wächst in seiner Klasse.
+Steine gehen **nur** in Klassenfähigkeiten, Fähigkeitspunkte **nur** in den
+persönlichen Baum. Wer online ist, sammelt XP, steigt im Level und bekommt
+Punkte; wer Steine sammelt, wächst in seiner Klasse.
 
 ### Klassenstufe
 
@@ -84,10 +84,9 @@ XP gibt es unabhängig von der Klasse — auch ohne Erweckung:
 
 Meditation gibt zusätzlich Meditationspunkte — eine eigene Währung, siehe unten.
 
-Zum Start gibt es 500 XP. Das Guthaben wird beim Kauf einer Perkstufe abgezogen;
-die *persönliche Stufe* im Reiter *Persönliche Skills* richtet sich nach der
-insgesamt verdienten Erfahrung (`500 + Stufe × 650` je Aufstieg) und sinkt beim
-Ausgeben nicht. Alles einstellbar in `MysticConfig.Progression`.
+XP werden nicht ausgegeben — sie treiben nur die **persönliche Stufe**
+(`500 + Stufe × 650` je Aufstieg). Jeder Aufstieg bringt **2 Fähigkeitspunkte**,
+zum Start gibt es 3. Alles einstellbar in `MysticConfig.Progression`.
 
 ## Klassen
 
@@ -134,23 +133,48 @@ Alle Steine sind normale Items im Core-Inventar und werden beim Start über
 `exports['moonshine-core']:RegisterItem` registriert – `moonshine-core` bleibt
 unverändert.
 
-## Persönliche Skills
+## Persönlicher Skillbaum
 
-Bezahlt wird mit **XP**. Die Kosten steigen je Stufe: `costBase + (Stufe−1) × costStep`.
+Sechs Kategorien, jede ein eigener Baum mit 12 Knoten in vier Reihen
+(30 Stufen je Kategorie, 180 insgesamt). Bezahlt wird mit **Fähigkeitspunkten**.
 
-| Perk | Wirkung pro Stufe | Max | Stufe 1 | Aufschlag |
-|---|---|---|---|---|
-| Vitalität | +12 max. Leben | 10 | 300 XP | +200 |
-| Ausdauer | längerer Sprint | 8 | 250 XP | +150 |
-| Stärke | +4 % Waffen-, +5 % Nahkampfschaden | 10 | 400 XP | +250 |
-| Regeneration | +1 Leben alle 5 Sekunden | 8 | 400 XP | +250 |
-| Essenz | +10 max. Essenz | 10 | 300 XP | +200 |
-| Fokus | +0,4 Essenz pro Tick | 8 | 400 XP | +250 |
-| Zähigkeit | +8 Weste beim Spawn | 6 | 350 XP | +250 |
-| Schnelligkeit | +2 % Tempo | 5 | 600 XP | +400 |
-| Meisterung | −4 % Abklingzeit | 5 | 600 XP | +400 |
+| Kategorie | Schwerpunkt |
+|---|---|
+| ❤ **Vitalität** | max. Leben, Regeneration, Schadensreduktion, Lebensraub |
+| 💪 **Stärke** | Waffen- und Nahkampfschaden, kritische Treffer |
+| ⚡ **Ausdauer** | Sprint, Atemluft, Schwimmen, Kondition |
+| 🏃 **Beweglichkeit** | Tempo, Sprungkraft, Fallschaden, Standfestigkeit |
+| 🧠 **Mentalität** | Essenz, Abklingzeiten, Essenzkosten, XP-Bonus |
+| 🍀 **Glück** | Extrabeute beim Boss, Meditationspunkte, Ritualgeld |
 
-Zurücksetzen geht am Ritualpunkt und erstattet die volle ausgegebene Erfahrung.
+Aufbau je Kategorie: ein Wurzelknoten mit 5 Stufen, drei Zweige mit je 3 Stufen,
+vier Ausbauknoten mit je 3 Stufen und vier Abschlussknoten mit einer Stufe
+(je 3 Punkte). Gesperrte Knoten zeigen ein Schloss, bis die vorherige Fähigkeit
+gelernt ist.
+
+Die Oberfläche zeigt links die Kategorien mit Fortschritt (`10 / 30`), in der
+Mitte den Baum mit Verbindungslinien, rechts das Detailfenster mit Stufenliste
+und darunter eine **Statistik** über alle aktiven Boni.
+
+**Zurücksetzen** kostet 1.000 $ (`MysticConfig.Progression.resetCost`) und
+erstattet alle ausgegebenen Punkte.
+
+### Was wirklich wirkt
+
+Alle Boni sind im Spiel umgesetzt, nicht nur Zahlen auf dem Papier:
+
+| Bonus | Umsetzung |
+|---|---|
+| Max. Leben, Weste, Regeneration | direkt am Ped |
+| Schadensreduktion | Verteidigungsmodifikatoren + Skillschaden |
+| Waffen-/Nahkampfschaden | Schadensmodifikatoren des Spielers |
+| Kritische Treffer | Zusatzschaden gegen NPCs (inkl. Weltboss) |
+| Lebensraub | Heilung bei Nahkampftreffern |
+| Sprint, Schwimmen, Atemluft | Multiplikatoren und Tauchzeit |
+| Sprungkraft | Supersprung ab deutlichem Bonus |
+| Fallschaden, Standfestigkeit | Schadensausgleich und schnelleres Aufstehen |
+| Essenz, Abklingzeit, Kosten | wirken auf die Klassenskills |
+| XP-, Geld- und Beuteglück | wirken auf XP, Ritualgeld, Meditation und Bossbeute |
 
 ## Am Ritualpunkt
 
@@ -204,7 +228,7 @@ vor dem Livegang einmal im Spiel prüfen.
 | `/mystik` | – | Skilltree-Übersicht öffnen |
 | `/skillleiste` | – | Leiste aus-/einklappen (F5) |
 | `/setrasse [id] [klasse]` | 3 | Klasse setzen |
-| `/givexp [id] [xp]` | 3 | Erfahrung für den persönlichen Baum vergeben |
+| `/givexp [id] [xp]` | 3 | Erfahrung vergeben (bringt Stufen und Punkte) |
 | `/givemeditation [id] [n]` | 3 | Meditationspunkte vergeben |
 | `/givestein [id] [stein] [n]` | 3 | Steine vergeben |
 | `/unlockall [id]` | 3 | Alle Knoten auf Maximalstufe (Test) |
@@ -218,7 +242,7 @@ vor dem Livegang einmal im Spiel prüfen.
 * **Fortschritt** – `MysticConfig.Progression` (XP für den persönlichen Baum),
   `MysticConfig.Stones` (Rezept, Startguthaben), `MysticConfig.Merchant`
   (Händlerpreise und Standorte) und `MysticConfig.Meditation`.
-* **Perks** – `shared/perks.lua`.
+* **Persönlicher Baum** – `shared/personal.lua`: Kategorien, Knoten, Kosten.
 * **Schutzzonen** – `MysticConfig.Combat.safeZones`.
 
 Nach Änderungen reicht `restart moonshine-mystic`.

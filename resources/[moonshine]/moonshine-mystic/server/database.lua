@@ -73,15 +73,16 @@ function Mystic.DB.Load(characterId)
         local startXp = MysticConfig.Progression.startXp
 
         MySQL.insert.await([[
-            INSERT INTO ms_mystic (character_id, xp, xp_total, unlocked, skillbar, perks)
-            VALUES (?, ?, ?, '{}', '[]', '{}')
-        ]], { characterId, startXp, startXp })
+            INSERT INTO ms_mystic (character_id, xp, xp_total, personal_points, unlocked, skillbar, perks)
+            VALUES (?, ?, ?, ?, '{}', '[]', '{}')
+        ]], { characterId, startXp, startXp, MysticConfig.Progression.startPoints })
 
         row = {
-            character_id   = characterId,
-            race           = nil,
-            xp             = startXp,
-            xp_total       = startXp,
+            character_id    = characterId,
+            race            = nil,
+            xp              = startXp,
+            xp_total        = startXp,
+            personal_points = MysticConfig.Progression.startPoints,
             unlocked       = '{}',
             skillbar       = '[]',
             perks          = '{}',
@@ -96,17 +97,18 @@ end
 function Mystic.DB.Save(characterId, payload)
     return MySQL.update.await([[
         UPDATE ms_mystic
-        SET race = ?, xp = ?, xp_total = ?, meditation = ?, unlocked = ?,
-            skillbar = ?, perks = ?, seconds_played = ?
+        SET race = ?, xp = ?, xp_total = ?, meditation = ?, personal_points = ?,
+            unlocked = ?, skillbar = ?, perks = ?, seconds_played = ?
         WHERE character_id = ?
     ]], {
         payload.race,
         payload.xp,
         payload.xpTotal,
         payload.meditationPoints,
+        payload.skillPoints,
         json.encode(payload.ranks),
         json.encode(payload.skillbar),
-        json.encode(payload.perks),
+        json.encode(payload.personal),
         payload.secondsPlayed,
         characterId,
     })

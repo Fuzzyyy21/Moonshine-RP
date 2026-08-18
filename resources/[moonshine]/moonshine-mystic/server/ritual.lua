@@ -285,6 +285,9 @@ RegisterNetEvent('mystic:server:meditate', function()
         end
 
         local points = math.random(MysticConfig.Meditation.points.min, MysticConfig.Meditation.points.max)
+        -- Bonus aus dem persoenlichen Baum (Meditationsglueck, Erleuchtung).
+        points = points + math.floor(profile:GetModifiers().meditationBonus or 0)
+
         profile:AddMeditationPoints(points)
         profile:AddXp(MysticConfig.Progression.xpPerMeditation)
 
@@ -337,8 +340,11 @@ RegisterNetEvent('mystic:server:performRitual', function()
         end
 
         local reward = MysticConfig.Ritual.reward
-        player:AddMoney(reward.amount, reward.account, 'ritual')
-        profile:Notify(('Das Ritual bringt dir %s.'):format(MS.Utils.FormatMoney(reward.amount)), 'success', 8000)
+        -- Bonus aus dem persoenlichen Baum (Haendlerglueck, Goldene Hand).
+        local amount = math.floor(reward.amount * (1.0 + (profile:GetModifiers().moneyBonus or 0)))
+
+        player:AddMoney(amount, reward.account, 'ritual')
+        profile:Notify(('Das Ritual bringt dir %s.'):format(MS.Utils.FormatMoney(amount)), 'success', 8000)
 
         profile:Save()
         profile:Sync()

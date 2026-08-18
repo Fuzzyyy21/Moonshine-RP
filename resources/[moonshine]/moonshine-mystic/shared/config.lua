@@ -48,8 +48,12 @@ MysticConfig.ClassLevel = {
 MysticConfig.Progression = {
     maxLevel = 50,
 
-    -- XP-Guthaben zum Start.
-    startXp = 500,
+    -- Faehigkeitspunkte fuer den persoenlichen Baum.
+    startPoints    = 3,    -- zum Start
+    pointsPerLevel = 2,    -- je Stufenaufstieg
+
+    -- Kosten fuer das Zuruecksetzen des persoenlichen Baums.
+    resetCost = { account = 'bank', amount = 1000 },
 
     -- Kurve fuer die persoenliche Stufe (reine Anzeige des Fortschritts).
     xpBase = 500,

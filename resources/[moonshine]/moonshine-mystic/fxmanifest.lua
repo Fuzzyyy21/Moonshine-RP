@@ -14,7 +14,7 @@ shared_scripts {
     'shared/races.lua',
     'shared/progression.lua',
     'shared/skills.lua',
-    'shared/perks.lua',
+    'shared/personal.lua',
     'shared/items.lua',
 }
 
@@ -24,7 +24,7 @@ server_scripts {
     'server/profile.lua',
     'server/main.lua',
     'server/skills.lua',
-    'server/perks.lua',
+    'server/personal.lua',
     'server/ritual.lua',
     'server/commands.lua',
     'server/exports.lua',
@@ -36,7 +36,7 @@ client_scripts {
     'client/skillbar.lua',
     'client/ritual.lua',
     'client/merchant.lua',
-    'client/perks.lua',
+    'client/personal.lua',
     'client/racial.lua',
 }
 

@@ -126,8 +126,23 @@ local function rewardParticipants()
             if distance <= BossConfig.RewardRadius then
                 local parts = {}
 
+                -- Glueck aus dem persoenlichen Skillbaum.
+                local luck, extra = 0, 0
+                pcall(function()
+                    local mods = exports['moonshine-mystic']:GetModifiers(source)
+                    if mods then
+                        luck  = mods.lootChance or 0
+                        extra = mods.lootAmount or 0
+                    end
+                end)
+
                 for _, reward in ipairs(BossConfig.Rewards) do
                     local amount = math.random(reward.min, reward.max)
+
+                    if luck > 0 and math.random() < luck then
+                        amount = amount + 1 + math.floor(extra)
+                    end
+
                     if player:AddItem(reward.item, amount) then
                         local item = MS.GetItem(reward.item)
                         parts[#parts + 1] = ('%dx %s'):format(amount, item and item.label or reward.item)
