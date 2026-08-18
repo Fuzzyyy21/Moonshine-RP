@@ -91,7 +91,7 @@ Fahrzeugpreise.
 
 Fahrzeuge bekommen ein Kennzeichen aus dem Fraktionskürzel und einen
 Mindestrang. Ausgeparkt wird an einem der vier Ausgabepunkte, eingeparkt mit
-`/einparken`, während man im Fahrzeug am Punkt steht. Verkaufen gibt die Hälfte
+`/fraktionparken`, während man im Fahrzeug am Punkt steht. Verkaufen gibt die Hälfte
 des Grundpreises zurück.
 
 ## Gebiete
@@ -136,7 +136,7 @@ Wiederbelebungen und Steinkäufe. Die Belohnung geht in Kasse und Fraktions-XP,
 | `/fraktion` | – | Oberfläche öffnen (auch `F10`) |
 | `/fraktion annehmen` | – | Einladung annehmen |
 | `/fraktioninfo` | – | Kurzinfo im Chat |
-| `/einparken` | – | Fraktionsfahrzeug einparken |
+| `/fraktionparken` | – | Fraktionsfahrzeug einparken |
 | `/createfaction [name] [tag] [id]` | 3 | Fraktion anlegen |
 | `/factionkasse [name] [betrag]` | 3 | Kasse ändern (negativ = abziehen) |
 | `/setterritory [gebiet] [fraktion]` | 3 | Gebiet zuweisen (ohne Fraktion = frei) |

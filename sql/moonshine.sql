@@ -232,3 +232,30 @@ CREATE TABLE IF NOT EXISTS `ms_world` (
     `updated_at` TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Fahrzeuge (moonshine-vehicles)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_vehicles` (
+    `id`           INT          NOT NULL AUTO_INCREMENT,
+    `owner_id`     INT          NOT NULL,
+    `plate`        VARCHAR(12)  NOT NULL,
+    `model`        VARCHAR(32)  NOT NULL,
+    `label`        VARCHAR(48)  NOT NULL,
+    `category`     VARCHAR(24)  NOT NULL DEFAULT 'kompakt',
+    `price`        BIGINT       NOT NULL DEFAULT 0,
+    `state`        VARCHAR(12)  NOT NULL DEFAULT 'garage',
+    `garage`       VARCHAR(32)  DEFAULT NULL,
+    `fuel`         FLOAT        NOT NULL DEFAULT 100,
+    `engine`       FLOAT        NOT NULL DEFAULT 1000,
+    `body`         FLOAT        NOT NULL DEFAULT 1000,
+    `mods`         LONGTEXT     DEFAULT NULL,
+    `keys`         LONGTEXT     DEFAULT NULL,
+    `position`     LONGTEXT     DEFAULT NULL,
+    `created_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `plate` (`plate`),
+    KEY `owner_id` (`owner_id`),
+    KEY `state` (`state`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

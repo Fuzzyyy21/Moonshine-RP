@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Fahrzeuge</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="screen" class="hidden">
+    <div class="window">
+
+        <header class="top">
+            <div class="brand">
+                <div class="crest" id="crest">🚗</div>
+                <div>
+                    <h1 id="title">Garage</h1>
+                    <p class="sub" id="subtitle">Deine Fahrzeuge</p>
+                </div>
+            </div>
+
+            <div class="head-stats">
+                <div class="stat">
+                    <span class="stat-caption">Bank</span>
+                    <span class="stat-value" id="money">0 $</span>
+                </div>
+                <div class="stat" id="slots-stat">
+                    <span class="stat-caption">Fahrzeuge</span>
+                    <span class="stat-value" id="slots">0 / 6</span>
+                </div>
+            </div>
+
+            <button class="icon-btn" id="btn-close" title="Schliessen (ESC)">✕</button>
+        </header>
+
+        <!-- Garage --------------------------------------------------------->
+        <div id="view-garage" class="view">
+            <nav class="tabs">
+                <button class="tab active" data-filter="garage"><span>🅿</span> Eingeparkt</button>
+                <button class="tab" data-filter="draussen"><span>🛣</span> Unterwegs</button>
+                <button class="tab" data-filter="verwahrt"><span>🚨</span> Verwahrt<i class="badge hidden" id="badge-impound">0</i></button>
+                <button class="tab" data-filter="alle"><span>📋</span> Alle</button>
+            </nav>
+
+            <section class="panel">
+                <div class="hint" id="garage-hint"></div>
+                <div class="vehicle-list" id="vehicle-list"></div>
+            </section>
+        </div>
+
+        <!-- Autohaus ------------------------------------------------------->
+        <div id="view-dealer" class="view hidden">
+            <div class="dealer-layout">
+                <aside class="categories" id="category-list"></aside>
+
+                <section class="panel">
+                    <div class="catalogue" id="catalogue"></div>
+                </section>
+
+                <aside class="detail" id="detail">
+                    <div class="detail-empty">Waehle ein Fahrzeug.</div>
+                </aside>
+            </div>
+        </div>
+
+        <footer class="bottom">
+            <span class="muted" id="foot-hint">Fahrzeuge stehen in der Garage,
+                in der du sie zuletzt abgestellt hast.</span>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

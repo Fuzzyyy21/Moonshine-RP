@@ -66,7 +66,8 @@ local function storeNearby()
     DeleteVehicle(vehicle)
 end
 
-RegisterCommand('einparken', function() storeNearby() end, false)
+-- Eigener Name, damit es sich nicht mit /einparken aus moonshine-vehicles beisst.
+RegisterCommand('fraktionparken', function() storeNearby() end, false)
 
 --- Marker an den Ausgabepunkten.
 CreateThread(function()
@@ -87,7 +88,7 @@ CreateThread(function()
                 if distance < 3.0 then
                     exports['moonshine-core']:DrawText3D(
                         vector3(point.coords.x, point.coords.y, point.coords.z + 1.0),
-                        ('Fraktionsgarage ~p~%s~s~  [~b~F10~s~]  /einparken'):format(point.label), 0.4)
+                        ('Fraktionsgarage ~p~%s~s~  [~b~F10~s~]  /fraktionparken'):format(point.label), 0.4)
                 end
             end
         end
