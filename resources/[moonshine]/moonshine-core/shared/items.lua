@@ -24,6 +24,10 @@ MS.Items = {
         label = 'Verband', weight = 100, stack = true, usable = true, closeUi = true,
         description = 'Stellt etwas Leben wieder her.',
     },
+    medikit = {
+        label = 'Medikit', weight = 1200, stack = true, usable = false,
+        description = 'Notfallset. Wird beim Wiederbeleben verbraucht.',
+    },
     phone = {
         label = 'Handy', weight = 180, stack = false, usable = true, closeUi = true,
         description = 'Smartphone mit Rissen im Display.',

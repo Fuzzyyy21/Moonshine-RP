@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Fraktionen</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Gebietskontrolle (immer sichtbar, wenn man im Gebiet steht) -------------->
+<div id="control" class="hidden">
+    <div class="control-head">
+        <span class="control-icon" id="control-icon">🏴</span>
+        <div>
+            <div class="control-name" id="control-name">Gebiet</div>
+            <div class="control-owner" id="control-owner">frei</div>
+        </div>
+    </div>
+    <div class="control-track"><div class="control-fill" id="control-fill"></div></div>
+    <div class="control-state" id="control-state">Unbesetzt</div>
+</div>
+
+<!-- Einladung ---------------------------------------------------------------->
+<div id="invite" class="hidden">
+    <div class="invite-crest" id="invite-crest"></div>
+    <div class="invite-body">
+        <strong id="invite-title">Einladung</strong>
+        <span id="invite-text">Du wurdest eingeladen.</span>
+        <div class="invite-actions">
+            <button class="btn small ok" id="btn-invite-accept">Annehmen</button>
+            <button class="btn small" id="btn-invite-decline">Ablehnen</button>
+        </div>
+    </div>
+</div>
+
+<!-- Willkommensbild ---------------------------------------------------------->
+<div id="welcome" class="overlay hidden">
+    <div class="welcome-card" id="welcome-card">
+        <div class="welcome-backdrop" id="welcome-backdrop"></div>
+        <div class="welcome-crest" id="welcome-crest"></div>
+        <h1 id="welcome-name">Fraktion</h1>
+        <div class="welcome-tag" id="welcome-tag">[TAG]</div>
+        <p class="welcome-motto" id="welcome-motto"></p>
+        <p class="welcome-text" id="welcome-text"></p>
+        <div class="welcome-stats">
+            <span><b id="welcome-level">1</b> Level</span>
+            <span><b id="welcome-members">0</b> Mitglieder</span>
+        </div>
+    </div>
+</div>
+
+<!-- Hauptfenster ------------------------------------------------------------->
+<div id="screen" class="hidden">
+    <div class="window">
+
+        <!-- Ohne Fraktion --------------------------------------------------->
+        <div id="view-none" class="view">
+            <header class="top simple">
+                <h1>Fraktionen</h1>
+                <button class="icon-btn" id="btn-close-none">✕</button>
+            </header>
+
+            <div class="none-body">
+                <section class="create-card">
+                    <h2>Eigene Fraktion gruenden</h2>
+                    <p class="muted">Du fuehrst sie, du zahlst dafuer. Name und Kuerzel
+                        lassen sich spaeter aendern, das Wappen jederzeit.</p>
+
+                    <label class="field">
+                        <span>Name</span>
+                        <input type="text" id="create-name" maxlength="28" placeholder="Zirkel des Blutmonds">
+                    </label>
+
+                    <label class="field">
+                        <span>Kuerzel</span>
+                        <input type="text" id="create-tag" maxlength="4" placeholder="ZBM">
+                    </label>
+
+                    <button class="btn primary" id="btn-create">Fraktion gruenden</button>
+                    <p class="muted" id="create-hint"></p>
+                </section>
+
+                <section class="list-card">
+                    <h2>Bestehende Fraktionen</h2>
+                    <div class="faction-list" id="faction-list"></div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Mit Fraktion ---------------------------------------------------->
+        <div id="view-faction" class="view hidden">
+            <header class="top">
+                <div class="brand">
+                    <div class="crest-slot" id="header-crest"></div>
+                    <div>
+                        <h1 id="faction-name">Fraktion</h1>
+                        <div class="brand-sub">
+                            <span class="tag" id="faction-tag">[TAG]</span>
+                            <span class="rank" id="faction-rank">Rang</span>
+                            <span class="motto" id="faction-motto"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="head-stats">
+                    <div class="stat">
+                        <span class="stat-caption">Level</span>
+                        <span class="stat-value" id="faction-level">1</span>
+                    </div>
+                    <div class="stat wide">
+                        <span class="stat-caption">Fortschritt</span>
+                        <div class="xp-track"><div class="xp-fill" id="faction-xp-fill"></div></div>
+                        <span class="stat-sub"><span id="faction-xp">0</span> /
+                            <span id="faction-xp-needed">0</span> XP</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-caption">Kasse</span>
+                        <span class="stat-value" id="faction-kasse">0 $</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-caption">Mitglieder</span>
+                        <span class="stat-value" id="faction-members">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-caption">Gebiete</span>
+                        <span class="stat-value" id="faction-territories">0</span>
+                    </div>
+                </div>
+
+                <button class="icon-btn" id="btn-close">✕</button>
+            </header>
+
+            <nav class="tabs">
+                <button class="tab active" data-tab="overview"><span>🏛</span> Uebersicht</button>
+                <button class="tab" data-tab="members"><span>👥</span> Mitglieder</button>
+                <button class="tab" data-tab="ranks"><span>🎖</span> Raenge</button>
+                <button class="tab" data-tab="skills"><span>🌳</span> Skilltree</button>
+                <button class="tab" data-tab="territory"><span>🏴</span> Gebiete</button>
+                <button class="tab" data-tab="missions"><span>📜</span> Missionen</button>
+                <button class="tab" data-tab="vault"><span>🔐</span> Tresor</button>
+                <button class="tab" data-tab="shop"><span>🛒</span> Shop</button>
+                <button class="tab" data-tab="garage"><span>🚗</span> Garage</button>
+                <button class="tab" data-tab="emblem"><span>🎨</span> Wappen</button>
+            </nav>
+
+            <!-- Uebersicht -->
+            <section class="panel" id="panel-overview">
+                <div class="banner" id="banner">
+                    <div class="banner-backdrop" id="banner-backdrop"></div>
+                    <div class="banner-crest" id="banner-crest"></div>
+                    <div class="banner-text">
+                        <h2 id="banner-name">Fraktion</h2>
+                        <p id="banner-motto">Kein Wahlspruch</p>
+                    </div>
+                </div>
+
+                <div class="overview-grid">
+                    <div class="card">
+                        <div class="section-caption">Kasse</div>
+                        <div class="kasse-value" id="kasse-value">0 $</div>
+                        <div class="kasse-row">
+                            <input type="number" id="kasse-amount" min="1" placeholder="Betrag">
+                            <button class="btn small" id="btn-deposit">Einzahlen</button>
+                            <button class="btn small" id="btn-withdraw">Abheben</button>
+                        </div>
+                        <p class="muted" id="kasse-hint"></p>
+                    </div>
+
+                    <div class="card">
+                        <div class="section-caption">Boni der Fraktion</div>
+                        <div id="modifier-list"></div>
+                    </div>
+
+                    <div class="card wide">
+                        <div class="section-caption">Protokoll</div>
+                        <div class="log-list" id="log-list">
+                            <p class="muted">Wird geladen …</p>
+                        </div>
+                    </div>
+
+                    <div class="card danger-card">
+                        <div class="section-caption">Gefahrenzone</div>
+                        <button class="btn small" id="btn-leave">Fraktion verlassen</button>
+                        <div class="disband-row hidden" id="disband-row">
+                            <input type="text" id="disband-confirm" placeholder="Fraktionsname">
+                            <button class="btn small danger" id="btn-disband">Aufloesen</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mitglieder -->
+            <section class="panel hidden" id="panel-members">
+                <div class="panel-head">
+                    <div>
+                        <h2>Mitglieder</h2>
+                        <p class="muted"><span id="member-count">0</span> von
+                            <span id="member-slots">0</span> Plaetzen belegt.</p>
+                    </div>
+                    <div class="invite-row" id="invite-row">
+                        <input type="number" id="invite-id" placeholder="Server-ID">
+                        <button class="btn small primary" id="btn-invite">Einladen</button>
+                    </div>
+                </div>
+
+                <div class="member-list" id="member-list"></div>
+            </section>
+
+            <!-- Raenge -->
+            <section class="panel hidden" id="panel-ranks">
+                <div class="panel-head">
+                    <div>
+                        <h2>Raenge</h2>
+                        <p class="muted">Der oberste Rang hat immer alle Rechte.
+                            Nur die Fuehrung darf hier etwas aendern.</p>
+                    </div>
+                    <div class="rank-actions">
+                        <button class="btn small" id="btn-rank-add">Rang hinzufuegen</button>
+                        <button class="btn small primary" id="btn-rank-save">Speichern</button>
+                    </div>
+                </div>
+
+                <div class="rank-editor" id="rank-editor"></div>
+            </section>
+
+            <!-- Skilltree -->
+            <section class="panel hidden" id="panel-skills">
+                <div class="panel-head">
+                    <div>
+                        <h2>Fraktions-Skilltree</h2>
+                        <p class="muted">Punkte gibt es je Fraktionslevel. Die Wirkung
+                            gilt fuer alle Mitglieder.</p>
+                    </div>
+                    <div class="skill-head">
+                        <span class="chip"><b id="skill-points">0</b> Punkte frei</span>
+                        <span class="chip"><b id="skill-spent">0</b> verwendet</span>
+                        <button class="btn small" id="btn-skill-reset">Zuruecksetzen</button>
+                    </div>
+                </div>
+
+                <div class="skill-layout">
+                    <div class="tree-canvas" id="skill-canvas">
+                        <svg id="skill-links"></svg>
+                        <div id="skill-nodes"></div>
+                    </div>
+                    <aside class="detail" id="skill-detail">
+                        <div class="detail-empty">Waehle einen Knoten.</div>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- Gebiete -->
+            <section class="panel hidden" id="panel-territory">
+                <div class="panel-head">
+                    <div>
+                        <h2>Gebiete</h2>
+                        <p class="muted">Wer ein Gebiet haelt, kassiert alle
+                            <span id="territory-interval">15</span> Minuten.</p>
+                    </div>
+                    <span class="chip">Einkommen: <b id="territory-income">0 $</b></span>
+                </div>
+
+                <div class="territory-layout">
+                    <div class="map" id="map">
+                        <svg id="map-svg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+                    </div>
+                    <div class="territory-list" id="territory-list"></div>
+                </div>
+            </section>
+
+            <!-- Missionen -->
+            <section class="panel hidden" id="panel-missions">
+                <div class="panel-head">
+                    <div>
+                        <h2>Fraktionsmissionen</h2>
+                        <p class="muted">Die ganze Fraktion zahlt darauf ein.
+                            Die Belohnung geht in Kasse und Level.</p>
+                    </div>
+                </div>
+                <div class="mission-list" id="faction-mission-list"></div>
+            </section>
+
+            <!-- Tresor -->
+            <section class="panel hidden" id="panel-vault">
+                <div class="panel-head">
+                    <div>
+                        <h2>Tresor</h2>
+                        <p class="muted"><span id="vault-used">0</span> von
+                            <span id="vault-slots">0</span> Plaetzen,
+                            <span id="vault-weight">0</span> g belegt.</p>
+                    </div>
+                </div>
+
+                <div class="vault-columns">
+                    <div class="vault-side">
+                        <div class="section-caption">Dein Inventar</div>
+                        <div class="item-list" id="inventory-list"></div>
+                    </div>
+                    <div class="vault-side">
+                        <div class="section-caption">Im Tresor</div>
+                        <div class="item-list" id="vault-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Shop -->
+            <section class="panel hidden" id="panel-shop">
+                <div class="panel-head">
+                    <div>
+                        <h2>Fraktionsshop</h2>
+                        <p class="muted">Bezahlt wird aus der Kasse.
+                            <span id="shop-discount"></span></p>
+                    </div>
+                </div>
+                <div class="shop-grid" id="shop-grid"></div>
+            </section>
+
+            <!-- Garage -->
+            <section class="panel hidden" id="panel-garage">
+                <div class="panel-head">
+                    <div>
+                        <h2>Garage</h2>
+                        <p class="muted"><span id="garage-used">0</span> von
+                            <span id="garage-slots">0</span> Plaetzen belegt.</p>
+                    </div>
+                    <label class="field inline">
+                        <span>Ausgabepunkt</span>
+                        <select id="garage-point"></select>
+                    </label>
+                </div>
+
+                <div class="garage-columns">
+                    <div>
+                        <div class="section-caption">Fuhrpark</div>
+                        <div class="vehicle-list" id="vehicle-list"></div>
+                    </div>
+                    <div>
+                        <div class="section-caption">Haendler</div>
+                        <div class="vehicle-list" id="catalogue-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wappen -->
+            <section class="panel hidden" id="panel-emblem">
+                <div class="emblem-layout">
+                    <div class="emblem-preview">
+                        <div class="crest-large" id="emblem-preview"></div>
+                        <div class="banner-preview" id="emblem-banner">
+                            <div class="banner-backdrop" id="emblem-banner-backdrop"></div>
+                            <div class="banner-crest" id="emblem-banner-crest"></div>
+                            <div class="banner-text">
+                                <h2 id="emblem-banner-name">Fraktion</h2>
+                                <p id="emblem-banner-motto"></p>
+                            </div>
+                        </div>
+                        <button class="btn primary" id="btn-emblem-save">Wappen speichern</button>
+                    </div>
+
+                    <div class="emblem-controls">
+                        <div class="control-group">
+                            <div class="section-caption">Schildform</div>
+                            <div class="option-row" id="shape-row"></div>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="section-caption">Symbol</div>
+                            <div class="option-row" id="symbol-row"></div>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="section-caption">Muster</div>
+                            <div class="option-row" id="pattern-row"></div>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="section-caption">Motiv fuer Banner und Willkommensbild</div>
+                            <div class="option-row" id="backdrop-row"></div>
+                        </div>
+
+                        <div class="control-group split">
+                            <div>
+                                <div class="section-caption">Hauptfarbe</div>
+                                <div class="option-row" id="primary-row"></div>
+                            </div>
+                            <div>
+                                <div class="section-caption">Zweitfarbe</div>
+                                <div class="option-row" id="secondary-row"></div>
+                            </div>
+                        </div>
+
+                        <label class="field">
+                            <span>Wahlspruch</span>
+                            <input type="text" id="emblem-motto" maxlength="64"
+                                   placeholder="Im Schatten stark">
+                        </label>
+
+                        <label class="field">
+                            <span>Willkommenstext</span>
+                            <textarea id="emblem-welcome" maxlength="240" rows="3"
+                                      placeholder="Was neue Mitglieder beim Beitritt sehen."></textarea>
+                        </label>
+
+                        <div class="control-group split">
+                            <label class="field">
+                                <span>Name</span>
+                                <input type="text" id="emblem-name" maxlength="28">
+                            </label>
+                            <label class="field">
+                                <span>Kuerzel</span>
+                                <input type="text" id="emblem-tag" maxlength="4">
+                            </label>
+                        </div>
+                        <button class="btn small" id="btn-rename">Name speichern</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

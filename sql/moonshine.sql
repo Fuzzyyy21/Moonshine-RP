@@ -96,3 +96,81 @@ CREATE TABLE IF NOT EXISTS `ms_missions` (
     KEY `character_id` (`character_id`),
     UNIQUE KEY `mission_period` (`character_id`, `mission_id`, `period`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Fraktionen (moonshine-factions)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_factions` (
+    `id`          INT          NOT NULL AUTO_INCREMENT,
+    `name`        VARCHAR(32)  NOT NULL,
+    `tag`         VARCHAR(8)   NOT NULL,
+    `owner_id`    INT          NOT NULL,
+    `base`        VARCHAR(32)  DEFAULT NULL,
+    `emblem`      LONGTEXT     DEFAULT NULL,
+    `ranks`       LONGTEXT     DEFAULT NULL,
+    `skills`      LONGTEXT     DEFAULT NULL,
+    `level`       INT          NOT NULL DEFAULT 1,
+    `xp`          INT          NOT NULL DEFAULT 0,
+    `points`      INT          NOT NULL DEFAULT 1,
+    `kasse`       BIGINT       NOT NULL DEFAULT 0,
+    `vault`       LONGTEXT     DEFAULT NULL,
+    `created_at`  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `name` (`name`),
+    UNIQUE KEY `tag` (`tag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `ms_faction_members` (
+    `faction_id`   INT       NOT NULL,
+    `character_id` INT       NOT NULL,
+    `grade`        INT       NOT NULL DEFAULT 0,
+    `joined_at`    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `contribution` BIGINT    NOT NULL DEFAULT 0,
+    PRIMARY KEY (`character_id`),
+    KEY `faction_id` (`faction_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `ms_faction_vehicles` (
+    `id`         INT         NOT NULL AUTO_INCREMENT,
+    `faction_id` INT         NOT NULL,
+    `model`      VARCHAR(32) NOT NULL,
+    `label`      VARCHAR(48) NOT NULL,
+    `plate`      VARCHAR(12) NOT NULL,
+    `min_grade`  INT         NOT NULL DEFAULT 0,
+    `stored`     TINYINT(1)  NOT NULL DEFAULT 1,
+    PRIMARY KEY (`id`),
+    KEY `faction_id` (`faction_id`),
+    UNIQUE KEY `plate` (`plate`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `ms_faction_territories` (
+    `territory_id` VARCHAR(32) NOT NULL,
+    `faction_id`   INT         DEFAULT NULL,
+    `since`        INT         NOT NULL DEFAULT 0,
+    `protected_until` INT      NOT NULL DEFAULT 0,
+    PRIMARY KEY (`territory_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `ms_faction_missions` (
+    `id`         INT         NOT NULL AUTO_INCREMENT,
+    `faction_id` INT         NOT NULL,
+    `mission_id` VARCHAR(48) NOT NULL,
+    `progress`   INT         NOT NULL DEFAULT 0,
+    `claimed`    TINYINT(1)  NOT NULL DEFAULT 0,
+    `period`     VARCHAR(16) NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `faction_id` (`faction_id`),
+    UNIQUE KEY `mission_period` (`faction_id`, `mission_id`, `period`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `ms_faction_log` (
+    `id`         INT         NOT NULL AUTO_INCREMENT,
+    `faction_id` INT         NOT NULL,
+    `kind`       VARCHAR(24) NOT NULL,
+    `text`       VARCHAR(255) NOT NULL,
+    `created_at` TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `faction_id` (`faction_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
