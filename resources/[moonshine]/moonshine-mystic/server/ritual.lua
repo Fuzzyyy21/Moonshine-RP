@@ -342,11 +342,28 @@ RegisterNetEvent('mystic:server:performRitual', function()
         end
 
         local reward = MysticConfig.Ritual.reward
+
         -- Bonus aus dem persoenlichen Baum (Haendlerglueck, Goldene Hand).
-        local amount = math.floor(reward.amount * (1.0 + (profile:GetModifiers().moneyBonus or 0)))
+        local factor = 1.0 + (profile:GetModifiers().moneyBonus or 0)
+
+        -- Waehrend eines Weltereignisses wirft das Ritual mehr ab.
+        local worldBonus = 0.0
+        pcall(function()
+            local effects = exports['moonshine-world']:GetWorldEffects()
+            if type(effects) == 'table' then worldBonus = effects.ritualBonus or 0.0 end
+        end)
+
+        local amount = math.floor(reward.amount * (factor + worldBonus))
 
         player:AddMoney(amount, reward.account, 'ritual')
-        profile:Notify(('Das Ritual bringt dir %s.'):format(MS.Utils.FormatMoney(amount)), 'success', 8000)
+
+        if worldBonus > 0 then
+            profile:Notify(('Die Kraefte stehen guenstig: %s.'):format(
+                MS.Utils.FormatMoney(amount)), 'success', 9000)
+        else
+            profile:Notify(('Das Ritual bringt dir %s.'):format(
+                MS.Utils.FormatMoney(amount)), 'success', 8000)
+        end
 
         profile:Save()
         profile:Sync()

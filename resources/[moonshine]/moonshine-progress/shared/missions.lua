@@ -40,6 +40,10 @@ Progress.Missions = {
       label = 'Guter Kunde', description = 'Kaufe fuenf Grundsteine beim Haendler.',
       icon = '🪙', reward = { money = 4000, bpxp = 120 } },
 
+    { id = 'daily_event', kind = 'daily', event = 'worldEvent', goal = 1,
+      label = 'Zeuge', description = 'Sei online, wenn ein Weltereignis beginnt.',
+      icon = '🌒', reward = { money = 7000, bpxp = 200 } },
+
     -- Woechentliche Missionen ------------------------------------------------
     { id = 'weekly_playtime', kind = 'weekly', event = 'playtime', goal = 420,
       label = 'Stammgast', description = 'Sei sieben Stunden online.',
@@ -60,6 +64,10 @@ Progress.Missions = {
     { id = 'weekly_ritual', kind = 'weekly', event = 'ritual', goal = 6,
       label = 'Ritualmeister', description = 'Fuehre sechs Rituale durch.',
       icon = '🔮', reward = { money = 65000, bpxp = 1300 } },
+
+    { id = 'weekly_event', kind = 'weekly', event = 'worldEvent', goal = 4,
+      label = 'Sterndeuter', description = 'Erlebe vier Weltereignisse mit.',
+      icon = '🌌', reward = { money = 55000, bpxp = 1100, cases = { gold = 1 } } },
 
     { id = 'weekly_meditate', kind = 'weekly', event = 'meditate', goal = 10,
       label = 'Versenkung', description = 'Meditiere zehnmal.',

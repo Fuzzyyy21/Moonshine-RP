@@ -128,3 +128,28 @@ AddEventHandler('moonshine:server:playerDeath', function(source)
     profile:SetEssence(profile:GetMaxEssence() * 0.5)
     profile:Sync()
 end)
+
+-- Welt: Mondphase und Ereignisse aendern die Werte aller Spieler -------------
+
+--- Schickt allen Profilen frische Modifikatoren.
+local function resyncAll(reason)
+    for _, profile in pairs(Mystic.Profiles) do
+        profile:Sync()
+    end
+
+    if reason and MysticConfig.Debug then
+        MS.Utils.Print('info', 'Modifikatoren neu berechnet (%s).', reason)
+    end
+end
+
+AddEventHandler('world:server:eventStarted', function(id)
+    resyncAll(('Ereignis %s'):format(tostring(id)))
+end)
+
+AddEventHandler('world:server:eventEnded', function(id)
+    resyncAll(('Ereignis %s beendet'):format(tostring(id)))
+end)
+
+AddEventHandler('world:server:phaseChanged', function(id)
+    resyncAll(('Mondphase %s'):format(tostring(id)))
+end)

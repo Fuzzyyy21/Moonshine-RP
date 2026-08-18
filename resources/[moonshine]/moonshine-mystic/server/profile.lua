@@ -353,6 +353,38 @@ function Profile:GetModifiers()
     mods.lootAmount      = personal.lootAmount
     mods.meditationBonus = personal.meditationBonus
 
+    -- Mondphase und laufendes Weltereignis (moonshine-world, optional).
+    local world = nil
+    pcall(function()
+        world = exports['moonshine-world']:GetModifiers(self.race)
+    end)
+
+    if type(world) == 'table' then
+        local ADDITIVE = {
+            'healthBonus', 'armorBonus', 'stamina', 'damageMult', 'meleeMult',
+            'speedMult', 'regenPerTick', 'essenceBonus', 'essenceRegen',
+            'critChance', 'critBonus', 'lifesteal', 'lootChance', 'lootAmount',
+            'xpBonus', 'moneyBonus', 'meditationBonus', 'damageReduction',
+        }
+
+        for _, key in ipairs(ADDITIVE) do
+            if type(world[key]) == 'number' then
+                mods[key] = (mods[key] or 0) + world[key]
+            end
+        end
+
+        if type(world.costMult) == 'number' then
+            mods.costMult = math.max(0.3, mods.costMult + world.costMult)
+        end
+
+        if type(world.cooldownMult) == 'number' then
+            mods.cooldownMult = math.max(0.3, mods.cooldownMult + world.cooldownMult)
+        end
+
+        mods.sunImmune  = mods.sunImmune or world.sunImmune == true
+        mods.fireImmune = mods.fireImmune or world.fireImmune == true
+    end
+
     return mods
 end
 

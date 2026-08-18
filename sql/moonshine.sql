@@ -217,3 +217,18 @@ CREATE TABLE IF NOT EXISTS `ms_auction_mail` (
     KEY `character_id` (`character_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
+-- ---------------------------------------------------------------------------
+-- Welt (moonshine-world)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_world` (
+    `id`         INT         NOT NULL DEFAULT 1,
+    `day`        INT         NOT NULL DEFAULT 0,
+    `hour`       INT         NOT NULL DEFAULT 20,
+    `minute`     INT         NOT NULL DEFAULT 0,
+    `weather`    VARCHAR(24) NOT NULL DEFAULT 'CLEAR',
+    `history`    LONGTEXT    DEFAULT NULL,
+    `updated_at` TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -35,6 +35,11 @@ Factions.MissionPool = {
     { id = 'shop',      event = 'buyStone',  goal = 60,     icon = '🪙',
       label = 'Grosseinkauf', description = 'Kauft 60 Grundsteine beim Haendler.',
       reward = { kasse = 50000, xp = 800 } },
+
+    { id = 'ereignis',  event = 'worldEvent', goal = 12,    icon = '🌌',
+      label = 'Sternwarte',   description = 'Seid bei Weltereignissen dabei - jedes '
+        .. 'anwesende Mitglied zaehlt.',
+      reward = { kasse = 75000, xp = 1200 } },
 }
 
 Factions.MissionById = {}
@@ -259,4 +264,12 @@ end)
 
 AddEventHandler('boss:server:participantRewarded', function(source)
     Factions.AdvanceForPlayer(source, 'boss', 1)
+end)
+
+--- Jedes beim Ereignisstart anwesende Mitglied zaehlt einmal.
+AddEventHandler('world:server:eventStarted', function()
+    for _, faction in pairs(Factions.List) do
+        local online = #faction:OnlineSources()
+        if online > 0 then Factions.Advance(faction.id, 'worldEvent', online) end
+    end
 end)

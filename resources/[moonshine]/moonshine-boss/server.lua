@@ -136,8 +136,10 @@ local function rewardParticipants()
                     end
                 end)
 
+                local bonus = math.floor(worldEffects().stoneBonus or 0)
+
                 for _, reward in ipairs(BossConfig.Rewards) do
-                    local amount = math.random(reward.min, reward.max)
+                    local amount = math.random(reward.min, reward.max) + bonus
 
                     if luck > 0 and math.random() < luck then
                         amount = amount + 1 + math.floor(extra)
@@ -193,6 +195,19 @@ local function onDefeated()
     SetTimeout(8000, function() despawn('besiegt') end)
 end
 
+--- Eingriffe der Welt (moonshine-world, optional).
+--- bossInterval verkuerzt die Wartezeit, stoneBonus gibt mehr Beute.
+local function worldEffects()
+    local effects = nil
+    pcall(function() effects = exports['moonshine-world']:GetWorldEffects() end)
+
+    if type(effects) ~= 'table' then
+        return { bossInterval = 1.0, stoneBonus = 0 }
+    end
+
+    return effects
+end
+
 -- Ablaufsteuerung ------------------------------------------------------------
 
 CreateThread(function()
@@ -200,7 +215,10 @@ CreateThread(function()
 
     while true do
         if not current then spawnBoss() end
-        Wait(BossConfig.Interval * 60000)
+
+        -- Waehrend eines Weltereignisses kommen die Bosse dichter.
+        local factor = worldEffects().bossInterval or 1.0
+        Wait(math.max(60000, math.floor(BossConfig.Interval * 60000 * factor)))
     end
 end)
 

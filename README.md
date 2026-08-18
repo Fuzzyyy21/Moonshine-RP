@@ -7,6 +7,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | Resource | Inhalt |
 |---|---|
 | `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
+| `moonshine-world` | Serverzeit, Wetter, Mondphasen und mystische Weltereignisse → [`docs/WORLD.md`](docs/WORLD.md) |
 | `moonshine-mystic` | Klassen-Skilltree (Klassensteine) und persönlicher Skillbaum mit 6 Kategorien (Fähigkeitspunkte), Skillleiste, Ritualpunkte → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
 | `moonshine-death` | Bewusstlosigkeit statt Sofort-Respawn, Notruf, Wiederbelebung → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-boss` | Weltbosse alle 45 Minuten, lassen Runen- und Seelensteine fallen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
@@ -28,6 +29,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **HUD** | Name, Server-ID, Job, Geld, Leben, Weste, Hunger, Durst |
 | **Persistenz** | Autosave, Speichern bei Disconnect, Resource-Stop und Server-Shutdown |
 | **API** | Exports, Server-Callbacks, Events – für eigene Resources dokumentiert in [`docs/API.md`](docs/API.md) |
+| **Welt** | Serverzeit mit 48-Minuten-Tag, Wetterzyklus, acht Mondphasen und acht Weltereignissen, die Klassenkräfte, Bossintervall und Ritualertrag verschieben |
 | **Fortschritt** | Spielzeit-Meilensteine, drei tägliche und drei wöchentliche Missionen, Battle Pass über 50 Stufen, vier Kistenarten |
 | **Fraktionen** | Wappen-Baukasten, bis zu acht Ränge mit 13 Rechten, eigener Skilltree, Kasse, Tresor, Shop, Garage, acht Gebiete mit Einnahme und Einkommen |
 | **Auktionshaus** | Gebote mit Anti-Sniping, Sofortkauf, Hausgebühr, Abholfach für Offline-Spieler |
@@ -58,6 +60,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ```cfg
    ensure oxmysql
    ensure moonshine-core
+   ensure moonshine-world
    ensure moonshine-mystic
    ensure moonshine-death
    ensure moonshine-boss
@@ -84,6 +87,11 @@ resources/[moonshine]/
 │   ├── server/              Datenbank, Spielerobjekt, Inventar, Commands, API
 │   ├── client/              Charakterauswahl, HUD, Inventar, Callbacks
 │   └── nui/                 Oberfläche (Charakterauswahl, HUD, Inventar)
+├── moonshine-world/         Zeit, Wetter, Mondphasen, Weltereignisse
+│   ├── shared/              Config, Mondphasen, Ereignisse
+│   ├── server/              Uhr, Wetter, Ereignissteuerung, API
+│   ├── client/              Uhr nachhalten, Effekte, Widget
+│   └── nui/                 Widget, Ankündigung, Einblendung
 ├── moonshine-mystic/        Klassen, Skilltree, Skillleiste, Perks
 │   ├── shared/              Config, Klassen, Skills, persoenlicher Baum, Steine
 │   ├── server/              Profile, Skills, persoenlicher Baum, Ritualpunkte, API
@@ -106,6 +114,7 @@ resources/[moonshine]/
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
 docs/API.md                  API-Dokumentation des Frameworks
+docs/WORLD.md                Zeit, Wetter, Mondphasen, Weltereignisse
 docs/MYSTIC.md               Dokumentation des Mystik-Systems
 docs/SURVIVAL.md             Sterbesystem und Weltbosse
 docs/PROGRESS.md             Spielzeit, Missionen, Battle Pass, Kisten
@@ -167,7 +176,8 @@ frei ändern.
 | `/saveall` | 4 | Alle Charaktere speichern |
 
 Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
-[Mystik](docs/MYSTIC.md), [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
+[Welt](docs/WORLD.md), [Mystik](docs/MYSTIC.md),
+[Sterbesystem und Weltbosse](docs/SURVIVAL.md),
 [Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md) und
 [Auktionshaus](docs/AUCTION.md).
 

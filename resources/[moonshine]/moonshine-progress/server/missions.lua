@@ -296,3 +296,10 @@ end)
 AddEventHandler('boss:server:participantRewarded', function(source)
     Progress.Advance(source, 'boss', 1)
 end)
+
+--- Wer beim Start eines Weltereignisses online ist, war dabei.
+AddEventHandler('world:server:eventStarted', function()
+    for source in pairs(Progress.Profiles) do
+        Progress.Advance(source, 'worldEvent', 1)
+    end
+end)

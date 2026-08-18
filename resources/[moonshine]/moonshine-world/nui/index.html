@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Welt</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Widget oben rechts ------------------------------------------------------>
+<div id="widget" class="hidden">
+    <div class="clock-row">
+        <span class="clock" id="clock">20:00</span>
+        <span class="daypart" id="daypart">Nacht</span>
+    </div>
+
+    <div class="moon-row" id="moon-row">
+        <span class="moon-icon" id="moon-icon">🌕</span>
+        <div>
+            <div class="moon-label" id="moon-label">Vollmond</div>
+            <div class="weather-label" id="weather-label">Klarer Himmel</div>
+        </div>
+    </div>
+
+    <div class="event-row hidden" id="event-row">
+        <span class="event-icon" id="event-icon">🌕</span>
+        <div class="event-body">
+            <div class="event-label" id="event-label">Blutmond</div>
+            <div class="event-track"><div class="event-fill" id="event-fill"></div></div>
+            <div class="event-time" id="event-time">noch 20 Min.</div>
+        </div>
+    </div>
+</div>
+
+<!-- Ankuendigung ------------------------------------------------------------>
+<div id="warning" class="hidden">
+    <div class="warning-icon" id="warning-icon">🌕</div>
+    <div>
+        <div class="warning-label" id="warning-label">Blutmond</div>
+        <div class="warning-text" id="warning-text">Der Mond faerbt sich rot.</div>
+        <div class="warning-time" id="warning-time">in 2 Minuten</div>
+    </div>
+</div>
+
+<!-- Grosse Einblendung beim Start -------------------------------------------->
+<div id="banner" class="hidden">
+    <div class="banner-inner">
+        <div class="banner-icon" id="banner-icon">🌕</div>
+        <h1 id="banner-label">Blutmond</h1>
+        <p class="banner-headline" id="banner-headline"></p>
+        <p class="banner-description" id="banner-description"></p>
+        <div class="banner-effects" id="banner-effects"></div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
