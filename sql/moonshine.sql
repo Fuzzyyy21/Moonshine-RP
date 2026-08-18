@@ -174,3 +174,46 @@ CREATE TABLE IF NOT EXISTS `ms_faction_log` (
     KEY `faction_id` (`faction_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
+-- ---------------------------------------------------------------------------
+-- Auktionshaus (moonshine-auction)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_auctions` (
+    `id`           INT          NOT NULL AUTO_INCREMENT,
+    `seller_id`    INT          NOT NULL,
+    `seller_name`  VARCHAR(64)  NOT NULL,
+    `item`         VARCHAR(48)  NOT NULL,
+    `label`        VARCHAR(64)  NOT NULL,
+    `count`        INT          NOT NULL DEFAULT 1,
+    `metadata`     LONGTEXT     DEFAULT NULL,
+    `category`     VARCHAR(24)  NOT NULL DEFAULT 'sonstiges',
+    `start_price`  BIGINT       NOT NULL,
+    `buyout`       BIGINT       DEFAULT NULL,
+    `bid`          BIGINT       NOT NULL DEFAULT 0,
+    `bidder_id`    INT          DEFAULT NULL,
+    `bidder_name`  VARCHAR(64)  DEFAULT NULL,
+    `ends_at`      INT          NOT NULL,
+    `status`       VARCHAR(16)  NOT NULL DEFAULT 'offen',
+    `created_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `status` (`status`),
+    KEY `seller_id` (`seller_id`),
+    KEY `bidder_id` (`bidder_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `ms_auction_mail` (
+    `id`           INT          NOT NULL AUTO_INCREMENT,
+    `character_id` INT          NOT NULL,
+    `kind`         VARCHAR(12)  NOT NULL,
+    `item`         VARCHAR(48)  DEFAULT NULL,
+    `label`        VARCHAR(64)  DEFAULT NULL,
+    `count`        INT          NOT NULL DEFAULT 0,
+    `metadata`     LONGTEXT     DEFAULT NULL,
+    `amount`       BIGINT       NOT NULL DEFAULT 0,
+    `reason`       VARCHAR(128) NOT NULL DEFAULT '',
+    `created_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `character_id` (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

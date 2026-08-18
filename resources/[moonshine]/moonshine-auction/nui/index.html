@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Auktionshaus</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="screen" class="hidden">
+    <div class="window">
+
+        <header class="top">
+            <div class="brand">
+                <div class="crest">🔨</div>
+                <div>
+                    <h1>Auktionshaus</h1>
+                    <p class="sub" id="house-label">Vinewood</p>
+                </div>
+            </div>
+
+            <div class="head-stats">
+                <div class="stat">
+                    <span class="stat-caption">Bankguthaben</span>
+                    <span class="stat-value" id="money">0 $</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Laufende Auktionen</span>
+                    <span class="stat-value" id="count-open">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Hausgebuehr</span>
+                    <span class="stat-value" id="fee">5 %</span>
+                </div>
+            </div>
+
+            <button class="icon-btn" id="btn-close" title="Schliessen (ESC)">✕</button>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="browse"><span>🗃</span> Markt</button>
+            <button class="tab" data-tab="sell"><span>🏷</span> Einstellen</button>
+            <button class="tab" data-tab="own"><span>📄</span> Meine Auktionen<i class="badge hidden" id="badge-own">0</i></button>
+            <button class="tab" data-tab="bids"><span>✋</span> Meine Gebote<i class="badge hidden" id="badge-bids">0</i></button>
+            <button class="tab" data-tab="mail"><span>📬</span> Abholfach<i class="badge hidden" id="badge-mail">0</i></button>
+        </nav>
+
+        <!-- Markt ------------------------------------------------------------>
+        <section class="panel" id="panel-browse">
+            <div class="filter-bar">
+                <input type="text" id="search" placeholder="Suchen …">
+                <div class="category-row" id="category-row"></div>
+                <select id="sort">
+                    <option value="time">Endet zuerst</option>
+                    <option value="priceAsc">Preis aufsteigend</option>
+                    <option value="priceDesc">Preis absteigend</option>
+                    <option value="name">Name</option>
+                </select>
+            </div>
+
+            <div class="auction-list" id="market-list"></div>
+        </section>
+
+        <!-- Einstellen ------------------------------------------------------->
+        <section class="panel hidden" id="panel-sell">
+            <div class="sell-layout">
+                <div class="sell-inventory">
+                    <div class="section-caption">Dein Inventar</div>
+                    <div class="item-list" id="sell-inventory"></div>
+                </div>
+
+                <div class="sell-form">
+                    <div class="section-caption">Auktion anlegen</div>
+
+                    <div class="selected-item" id="selected-item">
+                        <p class="muted">Waehle links einen Gegenstand.</p>
+                    </div>
+
+                    <label class="field">
+                        <span>Menge</span>
+                        <input type="number" id="sell-count" min="1" value="1">
+                    </label>
+
+                    <label class="field">
+                        <span>Startpreis</span>
+                        <input type="number" id="sell-start" min="100" value="1000">
+                    </label>
+
+                    <label class="field">
+                        <span>Sofortkauf (optional)</span>
+                        <input type="number" id="sell-buyout" min="0" placeholder="kein Sofortkauf">
+                    </label>
+
+                    <label class="field">
+                        <span>Laufzeit</span>
+                        <select id="sell-hours"></select>
+                    </label>
+
+                    <div class="fee-note" id="fee-note"></div>
+
+                    <button class="btn primary" id="btn-sell" disabled>Auktion anlegen</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Meine Auktionen -------------------------------------------------->
+        <section class="panel hidden" id="panel-own">
+            <div class="auction-list" id="own-list"></div>
+        </section>
+
+        <!-- Meine Gebote ----------------------------------------------------->
+        <section class="panel hidden" id="panel-bids">
+            <div class="auction-list" id="bid-list"></div>
+        </section>
+
+        <!-- Abholfach -------------------------------------------------------->
+        <section class="panel hidden" id="panel-mail">
+            <div class="panel-head">
+                <div>
+                    <h2>Abholfach</h2>
+                    <p class="muted">Ersteigerte Ware, Erloese und erstattete Gebote
+                        landen hier - auch wenn du offline warst.</p>
+                </div>
+                <button class="btn primary" id="btn-claim-all">Alles abholen</button>
+            </div>
+
+            <div class="mail-list" id="mail-list"></div>
+        </section>
+
+        <footer class="bottom">
+            <span class="muted">Gebote werden sofort abgebucht. Wer ueberboten wird,
+                bekommt sein Geld ins Abholfach.</span>
+            <span class="muted" id="foot-hint"></span>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

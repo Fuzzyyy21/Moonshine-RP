@@ -10,6 +10,9 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-mystic` | Klassen-Skilltree (Klassensteine) und persönlicher Skillbaum mit 6 Kategorien (Fähigkeitspunkte), Skillleiste, Ritualpunkte → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
 | `moonshine-death` | Bewusstlosigkeit statt Sofort-Respawn, Notruf, Wiederbelebung → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-boss` | Weltbosse alle 45 Minuten, lassen Runen- und Seelensteine fallen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
+| `moonshine-progress` | Spielzeit-Belohnungen, Daily/Weekly Missionen, Battle Pass, Kisten → [`docs/PROGRESS.md`](docs/PROGRESS.md) |
+| `moonshine-factions` | Fraktionen mit Wappen, Rängen, Skilltree, Kasse, Tresor, Shop, Garage und Gebieten → [`docs/FACTIONS.md`](docs/FACTIONS.md) |
+| `moonshine-auction` | Auktionshaus mit Geboten, Sofortkauf und Abholfach → [`docs/AUCTION.md`](docs/AUCTION.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
@@ -25,6 +28,9 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **HUD** | Name, Server-ID, Job, Geld, Leben, Weste, Hunger, Durst |
 | **Persistenz** | Autosave, Speichern bei Disconnect, Resource-Stop und Server-Shutdown |
 | **API** | Exports, Server-Callbacks, Events – für eigene Resources dokumentiert in [`docs/API.md`](docs/API.md) |
+| **Fortschritt** | Spielzeit-Meilensteine, drei tägliche und drei wöchentliche Missionen, Battle Pass über 50 Stufen, vier Kistenarten |
+| **Fraktionen** | Wappen-Baukasten, bis zu acht Ränge mit 13 Rechten, eigener Skilltree, Kasse, Tresor, Shop, Garage, acht Gebiete mit Einnahme und Einkommen |
+| **Auktionshaus** | Gebote mit Anti-Sniping, Sofortkauf, Hausgebühr, Abholfach für Offline-Spieler |
 | **Admin** | Rechtesystem über Adminlevel plus Commands für Geld, Items, Jobs, Teleport, Kick, Ban |
 
 ## Voraussetzungen
@@ -55,6 +61,9 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ensure moonshine-mystic
    ensure moonshine-death
    ensure moonshine-boss
+   ensure moonshine-progress
+   ensure moonshine-factions
+   ensure moonshine-auction
    ensure moonshine-shops
    ```
 
@@ -82,11 +91,26 @@ resources/[moonshine]/
 │   └── nui/                 Oberfläche (Skillleiste, beide Skilltrees, Händler)
 ├── moonshine-death/         Bewusstlosigkeit, Notruf, Wiederbelebung, Respawn
 ├── moonshine-boss/          Weltbosse als Quelle fuer Runen- und Seelensteine
+├── moonshine-progress/      Spielzeit, Missionen, Battle Pass, Kisten
+│   ├── shared/              Config, Missionen, Battle Pass, Kisten
+│   ├── server/              Profil, Belohnungen, Spielzeit, Missionen, Pass, Kisten
+│   ├── client/              Oberfläche und Meldungen
+│   └── nui/                 Oberfläche (vier Reiter, Kistenanimation)
+├── moonshine-factions/      Fraktionen, Ränge, Gebiete, Kasse, Tresor, Garage
+│   ├── shared/              Config, Wappen, Ränge, Skilltree, Gebiete
+│   ├── server/              Fraktionsobjekt, Mitglieder, Verwaltung, Tresor,
+│   │                        Shop, Garage, Missionen, Gebiete
+│   ├── client/              Oberfläche, Gebietskarte, Garage
+│   └── nui/                 Oberfläche (zehn Reiter, SVG-Wappen, Karte)
+├── moonshine-auction/       Auktionshaus mit Abholfach
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
 docs/API.md                  API-Dokumentation des Frameworks
 docs/MYSTIC.md               Dokumentation des Mystik-Systems
-docs/SURVIVAL.md             Sterbesystem und Steinadern
+docs/SURVIVAL.md             Sterbesystem und Weltbosse
+docs/PROGRESS.md             Spielzeit, Missionen, Battle Pass, Kisten
+docs/FACTIONS.md             Fraktionssystem
+docs/AUCTION.md              Auktionshaus
 docs/ROADMAP.md              Ideen für den weiteren Ausbau
 ```
 
@@ -112,9 +136,11 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 |---|---|
 | `F2` | Inventar |
 | `F5` | Skillleiste aus-/einklappen |
+| `F6` | Fortschritt (Spielzeit, Missionen, Battle Pass, Kisten) |
 | `F7` | HUD ein-/ausblenden |
+| `F10` | Fraktion |
 | `NUMPAD 1–6` | Skill-Slots auslösen |
-| `E` | Bodenitem aufheben / Laden öffnen / Ritualpunkt / Steinader / Notruf |
+| `E` | Bodenitem aufheben / Laden öffnen / Ritualpunkt / Auktionator / Notruf |
 | `G` | Wiederbeleben bzw. aufgeben, wenn bewusstlos |
 
 Die Tasten lassen sich im FiveM-Menü unter *Einstellungen → Tastenbelegung → FiveM*
@@ -140,9 +166,10 @@ frei ändern.
 | `/setadmin [id] [level]` | 4 | Adminlevel setzen |
 | `/saveall` | 4 | Alle Charaktere speichern |
 
-Mystik-Commands (`/mystik`, `/setrasse`, `/givestein`, …) stehen in
-[`docs/MYSTIC.md`](docs/MYSTIC.md), das Sterbesystem und die Steinadern in
-[`docs/SURVIVAL.md`](docs/SURVIVAL.md).
+Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
+[Mystik](docs/MYSTIC.md), [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
+[Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md) und
+[Auktionshaus](docs/AUCTION.md).
 
 Adminlevel: `0` User, `1` Support, `2` Moderator, `3` Admin, `4` Owner.
 
