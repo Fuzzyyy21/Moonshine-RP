@@ -16,6 +16,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-auction` | Auktionshaus mit Geboten, Sofortkauf und Abholfach → [`docs/AUCTION.md`](docs/AUCTION.md) |
 | `moonshine-vehicles` | Autohäuser, eigene Fahrzeuge, Garagen, Schlüssel und Verwahrstelle → [`docs/VEHICLES.md`](docs/VEHICLES.md) |
 | `moonshine-services` | Tankstellen, Werkstätten, Bank, Geldautomaten und Schwarzmarkt → [`docs/SERVICES.md`](docs/SERVICES.md) |
+| `moonshine-jobs` | Jobcenter und Arbeitsaufträge mit echtem Ablauf → [`docs/JOBS.md`](docs/JOBS.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
@@ -37,6 +38,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Auktionshaus** | Gebote mit Anti-Sniping, Sofortkauf, Hausgebühr, Abholfach für Offline-Spieler |
 | **Fahrzeuge** | 42 Fahrzeuge in drei Autohäusern, sechs Garagen, Tank- und Schadenspersistenz, Schlüsselsystem und Verwahrstelle |
 | **Dienste** | 9 Tankstellen, 4 Werkstätten, 6 Bankfilialen, 16 Geldautomaten, wandernder Schwarzmarkt mit Geldwäsche |
+| **Arbeit** | Jobcenter, vier Aufträge mit Stationen, Arbeitsfahrzeug, Taxi-Fahrgästen, Abschlussbonus und Bestenliste |
 | **Admin** | Rechtesystem über Adminlevel plus Commands für Geld, Items, Jobs, Teleport, Kick, Ban |
 
 ## Voraussetzungen
@@ -73,6 +75,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ensure moonshine-auction
    ensure moonshine-vehicles
    ensure moonshine-services
+   ensure moonshine-jobs
    ensure moonshine-shops
    ```
 
@@ -119,6 +122,7 @@ resources/[moonshine]/
 ├── moonshine-auction/       Auktionshaus mit Abholfach
 ├── moonshine-vehicles/      Autohäuser, Garagen, Schlüssel, Verwahrstelle
 ├── moonshine-services/      Tankstellen, Werkstätten, Bank, Schwarzmarkt
+├── moonshine-jobs/          Jobcenter und Arbeitsaufträge
 └── moonshine-shops/         Beispiel-Resource: 24/7 Läden auf Basis der API
 sql/moonshine.sql            Schema als Referenz
 docs/API.md                  API-Dokumentation des Frameworks
@@ -130,6 +134,7 @@ docs/FACTIONS.md             Fraktionssystem
 docs/AUCTION.md              Auktionshaus
 docs/VEHICLES.md             Fahrzeuge, Garagen und Schlüssel
 docs/SERVICES.md             Tankstellen, Werkstätten, Bank, Schwarzmarkt
+docs/JOBS.md                 Jobcenter und Arbeitsaufträge
 docs/ROADMAP.md              Ideen für den weiteren Ausbau
 ```
 
@@ -191,7 +196,7 @@ Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
 [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
 [Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md),
 [Auktionshaus](docs/AUCTION.md), [Fahrzeuge](docs/VEHICLES.md) und
-[Dienstleistungen](docs/SERVICES.md).
+[Dienstleistungen](docs/SERVICES.md) und [Arbeit](docs/JOBS.md).
 
 Adminlevel: `0` User, `1` Support, `2` Moderator, `3` Admin, `4` Owner.
 

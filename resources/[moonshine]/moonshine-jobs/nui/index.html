@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Arbeit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Schicht-Anzeige --------------------------------------------------------->
+<div id="hud" class="hidden">
+    <div class="hud-head">
+        <span class="hud-icon" id="hud-icon">🚚</span>
+        <div>
+            <div class="hud-label" id="hud-label">Spedition</div>
+            <div class="hud-target" id="hud-target">Nächste Station</div>
+        </div>
+    </div>
+
+    <div class="hud-track"><div class="hud-fill" id="hud-fill"></div></div>
+
+    <div class="hud-foot">
+        <span id="hud-progress">0 / 6</span>
+        <span class="hud-money" id="hud-earned">0 $</span>
+    </div>
+</div>
+
+<!-- Fortschritt beim Arbeiten ------------------------------------------------>
+<div id="progress" class="hidden">
+    <div class="progress-label" id="progress-label">Arbeitet …</div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+</div>
+
+<!-- Jobcenter ---------------------------------------------------------------->
+<div id="screen" class="hidden">
+    <div class="window">
+
+        <header class="top">
+            <div class="brand">
+                <div class="crest">💼</div>
+                <div>
+                    <h1>Jobcenter</h1>
+                    <p class="sub" id="current-job">Arbeitslos</p>
+                </div>
+            </div>
+
+            <div class="head-stats">
+                <div class="stat">
+                    <span class="stat-caption">Verdient</span>
+                    <span class="stat-value" id="total-earned">0 $</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Schichten</span>
+                    <span class="stat-value" id="total-shifts">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-caption">Stationen</span>
+                    <span class="stat-value" id="total-stops">0</span>
+                </div>
+            </div>
+
+            <button class="icon-btn" id="btn-close" title="Schliessen (ESC)">✕</button>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="contracts"><span>📋</span> Auftraege</button>
+            <button class="tab" data-tab="jobs"><span>🪪</span> Anstellung</button>
+            <button class="tab" data-tab="board"><span>🏆</span> Bestenliste</button>
+        </nav>
+
+        <section class="panel" id="panel-contracts">
+            <p class="muted lead">Ein Auftrag ist eine Schicht mit mehreren Stationen.
+                Du meldest dich beim Auftraggeber an, arbeitest die Stationen ab und
+                meldest dich wieder ab — der Abschlussbonus gibt es nur komplett.</p>
+
+            <div class="contract-grid" id="contract-grid"></div>
+        </section>
+
+        <section class="panel hidden" id="panel-jobs">
+            <p class="muted lead">Diese Anstellungen vergibt das Jobcenter direkt.
+                Sie bestimmen dein Gehalt und welche Auftraege du annehmen darfst.
+                Whitelist-Jobs wie Polizei oder Rettungsdienst laufen ueber die
+                Serverleitung.</p>
+
+            <div class="job-list" id="job-list"></div>
+            <p class="muted" id="cooldown-hint"></p>
+        </section>
+
+        <section class="panel hidden" id="panel-board">
+            <div class="board-tabs" id="board-tabs"></div>
+            <div class="board" id="board"></div>
+        </section>
+
+        <footer class="bottom">
+            <span class="muted">Der Lohn geht sofort in bar aufs Konto.
+                Erfahrung fuer den persoenlichen Skillbaum gibt es dazu.</span>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -259,3 +259,17 @@ CREATE TABLE IF NOT EXISTS `ms_vehicles` (
     KEY `owner_id` (`owner_id`),
     KEY `state` (`state`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Arbeit (moonshine-jobs)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_work` (
+    `character_id` INT         NOT NULL,
+    `job`          VARCHAR(24) NOT NULL,
+    `shifts`       INT         NOT NULL DEFAULT 0,
+    `stops`        INT         NOT NULL DEFAULT 0,
+    `earned`       BIGINT      NOT NULL DEFAULT 0,
+    `updated_at`   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`character_id`, `job`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
