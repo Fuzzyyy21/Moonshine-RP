@@ -141,6 +141,7 @@ docs/SERVICES.md             Tankstellen, Werkstätten, Bank, Schwarzmarkt
 docs/JOBS.md                 Jobcenter und Arbeitsaufträge
 docs/ADMIN.md                Adminpanel und Anticheat
 docs/ROADMAP.md              Ideen für den weiteren Ausbau
+docs/LAUNCH.md               Checkliste vor dem Livegang
 ```
 
 ## Konfiguration
@@ -233,4 +234,7 @@ Vollständige Referenz: [`docs/API.md`](docs/API.md).
 * Bodenitems leben nur zur Laufzeit und verfallen nach 10 Minuten.
 * Skins/Kleidung sind bewusst nicht enthalten – `appearance` liegt als Spalte und
   Feld bereit, damit ein Clothing-Script direkt andocken kann.
+* **Nichts davon lief bisher auf einem laufenden FXServer.** Die Checkliste vor
+  dem Livegang — vor allem die nachzumessenden Koordinaten — steht in
+  [`docs/LAUNCH.md`](docs/LAUNCH.md).
 * Was als Nächstes sinnvoll wäre, steht in [`docs/ROADMAP.md`](docs/ROADMAP.md).
