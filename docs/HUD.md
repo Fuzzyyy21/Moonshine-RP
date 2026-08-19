@@ -29,15 +29,37 @@ will.
 |---|---|
 | **Kopfzeile** | Uhrzeit, Mondphase, Straße und Bezirk, Kompass, laufendes Weltereignis |
 | **Karte** | Name, Server-ID, Job und Rang, Fraktion, Bargeld, Bank, Schwarzgeld |
-| **Statusgruppe** | Leben, Weste, Hunger, Durst, Ausdauer, Sauerstoff, Essenz der Klasse, Klassenbedürfnis |
+| **Statusgruppe** | Leben, Weste, Hunger, Durst, Ausdauer, Sauerstoff |
+| **Klassenband** | Blut, Mana, Höllenfeuer … mit Namen und Zahlen, darunter das Klassenbedürfnis |
 | **Fahrzeug** | Tacho, Drehzahlring, Gang, Tank, Motorzustand, Gurt, Licht, Blinker, Tempomat |
 
-Die Essenz trägt die Farbe und das Zeichen der eigenen Klasse – Blut beim
-Vampir, Mana beim Magier. Das Klassenbedürfnis steht direkt daneben. Beides
-taucht nur auf, wenn `moonshine-mystic` beziehungsweise `moonshine-needs`
-läuft; ohne sie fehlt genau dieser Ring und sonst nichts.
-
 Kontoänderungen blitzen kurz auf: grün nach oben, rot nach unten.
+
+## Das Klassenband
+
+Blut, Mana, Höllenfeuer und Feenstaub sind auf diesem Server keine
+Nebenwerte – sie sind der Kern. Deshalb stehen sie nicht als namenloser
+Ring zwischen Hunger und Durst, sondern in einem eigenen Band mit Namen,
+Zahlen und der Farbe der Klasse:
+
+```
+   ┌────────────────────────────────┐
+   │ 🩸  Blut              64 / 100  │
+   │     ▓▓▓▓▓▓▓▓▓▓▓░░░░░░           │
+   │     Vampir · Stufe 7            │
+   ├────────────────────────────────┤
+   │ 🌑  Blutdurst              33 % │
+   │     ▓▓▓▓▓░░░░░░░░░░░            │
+   └────────────────────────────────┘
+```
+
+Einzeln abschaltbar sind dabei: die Essenz selbst, der Name der Klasse, die
+Zahlen (sonst steht dort der Prozentwert) und die Klassenstufe (ab Werk
+aus). Das Band hängt standardmäßig an der Statusgruppe, lässt sich aber auch
+frei an einen Rand setzen – unten mittig, unten rechts oder oben rechts.
+
+Beides taucht nur auf, wenn `moonshine-mystic` beziehungsweise
+`moonshine-needs` läuft; ohne sie fehlt genau dieses Band und sonst nichts.
 
 ## Einstellen
 
@@ -50,8 +72,9 @@ und keine Datenbank.
 | Einstellung | Auswahl |
 |---|---|
 | **Anzeige an** | ganz aus, ohne alles einzeln abzuschalten |
-| **Darstellung** | Ringe · Balken · Minimal (nur Balken, keine Karte) |
+| **Darstellung** | sechs Varianten, siehe unten |
 | **Ecke** | unten links · unten rechts · oben links · oben rechts |
+| **Klassenband** | an der Statusgruppe · unten mittig · unten rechts · oben rechts |
 | **Farbe** | Mondviolett, Bernstein, Waldgrün, Nachtblau, Blutrot, Aschgrau |
 | **Größe** | 70 % bis 140 % |
 | **Deckkraft** | 30 % bis 100 % |
@@ -62,10 +85,24 @@ und keine Datenbank.
 Am Regler sieht man die Änderung sofort; festgeschrieben wird sie beim
 Loslassen.
 
+### Die sechs Darstellungen
+
+| | |
+|---|---|
+| **Ringe** | Kreise mit Symbol, vier je Reihe. Die Vorgabe. |
+| **Balken** | Waagerechte Balken mit Symbol davor – kompakt und gut ablesbar. |
+| **Segmente** | Zehn Kästchen je Wert. Man zählt statt zu schätzen. |
+| **Bögen** | Bögen ineinander mit schmaler Legende daneben. Nimmt wenig Höhe. |
+| **Zahlen** | Nur die Werte, keine Balken. Für alle, denen Balken zu unruhig sind. |
+| **Minimal** | Dünne Balken ohne Karte und ohne Symbole. Das Wenigste. |
+
+Bei den Bögen werden höchstens sechs Werte gezeichnet – mehr wären nicht
+mehr auseinanderzuhalten.
+
 ### Elemente
 
-Jedes der 27 Elemente lässt sich einzeln abschalten, gruppiert nach
-Spieler, Zustand, Welt und Fahrzeug. Wer nur Leben und Tacho will, schaltet
+Jedes der 31 Elemente lässt sich einzeln abschalten, gruppiert nach
+Spieler, Zustand, Klasse, Welt und Fahrzeug. Wer nur Leben und Tacho will, schaltet
 den Rest aus und behält eine Anzeige aus zwei Dingen.
 
 **Volle Balken ausblenden** ist die zweite Stufe davon: Leben, Hunger, Durst

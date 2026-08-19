@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.850 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.900 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -143,9 +143,12 @@ Ein Durchlauf, der alle Systeme berührt:
 18. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
     erscheinen), stechen, wieder entfernen. Als Erweckter zusätzlich das
     Klassenmal — es darf nur das eigene sichtbar sein
-19. **Anzeige** einstellen (`/hudmenu`): Stil auf Balken, Ecke wechseln,
-    Größe ziehen, ein paar Elemente abschalten. Danach `/hud` aus und wieder
-    an — die Einstellung muss den Neustart des Clients überleben
+19. **Anzeige** einstellen (`/hudmenu`): alle sechs Darstellungen
+    durchklicken, Ecke wechseln, Größe ziehen, ein paar Elemente
+    abschalten. Als Erweckter muss das Klassenband den richtigen Namen
+    zeigen (Blut, Mana …) und die Zahlen müssen zur Essenz passen. Danach
+    `/hud` aus und wieder an — die Einstellung muss den Neustart des
+    Clients überleben
 20. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
     nichts passieren, ohne Gurt muss es den Fahrer hinauswerfen
 21. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen

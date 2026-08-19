@@ -51,24 +51,6 @@ function werteListe(data) {
         { key: 'sauerstoff', icon: '🫁', wert: data.sauerstoff, farbe: 'var(--sauerstoff)' },
     ];
 
-    if (data.essenz) {
-        reihe.push({
-            key: 'essenz', icon: data.essenz.icon || '✦',
-            wert: data.essenz.wert,
-            farbe: data.essenz.farbe || 'var(--akzent)',
-            titel: data.essenz.label,
-        });
-    }
-
-    if (data.beduerfnis) {
-        reihe.push({
-            key: 'beduerfnis', icon: data.beduerfnis.icon || '🌑',
-            wert: data.beduerfnis.wert,
-            farbe: data.beduerfnis.farbe || 'var(--warn)',
-            titel: data.beduerfnis.label,
-        });
-    }
-
     const schwellen = (setup && setup.schwellen) || {};
 
     return reihe.filter((eintrag) => {
@@ -130,6 +112,162 @@ function balkenZeichnen(eintrag) {
     return zeile;
 }
 
+/** Segmentstil: zehn Kästchen je Wert. */
+function segmentZeichnen(eintrag) {
+    const zeile = el('div', `seg-zeile${eintrag.wert <= 25 ? ' knapp' : ''}`);
+    zeile.title = `${eintrag.titel || ''} ${spanne(eintrag.wert)} %`.trim();
+    zeile.appendChild(el('span', 'seg-icon', eintrag.icon));
+
+    const kaesten = el('div', 'seg-kaesten');
+    const voll = Math.round(spanne(eintrag.wert) / 10);
+
+    for (let index = 0; index < 10; index += 1) {
+        const kasten = el('div', `seg-kasten${index < voll ? ' voll' : ''}`);
+        if (index < voll) kasten.style.background = eintrag.farbe;
+        kaesten.appendChild(kasten);
+    }
+
+    zeile.appendChild(kaesten);
+    return zeile;
+}
+
+/** Zahlenstil: nur der Wert, kein Balken. */
+function zahlZeichnen(eintrag) {
+    const feld = el('div', `zahl-feld${eintrag.wert <= 25 ? ' knapp' : ''}`);
+    feld.title = eintrag.titel || '';
+
+    feld.appendChild(el('span', 'zahl-icon', eintrag.icon));
+
+    const wert = el('span', 'zahl-wert', String(spanne(eintrag.wert)));
+    wert.style.color = eintrag.farbe;
+    feld.appendChild(wert);
+
+    return feld;
+}
+
+/** Bogenstil: Bögen ineinander, daneben eine schmale Legende. */
+function boegenZeichnen(werte) {
+    const box = $('boegen');
+    clear(box);
+
+    // Mehr als sechs Bögen sind nicht mehr auseinanderzuhalten.
+    const gezeigt = werte.slice(0, 6);
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 128 128');
+    svg.setAttribute('class', 'bogen-ring');
+
+    gezeigt.forEach((eintrag, index) => {
+        const radius = 58 - index * 9;
+        const umfang = 2 * Math.PI * radius;
+        const anteil = 0.75;                       // Dreiviertelkreis
+
+        ['spur', 'fuell'].forEach((art) => {
+            const kreis = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            kreis.setAttribute('class', art);
+            kreis.setAttribute('cx', '64');
+            kreis.setAttribute('cy', '64');
+            kreis.setAttribute('r', String(radius));
+
+            const laenge = umfang * anteil;
+            kreis.setAttribute('stroke-dasharray', `${laenge} ${umfang}`);
+
+            if (art === 'fuell') {
+                kreis.setAttribute('stroke', eintrag.farbe);
+                kreis.setAttribute('stroke-dashoffset',
+                    String(laenge * (1 - spanne(eintrag.wert) / 100)));
+            }
+
+            svg.appendChild(kreis);
+        });
+    });
+
+    box.appendChild(svg);
+
+    // Die Legende steht daneben, nicht in der Mitte - dort liegen die Bögen.
+    const legende = el('div', 'bogen-legende');
+
+    gezeigt.forEach((eintrag) => {
+        const zeile = el('div', `bogen-eintrag${eintrag.wert <= 25 ? ' knapp' : ''}`);
+        zeile.title = eintrag.titel || '';
+
+        const punkt = el('span', 'bogen-punkt');
+        punkt.style.background = eintrag.farbe;
+        zeile.appendChild(punkt);
+
+        zeile.appendChild(el('span', 'bogen-icon', eintrag.icon));
+        zeile.appendChild(el('span', 'bogen-wert', String(spanne(eintrag.wert))));
+
+        legende.appendChild(zeile);
+    });
+
+    box.appendChild(legende);
+}
+
+/* ------------------------------------------------------------- Klassenband */
+
+/** Blut, Mana, Höllenfeuer — und das Klassenbedürfnis darunter. */
+function klasseZeichnen(data) {
+    const band = $('klasse');
+    const essenz = zeigt('essenz') && data.essenz;
+    const bed = zeigt('beduerfnis') && data.beduerfnis;
+
+    band.classList.toggle('hidden', !(sichtbar && (essenz || bed)));
+    if (!sichtbar || (!essenz && !bed)) return;
+
+    // Wo das Band hängt. Bei "status" wandert es in die Statusgruppe hinein
+    // und fließt mit ihr, statt seine Lage nachrechnen zu müssen.
+    const anStatus = settings.klassenEcke === 'status';
+    band.className = anStatus ? 'an-status' : `frei-${settings.klassenEcke}`;
+
+    const wohin = anStatus ? $('status') : document.body;
+
+    if (band.parentElement !== wohin) {
+        // In der Statusgruppe gehoert es vor die Mikrofonanzeige, damit die
+        // ganz unten bleibt.
+        if (anStatus) wohin.insertBefore(band, $('mikro'));
+        else wohin.appendChild(band);
+    }
+
+    $('kl-essenz').classList.toggle('hidden', !essenz);
+
+    if (essenz) {
+        const zeile = $('kl-essenz');
+        zeile.style.setProperty('--kl-farbe', data.essenz.farbe || 'var(--akzent)');
+        zeile.classList.toggle('knapp', data.essenz.wert <= 25);
+
+        $('kl-icon').textContent = data.essenz.icon || '✦';
+        $('kl-name').textContent = data.essenz.label || 'Essenz';
+        $('kl-fuell').style.width = `${spanne(data.essenz.wert)}%`;
+
+        $('kl-zahl').textContent = zeigt('essenzzahl')
+            ? `${data.essenz.jetzt} / ${data.essenz.max}`
+            : `${spanne(data.essenz.wert)} %`;
+
+        const teile = [];
+        if (zeigt('klassenname') && data.essenz.klasse) teile.push(data.essenz.klasse);
+        if (zeigt('klassenstufe') && data.essenz.stufe) {
+            teile.push(`Stufe ${data.essenz.stufe}`);
+        }
+
+        $('kl-unter').textContent = teile.join(' · ');
+        $('kl-unter').classList.toggle('hidden', teile.length === 0);
+    }
+
+    $('kl-bed').classList.toggle('hidden', !bed);
+
+    if (bed) {
+        const zeile = $('kl-bed');
+        zeile.style.setProperty('--kl-farbe', data.beduerfnis.farbe || 'var(--warn)');
+        zeile.classList.toggle('knapp', data.beduerfnis.wert <= 25);
+
+        $('kl-bed-icon').textContent = data.beduerfnis.icon || '🌑';
+        $('kl-bed-name').textContent = data.beduerfnis.label || 'Bedürfnis';
+        $('kl-bed-zahl').textContent = `${spanne(data.beduerfnis.wert)} %`;
+        $('kl-bed-fuell').style.width = `${spanne(data.beduerfnis.wert)}%`;
+    }
+}
+
 function statusZeichnen(data) {
     const karteAn = zeigt('spieler') || zeigt('job') || zeigt('bargeld')
         || zeigt('bank') || zeigt('schwarz') || zeigt('fraktion');
@@ -165,19 +303,33 @@ function statusZeichnen(data) {
         }
     });
 
-    const ringe = $('ringe');
-    const balken = $('balken');
     const werte = werteListe(data);
 
-    const alsRing = settings.stil === 'ringe';
-    ringe.classList.toggle('hidden', !alsRing);
-    balken.classList.toggle('hidden', alsRing);
+    // Minimal nutzt dieselben Balken, nur ohne Karte und Symbole.
+    const stil = settings.stil === 'minimal' ? 'balken' : settings.stil;
 
-    const ziel = alsRing ? ringe : balken;
-    clear(ziel);
-    werte.forEach((eintrag) => {
-        ziel.appendChild(alsRing ? ringZeichnen(eintrag) : balkenZeichnen(eintrag));
+    const BEHAELTER = {
+        ringe: 'ringe', balken: 'balken', segmente: 'segmente',
+        bogen: 'boegen', zahlen: 'zahlen',
+    };
+
+    Object.values(BEHAELTER).forEach((id) => {
+        $(id).classList.toggle('hidden', id !== BEHAELTER[stil]);
     });
+
+    if (stil === 'bogen') {
+        boegenZeichnen(werte);
+    } else {
+        const ziel = $(BEHAELTER[stil] || 'balken');
+        clear(ziel);
+
+        const zeichner = { ringe: ringZeichnen, balken: balkenZeichnen,
+                           segmente: segmentZeichnen, zahlen: zahlZeichnen };
+
+        werte.forEach((eintrag) => {
+            ziel.appendChild((zeichner[stil] || balkenZeichnen)(eintrag));
+        });
+    }
 
     $('mikro').classList.toggle('hidden', !(zeigt('mikrofon') && data.mikrofon));
 }
@@ -409,6 +561,7 @@ function menueZeichnen() {
     }));
     aussehen.appendChild(auswahlZeile('Darstellung', 'stil', settings.stil));
     aussehen.appendChild(auswahlZeile('Ecke', 'ecke', settings.ecke));
+    aussehen.appendChild(auswahlZeile('Klassenband', 'klassenEcke', settings.klassenEcke));
     aussehen.appendChild(farbZeile());
     aussehen.appendChild(reglerZeile('Größe', 'groesse', settings.groesse,
         (v) => `${Math.round(v * 100)} %`));
@@ -468,13 +621,18 @@ window.addEventListener('message', (event) => {
             settings = data || null;
             stilAnwenden();
             if (menueOffen) menueZeichnen();
-            if (letzte) { statusZeichnen(letzte); kopfZeichnen(letzte); }
+            if (letzte) {
+                statusZeichnen(letzte);
+                klasseZeichnen(letzte);
+                kopfZeichnen(letzte);
+            }
             break;
 
         case 'hud:update':
             if (!settings) break;
             letzte = data || {};
             statusZeichnen(letzte);
+            klasseZeichnen(letzte);
             kopfZeichnen(letzte);
             break;
 
@@ -487,6 +645,7 @@ window.addEventListener('message', (event) => {
             $('status').classList.toggle('hidden', !sichtbar);
             if (!sichtbar) {
                 $('kopf').classList.add('hidden');
+                $('klasse').classList.add('hidden');
                 $('fahrzeug').classList.add('hidden');
             }
             break;

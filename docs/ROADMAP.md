@@ -106,8 +106,8 @@ steht in [`LAUNCH.md`](LAUNCH.md).
   Lackierung, Licht und Zubehör, mit Vorschau am Fahrzeug. Die Spalte `mods`
   in `ms_vehicles` ist damit endlich in Benutzung
 * **Anzeige** — als `moonshine-hud` gebaut: eine HUD statt vier Widgets,
-  27 Elemente einzeln abschaltbar, Ringe oder Balken, Fahrzeug-Tacho mit
-  Gurt und Tempomat
+  31 Elemente einzeln abschaltbar, sechs Darstellungen, eigenes Klassenband
+  für Blut/Mana/Höllenfeuer, Fahrzeug-Tacho mit Gurt und Tempomat
 * **Tattoos** — als Tätowierer in `moonshine-appearance` gebaut: fünf Studios,
   acht Körperzonen, ein Klassenmal je Klasse
 * **Ritualpunkte als umkämpfte Gebiete** — als `moonshine-ritualwar` gebaut:

@@ -69,20 +69,27 @@ end
 
 -- Klasse und Beduerfnis ----------------------------------------------------------
 
---- Essenz der mystischen Klasse, mit Namen und Farbe.
+--- Essenz der mystischen Klasse, mit Namen, Zahlen und Farbe.
+---
+--- Das ist der Wert, um den sich auf diesem Server alles dreht - Blut beim
+--- Vampir, Mana beim Magier, Hoellenfeuer beim Daemon. Er bekommt deshalb
+--- Zahlen und einen Namen mit, nicht nur einen Prozentwert.
 local function essenz()
     local profil = frag('moonshine-mystic', 'GetProfileData')
     if type(profil) ~= 'table' or not profil.race then return nil end
 
-    local max = math.max(1, tonumber(profil.maxEssence) or 1)
-    local jetzt = math.max(0, tonumber(profil.essence) or 0)
+    local max = math.max(1, math.floor(tonumber(profil.maxEssence) or 1))
+    local jetzt = math.max(0, math.floor(tonumber(profil.essence) or 0))
 
     return {
-        wert   = math.floor(jetzt / max * 100),
+        wert   = math.max(0, math.min(100, math.floor(jetzt / max * 100))),
+        jetzt  = math.min(jetzt, max),
+        max    = max,
         label  = profil.essenceLabel or 'Essenz',
         farbe  = profil.raceColor,
         icon   = profil.raceIcon,
         klasse = profil.raceLabel or profil.race,
+        stufe  = tonumber(profil.level),
     }
 end
 

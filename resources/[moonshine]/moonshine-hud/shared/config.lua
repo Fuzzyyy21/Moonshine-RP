@@ -43,9 +43,16 @@ HudConfig.Elements = {
     { key = 'durst',      label = 'Durst',            gruppe = 'Zustand', standard = true },
     { key = 'ausdauer',   label = 'Ausdauer',         gruppe = 'Zustand', standard = true },
     { key = 'sauerstoff', label = 'Sauerstoff',       gruppe = 'Zustand', standard = true },
-    { key = 'essenz',     label = 'Essenz der Klasse',gruppe = 'Zustand', standard = true },
-    { key = 'beduerfnis', label = 'Klassenbedürfnis', gruppe = 'Zustand', standard = true },
     { key = 'mikrofon',   label = 'Mikrofon',         gruppe = 'Zustand', standard = true },
+
+    -- Klasse: eigenes Band mit Namen und Zahlen. Blut, Mana, Hoellenfeuer
+    -- und das Klassenbeduerfnis sind kein Standardzustand - sie sind das,
+    -- worum es auf diesem Server geht, und stehen deshalb fuer sich.
+    { key = 'essenz',       label = 'Essenz (Blut, Mana …)', gruppe = 'Klasse', standard = true },
+    { key = 'klassenname',  label = 'Name der Klasse',       gruppe = 'Klasse', standard = true },
+    { key = 'essenzzahl',   label = 'Essenz als Zahl',       gruppe = 'Klasse', standard = true },
+    { key = 'beduerfnis',   label = 'Klassenbedürfnis',      gruppe = 'Klasse', standard = true },
+    { key = 'klassenstufe', label = 'Klassenstufe',          gruppe = 'Klasse', standard = false },
 
     -- Welt
     { key = 'uhr',        label = 'Uhrzeit',          gruppe = 'Welt', standard = true },
@@ -68,15 +75,24 @@ HudConfig.Elements = {
 --- Auswahlmoeglichkeiten fuer die Einstellungen.
 HudConfig.Choices = {
     stil = {
-        { value = 'ringe',  label = 'Ringe' },
-        { value = 'balken', label = 'Balken' },
-        { value = 'minimal',label = 'Minimal' },
+        { value = 'ringe',    label = 'Ringe' },
+        { value = 'balken',   label = 'Balken' },
+        { value = 'segmente', label = 'Segmente' },
+        { value = 'bogen',    label = 'Bögen' },
+        { value = 'zahlen',   label = 'Zahlen' },
+        { value = 'minimal',  label = 'Minimal' },
     },
     ecke = {
         { value = 'ul', label = 'Unten links' },
         { value = 'ur', label = 'Unten rechts' },
         { value = 'ol', label = 'Oben links' },
         { value = 'or', label = 'Oben rechts' },
+    },
+    klassenEcke = {
+        { value = 'status', label = 'Bei der Statusgruppe' },
+        { value = 'um',     label = 'Unten mittig' },
+        { value = 'ur',     label = 'Unten rechts' },
+        { value = 'or',     label = 'Oben rechts' },
     },
     einheit = {
         { value = 'kmh', label = 'km/h' },
@@ -132,6 +148,10 @@ function Hud.DefaultSettings()
 
         einheit     = 'kmh',
         gurtWarnung = true,
+
+        -- Wo das Klassenband haengt. 'status' klebt es an die Statusgruppe,
+        -- die anderen Werte setzen es frei an einen Rand.
+        klassenEcke = 'status',
 
         elemente    = elemente,
     }
@@ -213,7 +233,7 @@ function Hud.Sanitize(input)
     if type(input.dynamisch) == 'boolean' then result.dynamisch = input.dynamisch end
     if type(input.gurtWarnung) == 'boolean' then result.gurtWarnung = input.gurtWarnung end
 
-    for _, feld in ipairs({ 'stil', 'ecke', 'einheit', 'akzent' }) do
+    for _, feld in ipairs({ 'stil', 'ecke', 'einheit', 'akzent', 'klassenEcke' }) do
         if Hud.IsChoice(feld, input[feld]) then result[feld] = input[feld] end
     end
 

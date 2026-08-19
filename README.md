@@ -34,8 +34,8 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Inventar** | Slot- und gewichtsbasiert, stapelbare Items, Drag & Drop, Geben, Bodenitems mit Verfallszeit |
 | **Jobs** | Jobs mit Rängen, Gehalt und Whitelist-Flag |
 | **Status** | Hunger und Durst mit Tick-Verbrauch, Schaden bei 0, Screen-Effekt |
-| **Anzeige** | Eine HUD statt vier Widgets: Status als Ringe oder Balken, Karte mit Name/Job/Geld, Fahrzeug-Tacho mit Tank, Motor, Gurt und Tempomat, Kopfzeile mit Uhr, Mondphase, Straße und Kompass |
-| **Einstellbar** | 27 Elemente einzeln abschaltbar, drei Darstellungen, vier Ecken, sechs Farben, Größe, Deckkraft, km/h oder mph — gespeichert je Spieler |
+| **Anzeige** | Eine HUD statt vier Widgets: Status in sechs Darstellungen, eigenes Klassenband für Blut/Mana/Höllenfeuer mit Namen und Zahlen, Karte mit Name/Job/Geld, Fahrzeug-Tacho mit Tank, Motor, Gurt und Tempomat, Kopfzeile mit Uhr, Mondphase, Straße und Kompass |
+| **Einstellbar** | 31 Elemente einzeln abschaltbar, sechs Darstellungen, vier Ecken, sechs Farben, Größe, Deckkraft, km/h oder mph — gespeichert je Spieler |
 | **Persistenz** | Autosave, Speichern bei Disconnect, Resource-Stop und Server-Shutdown |
 | **API** | Exports, Server-Callbacks, Events – für eigene Resources dokumentiert in [`docs/API.md`](docs/API.md) |
 | **Aussehen** | Charaktereditor mit Gesichtsmischung, 20 Gesichtszügen, 13 Auflagen und aller Kleidung; 6 Läden in drei Preisstufen, 5 Friseure, 5 Tätowierer mit 8 Körperzonen und einem Klassenmal je Klasse, 10 Outfits je Charakter |

@@ -1214,6 +1214,53 @@ for key in pairs(HudConfig.Schwellen) do
         Hud.GetElement(key) ~= nil)
 end
 
+gruppe('Anzeige: Klasse und Varianten')
+
+-- Blut, Mana und Hoellenfeuer standen erst als namenlose Ringe zwischen
+-- Hunger und Durst. Sie haben jetzt eine eigene Gruppe.
+local klasse = {}
+for _, element in ipairs(HudConfig.Elements) do
+    if element.gruppe == 'Klasse' then klasse[element.key] = element end
+end
+
+pruefe('Es gibt eine Gruppe fuer die Klasse', next(klasse) ~= nil)
+pruefe('Die Essenz gehoert zur Klasse', klasse.essenz ~= nil)
+pruefe('Das Beduerfnis gehoert zur Klasse', klasse.beduerfnis ~= nil)
+pruefe('Der Klassenname ist abschaltbar', klasse.klassenname ~= nil)
+pruefe('Die Essenzzahl ist abschaltbar', klasse.essenzzahl ~= nil)
+
+-- Sie duerfen nicht zusaetzlich im Zustand stehen, sonst stehen sie doppelt da.
+for _, element in ipairs(HudConfig.Elements) do
+    if element.gruppe == 'Zustand' then
+        pruefe(('Zustand fuehrt %s nicht doppelt'):format(element.key),
+            element.key ~= 'essenz' and element.key ~= 'beduerfnis')
+    end
+end
+
+pruefe('Die Essenz ist ab Werk an', klasse.essenz.standard == true)
+pruefe('Das Beduerfnis ist ab Werk an', klasse.beduerfnis.standard == true)
+
+-- Mehrere Varianten waren ausdruecklich gewuenscht.
+pruefe('Es gibt mindestens fuenf Darstellungen',
+    #HudConfig.Choices.stil >= 5, #HudConfig.Choices.stil)
+
+local stile = {}
+for _, eintrag in ipairs(HudConfig.Choices.stil) do stile[eintrag.value] = true end
+
+for _, name in ipairs({ 'ringe', 'balken', 'segmente', 'bogen', 'zahlen', 'minimal' }) do
+    pruefe(('Die Darstellung %s gibt es'):format(name), stile[name] == true)
+end
+
+-- Das Klassenband hat eine eigene Lage.
+pruefe('Das Klassenband laesst sich setzen',
+    #(HudConfig.Choices.klassenEcke or {}) > 1)
+pruefe('Standardmaessig haengt es an der Statusgruppe',
+    Hud.DefaultSettings().klassenEcke == 'status')
+pruefe('Eine erfundene Lage faellt zurueck',
+    Hud.Sanitize({ klassenEcke = 'irgendwo' }).klassenEcke == 'status')
+pruefe('Eine gueltige Lage wird uebernommen',
+    Hud.Sanitize({ klassenEcke = 'um' }).klassenEcke == 'um')
+
 gruppe('Anzeige: Standardeinstellung')
 
 local standardHud = Hud.DefaultSettings()

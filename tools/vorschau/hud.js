@@ -37,8 +37,9 @@ const WERTE = {
     fraktion: { name: 'Zirkel des Blutmonds', tag: 'ZDB', farbe: '#9b6bd8' },
     leben: 78, weste: 45, hunger: 62, durst: 41,
     ausdauer: 88, sauerstoff: 100,
-    essenz: { wert: 64, label: 'Blut', farbe: '#a3232c', icon: '🩸', klasse: 'Vampir' },
-    beduerfnis: { wert: 33, label: 'Blutdurst', icon: '🩸', farbe: '#a3232c' },
+    essenz: { wert: 64, jetzt: 64, max: 100, label: 'Blut', farbe: '#a3232c',
+              icon: '🩸', klasse: 'Vampir', stufe: 7 },
+    beduerfnis: { wert: 33, label: 'Blutdurst', icon: '🌑', farbe: '#a3232c' },
     welt: {
         zeit: '21:14', nacht: true,
         mond: { label: 'Blutmond', icon: '🌕' },
@@ -109,24 +110,29 @@ async function schuss(seite, datei, nachrichten, breite, hoehe) {
     await schuss(seite, path.join(AUSGABE, '2-fahrzeug.png'),
         [{ action: 'hud:vehicle', data: FAHRZEUG }], 1600, 900);
 
-    const balken = JSON.parse(JSON.stringify(STANDARD));
-    balken.stil = 'balken';
-    balken.akzent = '#e0a642';
-    balken.ecke = 'ul';
-    await schuss(seite, path.join(AUSGABE, '3-balken.png'),
-        [{ action: 'hud:settings', data: balken },
-         { action: 'hud:update', data: WERTE }], 1600, 900);
+    // Ein Bild je Variante, damit sich die Stile vergleichen lassen.
+    const VARIANTEN = [
+        { datei: '3-balken.png',   stil: 'balken',   akzent: '#e0a642' },
+        { datei: '4-segmente.png', stil: 'segmente', akzent: '#4caf7d' },
+        { datei: '5-boegen.png',   stil: 'bogen',    akzent: '#3d8bd4' },
+        { datei: '6-zahlen.png',   stil: 'zahlen',   akzent: '#c0392f' },
+        { datei: '7-minimal.png',  stil: 'minimal',  akzent: '#d0d4dd',
+          dynamisch: true, groesse: 0.9 },
+    ];
 
-    const minimal = JSON.parse(JSON.stringify(STANDARD));
-    minimal.stil = 'minimal';
-    minimal.akzent = '#4caf7d';
-    minimal.dynamisch = true;
-    minimal.groesse = 0.9;
-    await schuss(seite, path.join(AUSGABE, '4-minimal.png'),
-        [{ action: 'hud:settings', data: minimal },
-         { action: 'hud:update', data: WERTE }], 1600, 900);
+    for (const variante of VARIANTEN) {
+        const einstellung = JSON.parse(JSON.stringify(STANDARD));
+        einstellung.stil = variante.stil;
+        einstellung.akzent = variante.akzent;
+        if (variante.dynamisch) einstellung.dynamisch = true;
+        if (variante.groesse) einstellung.groesse = variante.groesse;
 
-    await schuss(seite, path.join(AUSGABE, '5-menue.png'),
+        await schuss(seite, path.join(AUSGABE, variante.datei),
+            [{ action: 'hud:settings', data: einstellung },
+             { action: 'hud:update', data: WERTE }], 1600, 900);
+    }
+
+    await schuss(seite, path.join(AUSGABE, '8-menue.png'),
         [{ action: 'hud:settings', data: STANDARD },
          { action: 'hud:update', data: WERTE },
          { action: 'hud:menu', data: STANDARD }], 1600, 900);
