@@ -24,6 +24,8 @@ Rückgabewert 0 wenn sauber, 1 bei Funden. Läuft bei jedem Push über
 | **Commands** | Kein Command-Name doppelt über Resources hinweg — sonst gewinnt je nach Ladereihenfolge ein anderer. |
 | **Abhängigkeiten** | Ungeschützte Exporte auf eine Resource, die nicht als `dependency` im Manifest steht. Ein `pcall` in den drei Zeilen davor gilt als abgesichert. |
 | **Schema** | `sql/moonshine.sql` gegen das, was die Resources tatsächlich anlegen — fehlende Tabellen, verwaiste Tabellen, abweichende Spalten. Das Schema steht zwangsläufig doppelt da, also driftet es sonst. |
+| **Aufrufe** | `Mystic.Foo()`, `Work.Bar()` und so weiter, die nirgends definiert sind — getrennt nach Server- und Client-Seite, weil dort verschiedene Dateien laufen. |
+| **Config** | Zugriffe auf `MysticConfig.Foo`, `WorkConfig.Bar` und so weiter, die keine Config je setzt. |
 
 ### Was er nicht kann
 

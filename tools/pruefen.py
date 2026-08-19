@@ -14,6 +14,8 @@ Was geprueft wird:
   8. Commands    - kein Command-Name doppelt ueber Resources hinweg
   9. Abhaengig   - kein ungeschuetzter Export auf eine Resource ohne dependency
  10. Schema      - sql/moonshine.sql deckt sich mit dem, was die Resources anlegen
+ 11. Aufrufe     - keine Aufrufe auf Funktionen, die es nirgends gibt
+ 12. Config      - keine Zugriffe auf Config-Felder, die nie gesetzt werden
 
 Aufruf:   python3 tools/pruefen.py [--nur-syntax]
 Rueckgabe: 0 wenn sauber, 1 bei Funden.
@@ -415,6 +417,111 @@ def check_schema():
                  f"{name}: {only_sql} kennt keine Resource")
 
 
+# --- 11. Aufrufe auf Funktionen, die es nicht gibt --------------------------
+
+NAMESPACES = {
+    'MS', 'Mystic', 'Progress', 'Factions', 'Auction', 'Vehicles', 'Services',
+    'Work', 'Admin', 'World', 'Appearance', 'Death', 'Boss',
+}
+
+CONFIG_TABLES = {
+    'Config', 'MysticConfig', 'ProgressConfig', 'FactionConfig', 'AuctionConfig',
+    'VehicleConfig', 'ServiceConfig', 'WorkConfig', 'AdminConfig', 'WorldConfig',
+    'AppearanceConfig', 'DeathConfig', 'BossConfig',
+}
+
+
+def _side_files(res, side):
+    """Dateien einer Resource auf einer Seite, ohne @-Verweise."""
+    sides = manifest_sides(res)
+    out = []
+
+    for name in sorted(sides['shared'] | sides[side]):
+        if name.startswith('@'):
+            continue
+        path = os.path.join(ROOT, res, name)
+        if os.path.exists(path):
+            out.append(path)
+
+    return out
+
+
+def _collect_names(side):
+    """Alles, was auf dieser Seite als Namensraum-Feld definiert wird."""
+    found = set()
+
+    for res in resources():
+        for path in _side_files(res, side):
+            body = read(path)
+
+            for pattern in (
+                    r"function\s+(\w+)\.(\w+)\s*\(",
+                    r"function\s+(\w+)\.(\w+)\.\w+\s*\(",
+                    r"(\w+)\.(\w+)\s*=\s*function",
+                    r"^\s*(\w+)\.(\w+)\s*=",
+                    r"^\s*(\w+)\.(\w+)\.\w+\s*=",
+                    r"^\s*(\w+)\.(\w+)\s*\[",
+            ):
+                for namespace, field in re.findall(pattern, body, re.M):
+                    found.add((namespace, field))
+
+            # In einer Tabellenliteral-Zuweisung: X = { y = ..., z = ... }
+            for match in re.finditer(r"^(\w+)\s*=\s*\{(.*?)^\}", body, re.S | re.M):
+                namespace = match.group(1)
+                for field in re.findall(r"^\s*(\w+)\s*=", match.group(2), re.M):
+                    found.add((namespace, field))
+
+    return found
+
+
+def check_unknown_calls():
+    for side in ('server', 'client'):
+        known = _collect_names(side)
+
+        for res in resources():
+            for path in _side_files(res, side):
+                body = read(path)
+
+                for index, line in enumerate(body.split('\n'), 1):
+                    if line.strip().startswith('--'):
+                        continue
+
+                    for namespace, field in re.findall(
+                            r"(?<![\w.])(\w+)\.(\w+)\s*\(", line):
+                        if namespace not in NAMESPACES:
+                            continue
+                        if (namespace, field) in known:
+                            continue
+
+                        note('AUFRUF-UNBEKANNT', f"{path}:{index}",
+                             f"{namespace}.{field}() ist nirgends definiert ({side})")
+
+
+# --- 12. Zugriffe auf Config-Felder, die es nicht gibt ----------------------
+
+def check_config_access():
+    for side in ('server', 'client'):
+        known = _collect_names(side)
+
+        for res in resources():
+            for path in _side_files(res, side):
+                body = read(path)
+
+                for index, line in enumerate(body.split('\n'), 1):
+                    if line.strip().startswith('--'):
+                        continue
+
+                    for table, field in re.findall(
+                            r"(?<![\w.])(\w+Config|Config)\.(\w+)", line):
+                        if table not in CONFIG_TABLES:
+                            continue
+                        if (table, field) in known:
+                            continue
+
+                        note('CONFIG-UNBEKANNT', f"{path}:{index}",
+                             f"{table}.{field} ist nirgends gesetzt ({side})")
+
+
 def main():
     only_syntax = '--nur-syntax' in sys.argv
 
@@ -429,6 +536,8 @@ def main():
         check_commands()
         check_dependencies()
         check_schema()
+        check_unknown_calls()
+        check_config_access()
 
     if not findings:
         print('Alles sauber.')
