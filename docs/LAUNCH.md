@@ -1,6 +1,6 @@
 # Vor dem Livegang
 
-Der Server ist inhaltlich vollständig: 14 Resources, alle Systeme greifen
+Der Server ist inhaltlich vollständig: 15 Resources, alle Systeme greifen
 ineinander. **Nichts davon lief bisher auf einem laufenden FXServer.** Diese
 Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
@@ -82,6 +82,8 @@ Config korrigieren.
 | Jobcenter | `moonshine-jobs/shared/config.lua` | 1 |
 | Auftrags-Anmeldungen | `moonshine-jobs/shared/jobs.lua` | 4 |
 | Auftrags-Stationen | `moonshine-jobs/shared/jobs.lua` | 40 |
+| Naturgebiete | `moonshine-needs/shared/needs.lua` | 8 |
+| Friedhöfe | `moonshine-needs/shared/needs.lua` | 4 |
 | Kleidungsläden | `moonshine-appearance/shared/config.lua` | 6 |
 | Friseure | `moonshine-appearance/shared/config.lua` | 5 |
 | Umkleiden | `moonshine-appearance/shared/config.lua` | 4 |
@@ -108,11 +110,14 @@ Ein Durchlauf, der alle Systeme berührt:
 10. **Fahrzeug kaufen**, tanken, absichtlich schrotten, reparieren lassen
 11. **Auktion** einstellen und mit einem zweiten Spieler überbieten
 12. **Schicht** beim Postdienst, alle sechs Stationen, Abschlussbonus
-13. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
+13. **Bedürfnis** mit `/setbeduerfnis <id> 10` auf schwach setzen — die
+    Klassenwerte müssen sofort schlechter sein, der Balken links unten
+    auftauchen. Dann stillen (Item, Passant, Zone) und zusehen, wie es steigt
+14. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
     anders sein (`/mystik` zeigt sie)
-14. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
+15. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
     Umkleide wieder wechseln
-15. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+16. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 

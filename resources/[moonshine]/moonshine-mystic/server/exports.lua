@@ -55,6 +55,16 @@ exports('AddXp', function(source, amount)
     return true
 end)
 
+--- Rechnet die Werte neu und schickt sie an den Client. Braucht jede
+--- Resource, die von aussen etwas veraendert hat (Weltereignis, Beduerfnis).
+exports('RefreshModifiers', function(source)
+    local profile = Mystic.GetProfile(source)
+    if not profile then return false end
+
+    profile:Sync()
+    return true
+end)
+
 exports('GetModifiers', function(source)
     local profile = Mystic.GetProfile(source)
     return profile and profile:GetModifiers() or nil

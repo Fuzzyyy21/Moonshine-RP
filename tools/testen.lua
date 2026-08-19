@@ -729,6 +729,149 @@ pruefe('Es gibt 20 Gesichtszuege', #Appearance.Features == 20, #Appearance.Featu
 pruefe('Vater und Mutter haben gleich viele Vorlagen',
     #Appearance.Parents.male == #Appearance.Parents.female)
 
+
+-- ===========================================================================
+-- Klassenbeduerfnisse
+-- ===========================================================================
+
+laden('moonshine-needs/shared/config.lua')
+laden('moonshine-needs/shared/needs.lua')
+
+gruppe('Beduerfnisse: jede Klasse hat eines')
+
+for rasse in pairs(Mystic.Races) do
+    local beduerfnis = Needs.Get(rasse)
+    pruefe(('%s hat ein Beduerfnis'):format(rasse), beduerfnis ~= nil)
+
+    if beduerfnis then
+        pruefe(('%s: Verfall groesser null'):format(rasse),
+            beduerfnis.decayPerTick > 0, beduerfnis.decayPerTick)
+        pruefe(('%s: mindestens zwei Quellen'):format(rasse),
+            #beduerfnis.sources >= 2, #beduerfnis.sources)
+        pruefe(('%s: hat Farbe und Symbol'):format(rasse),
+            beduerfnis.colour ~= nil and beduerfnis.icon ~= nil)
+        pruefe(('%s: Farbe ist gueltig'):format(rasse),
+            beduerfnis.colour:match('^#%x%x%x%x%x%x$') ~= nil, beduerfnis.colour)
+
+        for _, quelle in ipairs(beduerfnis.sources) do
+            pruefe(('%s/%s: Menge groesser null'):format(rasse, quelle.kind),
+                (quelle.amount or 0) > 0)
+
+            if quelle.kind == 'item' then
+                pruefe(('%s: Item "%s" ist definiert'):format(rasse, quelle.item),
+                    Needs.Items[quelle.item] ~= nil)
+            elseif quelle.kind == 'zone' then
+                pruefe(('%s: Zone "%s" gibt es'):format(rasse, quelle.zone),
+                    Needs.Zones[quelle.zone] ~= nil)
+            elseif quelle.kind == 'npc' or quelle.kind == 'downed' then
+                pruefe(('%s/%s: hat eine Beschriftung'):format(rasse, quelle.kind),
+                    type(quelle.label) == 'string')
+                pruefe(('%s/%s: hat eine Dauer'):format(rasse, quelle.kind),
+                    (quelle.duration or 0) > 0)
+            end
+        end
+    end
+end
+
+gruppe('Beduerfnisse: keine Klasse haengt an einer einzigen Quellart')
+
+for rasse in pairs(Mystic.Races) do
+    local beduerfnis = Needs.Get(rasse)
+
+    if beduerfnis then
+        local arten = {}
+        for _, quelle in ipairs(beduerfnis.sources) do arten[quelle.kind] = true end
+
+        local anzahl = 0
+        for _ in pairs(arten) do anzahl = anzahl + 1 end
+
+        pruefe(('%s hat mehr als eine Quellart'):format(rasse), anzahl >= 2, anzahl)
+    end
+end
+
+gruppe('Beduerfnisse: Bereiche')
+
+pruefe('100 ist satt', Needs.GetBand(100) == 'satt')
+pruefe('60 ist normal', Needs.GetBand(60) == 'normal')
+pruefe('30 ist Warnung', Needs.GetBand(30) == 'warnung')
+pruefe('10 ist schwach', Needs.GetBand(10) == 'schwach')
+pruefe('0 ist leer', Needs.GetBand(0) == 'leer')
+
+-- Die Schwellen muessen absteigend und ohne Luecke sein
+local schwellen = NeedsConfig.Thresholds
+pruefe('Schwellen sind absteigend',
+    schwellen.satt > schwellen.warnung
+    and schwellen.warnung > schwellen.schwach
+    and schwellen.schwach > schwellen.leer)
+
+-- Jeder Wert von 0 bis 100 muss in genau einem Bereich landen
+for wert = 0, 100 do
+    local band = Needs.GetBand(wert)
+    pruefe(('Wert %d hat einen Bereich'):format(wert),
+        NeedsConfig.Effects[band] ~= nil, band)
+end
+
+gruppe('Beduerfnisse: Wirkung')
+
+local satt = Needs.GetEffects(100)
+pruefe('Satt gibt Essenzregeneration', (satt.essenceRegen or 0) > 0)
+
+local leer = Needs.GetEffects(0)
+pruefe('Leer nimmt Essenzregeneration', (leer.essenceRegen or 0) < 0)
+pruefe('Leer bremst', (leer.speedMult or 0) < 0)
+
+-- Je schlechter, desto schlimmer
+pruefe('Leer ist schlimmer als schwach',
+    (Needs.GetEffects(0).essenceRegen or 0) < (Needs.GetEffects(10).essenceRegen or 0))
+pruefe('Schwach ist schlimmer als Warnung',
+    (Needs.GetEffects(10).essenceRegen or 0) < (Needs.GetEffects(30).essenceRegen or 0))
+
+-- Die Wirkung darf nicht durchschlagen
+local kopie = Needs.GetEffects(0)
+kopie.essenceRegen = 999
+pruefe('GetEffects liefert eine Kopie',
+    (Needs.GetEffects(0).essenceRegen or 0) ~= 999)
+
+gruppe('Beduerfnisse: Zonen')
+
+for art, zone in pairs(Needs.Zones) do
+    pruefe(('Zone %s hat Orte'):format(art), #zone.orte > 0)
+    pruefe(('Zone %s hat Symbol und Bezeichnung'):format(art),
+        zone.icon ~= nil and zone.label ~= nil)
+
+    for _, ort in ipairs(zone.orte) do
+        pruefe(('%s/%s hat Radius groesser null'):format(art, ort.label),
+            ort.radius > 0)
+    end
+end
+
+-- Ein Punkt mitten in einer Zone muss gefunden werden
+local naturOrt = Needs.Zones.natur.orte[1]
+local gefunden = Needs.ZoneAt(naturOrt.coords)
+pruefe('Mitten in einer Zone wird sie erkannt', gefunden == 'natur', tostring(gefunden))
+
+-- Weit ausserhalb darf nichts gefunden werden
+pruefe('Weit draussen ist keine Zone',
+    Needs.ZoneAt(vector3(9000.0, 9000.0, 9000.0)) == nil)
+
+gruppe('Beduerfnisse: Zuordnung der Gegenstaende')
+
+for name in pairs(Needs.Items) do
+    local rasse = Needs.RaceForItem(name)
+    pruefe(('Item "%s" gehoert zu einer Klasse'):format(name),
+        rasse ~= nil and Mystic.Races[rasse] ~= nil, tostring(rasse))
+end
+
+pruefe('Unbekanntes Item gehoert zu niemandem',
+    Needs.RaceForItem('gibtesnicht') == nil)
+
+-- Feenstaub fuellt sich an der Natur, nicht am Friedhof
+pruefe('Fee fuellt sich in der Natur', Needs.ZoneAmount('fee', 'natur') > 0)
+pruefe('Fee fuellt sich nicht auf dem Friedhof',
+    Needs.ZoneAmount('fee', 'friedhof') == 0)
+pruefe('Nekromant fuellt sich auf dem Friedhof',
+    Needs.ZoneAmount('nekromant', 'friedhof') > 0)
+
 -- ===========================================================================
 
 print(('\n%d bestanden, %d fehlgeschlagen.'):format(bestanden, fehlgeschlagen))

@@ -144,17 +144,46 @@ RegisterNetEvent('moonshine:server:updatePosition', function(x, y, z, heading)
     player:SetPosition(x, y, z, heading)
 end)
 
-RegisterNetEvent('moonshine:server:playerDied', function()
+RegisterNetEvent('moonshine:server:playerDied', function(killer, cause)
+    local source = source
     local player = MS.Players[source]
     if not player then return end
+
+    -- Der Client meldet den Toeter, also nachrechnen: der muss existieren,
+    -- jemand anderes sein und in Waffenreichweite gewesen sein.
+    killer = tonumber(killer)
+
+    if killer then
+        local other = MS.Players[killer]
+
+        if not other or killer == source then
+            killer = nil
+        else
+            local distance = #(GetEntityCoords(GetPlayerPed(source))
+                - GetEntityCoords(GetPlayerPed(killer)))
+
+            if distance > Config.MaxKillDistance then killer = nil end
+        end
+    end
+
+    cause = tonumber(cause)
 
     player:Save()
     if Config.Inventory.dropOnDeath then
         player:ClearInventory()
     end
 
-    TriggerEvent('moonshine:server:playerDeath', source, player)
-    MS.Logger.Log('character', ('%s ist gestorben.'):format(player.fullname), player.license)
+    TriggerEvent('moonshine:server:playerDeath', source, player, killer, cause)
+
+    if killer then
+        local other = MS.Players[killer]
+
+        MS.Logger.Log('character', ('%s wurde von %s getoetet.'):format(
+            player.fullname, other.fullname), player.license)
+    else
+        MS.Logger.Log('character', ('%s ist gestorben.'):format(player.fullname),
+            player.license)
+    end
 end)
 
 CreateThread(function()

@@ -56,7 +56,7 @@ end
 
 -- Bewusstlos werden ----------------------------------------------------------
 
-local function setDowned(source, restored)
+local function setDowned(source, restored, killer)
     local player = MS.GetPlayer(source)
     if not player or downed[source] then return end
 
@@ -72,13 +72,13 @@ local function setDowned(source, restored)
 
     local remaining = DeathConfig.BleedoutTime - (os.time() - downed[source].since)
     TriggerClientEvent('death:client:setDowned', source, math.max(5, remaining), DeathConfig.RespawnAfter)
-    TriggerEvent('moonshine-death:server:playerDowned', source)
+    TriggerEvent('moonshine-death:server:playerDowned', source, killer)
 
     MS.Logger.Log('character', ('%s ist bewusstlos.'):format(player.fullname), player.license)
 end
 
-AddEventHandler('moonshine:server:playerDeath', function(source)
-    setDowned(source)
+AddEventHandler('moonshine:server:playerDeath', function(source, _, killer)
+    setDowned(source, nil, killer)
 end)
 
 --- Nach einem Relog bleibt die Bewusstlosigkeit bestehen.

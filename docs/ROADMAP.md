@@ -1,6 +1,7 @@
 # Ideen und Ausbaustufen
 
-Stand: 14 Resources sind gebaut — Core, Aussehen, Welt, Mystik, Sterbesystem,
+Stand: 15 Resources sind gebaut — Core, Aussehen, Welt, Mystik, Beduerfnisse,
+Sterbesystem,
 Weltbosse, Fortschritt, Fraktionen, Auktionshaus, Fahrzeuge,
 Dienstleistungen, Arbeit, Administration und der Beispiel-Shop.
 
@@ -52,54 +53,47 @@ und gibt dem Ritualpunkt sofort Tiefe.
 
 ## Zuerst: das macht den Server rund
 
-### 1. Klassenbedürfnis — mittel
-Jede Klasse braucht etwas zum Überleben: Vampire Blut (von Spielern oder NPCs
-per Nahkampf-Interaktion), Werwölfe rohes Fleisch, Magier Manakristalle, Feen
-Nähe zur Natur. Sinkt der Wert, verliert man Essenz-Regeneration und am Ende
-Leben. **Warum:** Gibt jeder Klasse einen eigenen Alltag statt nur Kampfskills.
-Hunger und Durst aus dem Core sind die Vorlage, das System steht schon.
-
-### 2. Ritualpunkte als umkämpfte Gebiete — mittel
+### 1. Ritualpunkte als umkämpfte Gebiete — mittel
 Die Fraktionsgebiete liegen bisher neben den Ritualpunkten. Wer den Punkt hält,
 könnte dort passiv Steine bekommen und andere beim Ritual stören. **Warum:**
 Verbindet Gebietskontrolle und Steinwirtschaft zu einem Kreislauf statt zwei
 getrennten.
 
-### 3. Tattoos — klein
+### 2. Tattoos — klein
 Der Editor deckt alles ab außer Tattoos. `SetPedDecoration` und die
 Overlay-Sammlungen wären der nächste Schritt; die Struktur in
 `ms_characters.appearance` trägt das mit.
 
 ## Danach: mehr Tiefe
 
-### 4. Telefon — groß
+### 3. Telefon — groß
 Nachrichten, Kontakte, Notruf, Fraktions-Chat, Anzeigenmarkt. Vieles davon
 hängt an den Fraktionen und am Notrufsystem, die beide schon stehen.
 
-### 5. Zufluchtsorte statt Housing — mittel
+### 4. Zufluchtsorte statt Housing — mittel
 Klassengerecht: Sarg für Vampire, Höhle für Werwölfe, Turm für Magier. Lagerung
 von Steinen, sicherer Respawn, kleiner Essenz-Bonus beim Ausruhen.
 
-### 6. Werkstatt-Tuning — klein
+### 5. Werkstatt-Tuning — klein
 Die Werkstätten reparieren bisher nur. Lackierung, Felgen und Leistungsteile
 wären der nächste Schritt; die Spalte `mods` in `ms_vehicles` liegt bereit.
 
-### 7. Mehr Aufträge — klein
+### 6. Mehr Aufträge — klein
 Das Auftragssystem in `moonshine-jobs` trägt beliebig viele. Naheliegend:
 Abschleppdienst, Busfahrer, Nachtwache an den Ritualpunkten.
 
 ## Technik und Betrieb
 
-### 8. Discord-Anbindung — klein
+### 7. Discord-Anbindung — klein
 Rollen aus Discord auf Adminlevel und Whitelist-Jobs abbilden, Logs als Webhook
 (die Log-Funktion kann das bereits, `Config.Logs.webhook`).
 
-### 9. Statistiken und Bestenlisten — klein
+### 8. Statistiken und Bestenlisten — klein
 Die Arbeit hat schon eine. Sinnvoll wären außerdem: höchste Klassenstufe,
 meiste Weltbosse, größte Fraktionskasse, teuerste Auktion. Aus `ms_logs`,
 `ms_mystic`, `ms_factions` und `ms_auctions` direkt ableitbar.
 
-### 10. Testlauf auf echter Hardware — Pflicht vor dem Livegang
+### 9. Testlauf auf echter Hardware — Pflicht vor dem Livegang
 Nichts davon lief bisher auf einem laufenden FXServer. Die vollständige Liste
 steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -117,6 +111,9 @@ steht in [`LAUNCH.md`](LAUNCH.md).
   Gebieten
 * Arbeitslöhne gegen die Spritkosten — Fahren muss sich lohnen, aber nicht zu
   sehr
+* Verfallsgeschwindigkeit der Klassenbedürfnisse — eine Stunde bis zur
+  Warnung klingt richtig, ist aber nie an echten Sitzungen gemessen worden.
+  Besonders die Fee (1,4 je Takt) könnte in der Stadt zu schnell leerlaufen.
 
 ## Abgehakt
 
@@ -134,6 +131,8 @@ steht in [`LAUNCH.md`](LAUNCH.md).
   Beobachten und Protokollansicht
 * **Anticheat-Grundlagen** — Wachhund mit Strikes plus `MS.RateLimit`, das an
   allen geldbewegenden Ereignissen hängt
+* **Klassenbedürfnis** — als `moonshine-needs` gebaut: acht Bedürfnisse mit
+  eigenen Quellen, Zonen, Interaktionen und Wirkung auf die Klassenwerte
 * **Kleidung und Charaktereditor** — als `moonshine-appearance` gebaut, mit
   Gesichtsmischung, Läden in drei Preisstufen, Friseuren und Outfits
 * **Steinadern** — durch Weltbosse und den Steinhändler ersetzt

@@ -44,6 +44,10 @@ Config.Status = {
     damagePerTick = 5,    -- Schaden wenn Hunger/Durst bei 0
 }
 
+-- Weiter als so viele Meter wird kein gemeldeter Toeter anerkannt.
+-- Schuetzt davor, dass sich jemand einen fremden Kill andichtet.
+Config.MaxKillDistance = 250.0
+
 -- Speicherung ----------------------------------------------------------------
 Config.SaveInterval  = 5   -- Minuten, Autosave aller Spieler
 Config.SaveOnDropped = true

@@ -353,6 +353,25 @@ function Profile:GetModifiers()
     mods.lootAmount      = personal.lootAmount
     mods.meditationBonus = personal.meditationBonus
 
+    -- Klassenbeduerfnis (moonshine-needs, optional).
+    local need = nil
+    pcall(function()
+        need = exports['moonshine-needs']:GetModifiers(self.source)
+    end)
+
+    if type(need) == 'table' then
+        for _, key in ipairs({ 'essenceRegen', 'regenPerTick', 'speedMult',
+                               'damageMult' }) do
+            if type(need[key]) == 'number' then
+                mods[key] = (mods[key] or 0) + need[key]
+            end
+        end
+
+        -- Ein leeres Beduerfnis darf nicht ins Negative kippen.
+        mods.speedMult = math.max(0.5, mods.speedMult)
+        mods.damageMult = math.max(0.4, mods.damageMult)
+    end
+
     -- Mondphase und laufendes Weltereignis (moonshine-world, optional).
     local world = nil
     pcall(function()

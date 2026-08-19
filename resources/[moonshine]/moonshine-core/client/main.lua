@@ -128,6 +128,28 @@ end)
 
 -- Tod melden -----------------------------------------------------------------
 
+--- Wer war es? Liefert die Server-Id des Toeters, sonst nil.
+local function findKiller(ped)
+    local source = GetPedSourceOfDeath(ped)
+    if not source or source == 0 or source == ped then return nil end
+
+    -- Aus einem Fahrzeug heraus zaehlt der Fahrer.
+    if IsEntityAVehicle(source) then
+        local driver = GetPedInVehicleSeat(source, -1)
+        if driver and driver ~= 0 then source = driver end
+    end
+
+    if not IsEntityAPed(source) or not IsPedAPlayer(source) then return nil end
+
+    local index = NetworkGetPlayerIndexFromPed(source)
+    if not index or index == -1 then return nil end
+
+    local serverId = GetPlayerServerId(index)
+    if not serverId or serverId <= 0 then return nil end
+
+    return serverId
+end
+
 CreateThread(function()
     local wasDead = false
 
@@ -135,11 +157,17 @@ CreateThread(function()
         Wait(500)
 
         if MS.IsPlayerLoaded then
-            local dead = IsEntityDead(PlayerPedId())
+            local ped = PlayerPedId()
+            local dead = IsEntityDead(ped)
+
             if dead and not wasDead then
-                TriggerServerEvent('moonshine:server:playerDied')
-                TriggerEvent('moonshine:client:playerDied')
+                local killer = findKiller(ped)
+                local cause = GetPedCauseOfDeath(ped)
+
+                TriggerServerEvent('moonshine:server:playerDied', killer, cause)
+                TriggerEvent('moonshine:client:playerDied', killer, cause)
             end
+
             wasDead = dead
         end
     end

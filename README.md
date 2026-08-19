@@ -10,6 +10,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-appearance` | Charaktereditor, Kleidungsläden, Friseure und Outfits → [`docs/APPEARANCE.md`](docs/APPEARANCE.md) |
 | `moonshine-world` | Serverzeit, Wetter, Mondphasen und mystische Weltereignisse → [`docs/WORLD.md`](docs/WORLD.md) |
 | `moonshine-mystic` | Klassen-Skilltree (Klassensteine) und persönlicher Skillbaum mit 6 Kategorien (Fähigkeitspunkte), Skillleiste, Ritualpunkte → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
+| `moonshine-needs` | Klassenbedürfnisse: jede Klasse braucht etwas Eigenes zum Überleben → [`docs/NEEDS.md`](docs/NEEDS.md) |
 | `moonshine-death` | Bewusstlosigkeit statt Sofort-Respawn, Notruf, Wiederbelebung → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-boss` | Weltbosse alle 45 Minuten, lassen Runen- und Seelensteine fallen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-progress` | Spielzeit-Belohnungen, Daily/Weekly Missionen, Battle Pass, Kisten → [`docs/PROGRESS.md`](docs/PROGRESS.md) |
@@ -35,6 +36,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Persistenz** | Autosave, Speichern bei Disconnect, Resource-Stop und Server-Shutdown |
 | **API** | Exports, Server-Callbacks, Events – für eigene Resources dokumentiert in [`docs/API.md`](docs/API.md) |
 | **Aussehen** | Charaktereditor mit Gesichtsmischung, 20 Gesichtszügen, 13 Auflagen und aller Kleidung; 6 Läden in drei Preisstufen, 5 Friseure, 10 Outfits je Charakter |
+| **Bedürfnisse** | Acht klassenspezifische Bedürfnisse mit eigenen Quellen — Blut, rohes Fleisch, Mana, Reagenzien, Naturnähe, Seelen, Totenkraft, Vorräte |
 | **Welt** | Serverzeit mit 48-Minuten-Tag, Wetterzyklus, acht Mondphasen und acht Weltereignissen, die Klassenkräfte, Bossintervall und Ritualertrag verschieben |
 | **Fortschritt** | Spielzeit-Meilensteine, drei tägliche und drei wöchentliche Missionen, Battle Pass über 50 Stufen, vier Kistenarten |
 | **Fraktionen** | Wappen-Baukasten, bis zu acht Ränge mit 13 Rechten, eigener Skilltree, Kasse, Tresor, Shop, Garage, acht Gebiete mit Einnahme und Einkommen |
@@ -73,6 +75,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
    ensure moonshine-appearance
    ensure moonshine-world
    ensure moonshine-mystic
+   ensure moonshine-needs
    ensure moonshine-death
    ensure moonshine-boss
    ensure moonshine-progress
@@ -113,6 +116,7 @@ resources/[moonshine]/
 │   ├── server/              Profile, Skills, persoenlicher Baum, Ritualpunkte, API
 │   ├── client/              Fähigkeiten, Skillleiste, Ritual-UI, Klassenmechanik
 │   └── nui/                 Oberfläche (Skillleiste, beide Skilltrees, Händler)
+├── moonshine-needs/         Klassenbedürfnisse und ihre Quellen
 ├── moonshine-death/         Bewusstlosigkeit, Notruf, Wiederbelebung, Respawn
 ├── moonshine-boss/          Weltbosse als Quelle fuer Runen- und Seelensteine
 ├── moonshine-progress/      Spielzeit, Missionen, Battle Pass, Kisten
@@ -137,6 +141,7 @@ docs/API.md                  API-Dokumentation des Frameworks
 docs/APPEARANCE.md           Charaktereditor, Kleidung und Friseure
 docs/WORLD.md                Zeit, Wetter, Mondphasen, Weltereignisse
 docs/MYSTIC.md               Dokumentation des Mystik-Systems
+docs/NEEDS.md                Klassenbedürfnisse
 docs/SURVIVAL.md             Sterbesystem und Weltbosse
 docs/PROGRESS.md             Spielzeit, Missionen, Battle Pass, Kisten
 docs/FACTIONS.md             Fraktionssystem
@@ -180,7 +185,7 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 | `L` | Fahrzeug ver-/entriegeln |
 | `NUMPAD 1–6` | Skill-Slots auslösen |
 | `E` | Aufheben / Laden / Ritualpunkt / Auktionator / Garage / Tanken / Bank / Friseur / Notruf |
-| `G` | Wiederbeleben bzw. aufgeben, wenn bewusstlos |
+| `G` | Wiederbeleben / aufgeben / Bedürfnis stillen (trinken, reißen, ziehen) |
 
 Die Tasten lassen sich im FiveM-Menü unter *Einstellungen → Tastenbelegung → FiveM*
 frei ändern.
@@ -207,6 +212,7 @@ frei ändern.
 
 Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
 [Aussehen](docs/APPEARANCE.md), [Welt](docs/WORLD.md), [Mystik](docs/MYSTIC.md),
+[Bedürfnisse](docs/NEEDS.md),
 [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
 [Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md),
 [Auktionshaus](docs/AUCTION.md), [Fahrzeuge](docs/VEHICLES.md) und
