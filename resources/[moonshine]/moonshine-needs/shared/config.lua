@@ -53,7 +53,9 @@ NeedsConfig.DamagePerTick = 4
 
 --- Anzeige.
 NeedsConfig.Hud = {
-    enabled = true,
+    -- Aus: der Balken haengt jetzt in der Statusgruppe von moonshine-hud.
+    -- Wieder einschalten geht, dann steht er zusaetzlich links unten.
+    enabled = false,
     -- Der Balken zeigt sich immer, oder nur wenn es knapp wird.
     immerSichtbar = false,
     -- Ab diesem Wert taucht er von selbst auf.

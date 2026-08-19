@@ -1,7 +1,10 @@
 # Welt – Zeit, Wetter, Mondphasen und Ereignisse
 
 Resource: `moonshine-world`
-Widget: oben rechts, umschaltbar mit `/welt`
+Anzeige: Uhrzeit, Mondphase und laufendes Ereignis stehen in der Kopfzeile
+von [`moonshine-hud`](HUD.md). Das eigene Widget dieser Resource ist
+deshalb ab Werk aus (`WorldConfig.Hud.enabled`) – wer es lieber getrennt
+mag, schaltet es dort wieder ein.
 
 Der Server gibt Uhrzeit und Wetter vor, die Clients halten nur nach. Darauf
 setzen Mondphasen und mystische Weltereignisse auf, die die Kräfte der Klassen
@@ -80,7 +83,7 @@ das Ereignis findet also wirklich zu seiner Zeit statt, egal wann es startet.
 
 | Command | Level | Beschreibung |
 |---|---|---|
-| `/welt` | – | Widget ein-/ausblenden |
+| `/welt` | – | Eigenes Widget ein-/ausblenden (ab Werk aus) |
 | `/zeit` | – | Uhrzeit, Tag, Mondphase und Wetter |
 | `/ereignis` | – | Laufendes Ereignis oder Zeit bis zum nächsten |
 | `/setzeit [stunde] [minute]` | 2 | Uhrzeit setzen |

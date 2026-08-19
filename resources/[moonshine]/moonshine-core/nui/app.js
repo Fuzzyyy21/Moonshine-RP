@@ -26,25 +26,6 @@ function post(name, data = {}) {
 const formatMoney = (value) => new Intl.NumberFormat('de-DE').format(Math.floor(value || 0));
 const formatKg = (grams) => (grams / 1000).toFixed(1);
 
-/* ------------------------------------------------------------------ HUD */
-
-function updateHud(data) {
-    $('hud-name').textContent = data.name || '';
-    $('hud-id').textContent = '#' + data.id;
-    $('hud-job').textContent = data.job || '';
-    $('hud-cash').textContent = formatMoney(data.cash);
-    $('hud-bank').textContent = formatMoney(data.bank);
-
-    $('bar-health').style.width = Math.max(0, Math.min(100, data.health)) + '%';
-    $('bar-armor').style.width = Math.max(0, Math.min(100, data.armor)) + '%';
-    $('bar-hunger').style.width = Math.max(0, Math.min(100, data.hunger)) + '%';
-    $('bar-thirst').style.width = Math.max(0, Math.min(100, data.thirst)) + '%';
-
-    document.querySelectorAll('.status-bar').forEach((element) => {
-        element.classList.toggle('hidden', !data.showStatus);
-    });
-}
-
 /* -------------------------------------------------------- Charakterwahl */
 
 function renderCharacters() {
@@ -257,14 +238,6 @@ window.addEventListener('message', (event) => {
     switch (action) {
         case 'notify':
             notify(data);
-            break;
-
-        case 'updateHud':
-            updateHud(data);
-            break;
-
-        case 'setHudVisible':
-            $('hud').classList.toggle('hidden', !data);
             break;
 
         case 'showCharSelect':

@@ -6,7 +6,8 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 
 | Resource | Inhalt |
 |---|---|
-| `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
+| `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, API |
+| `moonshine-hud` | Anzeige für Status, Geld, Fahrzeug und Uhr – vollständig einstellbar → [`docs/HUD.md`](docs/HUD.md) |
 | `moonshine-appearance` | Charaktereditor, Kleidungsläden, Friseure, Tätowierer und Outfits → [`docs/APPEARANCE.md`](docs/APPEARANCE.md) |
 | `moonshine-world` | Serverzeit, Wetter, Mondphasen und mystische Weltereignisse → [`docs/WORLD.md`](docs/WORLD.md) |
 | `moonshine-mystic` | Klassen-Skilltree (Klassensteine) und persönlicher Skillbaum mit 6 Kategorien (Fähigkeitspunkte), Skillleiste, Ritualpunkte → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
@@ -33,7 +34,8 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Inventar** | Slot- und gewichtsbasiert, stapelbare Items, Drag & Drop, Geben, Bodenitems mit Verfallszeit |
 | **Jobs** | Jobs mit Rängen, Gehalt und Whitelist-Flag |
 | **Status** | Hunger und Durst mit Tick-Verbrauch, Schaden bei 0, Screen-Effekt |
-| **HUD** | Name, Server-ID, Job, Geld, Leben, Weste, Hunger, Durst |
+| **Anzeige** | Eine HUD statt vier Widgets: Status als Ringe oder Balken, Karte mit Name/Job/Geld, Fahrzeug-Tacho mit Tank, Motor, Gurt und Tempomat, Kopfzeile mit Uhr, Mondphase, Straße und Kompass |
+| **Einstellbar** | 27 Elemente einzeln abschaltbar, drei Darstellungen, vier Ecken, sechs Farben, Größe, Deckkraft, km/h oder mph — gespeichert je Spieler |
 | **Persistenz** | Autosave, Speichern bei Disconnect, Resource-Stop und Server-Shutdown |
 | **API** | Exports, Server-Callbacks, Events – für eigene Resources dokumentiert in [`docs/API.md`](docs/API.md) |
 | **Aussehen** | Charaktereditor mit Gesichtsmischung, 20 Gesichtszügen, 13 Auflagen und aller Kleidung; 6 Läden in drei Preisstufen, 5 Friseure, 5 Tätowierer mit 8 Körperzonen und einem Klassenmal je Klasse, 10 Outfits je Charakter |
@@ -105,8 +107,12 @@ resources/[moonshine]/
 ├── moonshine-core/          Framework
 │   ├── shared/              Config, Utils, Jobs, Items
 │   ├── server/              Datenbank, Spielerobjekt, Inventar, Commands, API
-│   ├── client/              Charakterauswahl, HUD, Inventar, Callbacks
-│   └── nui/                 Oberfläche (Charakterauswahl, HUD, Inventar)
+│   ├── client/              Charakterauswahl, Inventar, Callbacks
+│   └── nui/                 Oberfläche (Charakterauswahl, Inventar)
+├── moonshine-hud/           Anzeige: Status, Geld, Fahrzeug, Uhr
+│   ├── shared/              Config, Elementliste, Standardeinstellung
+│   ├── client/              Einstellungen, Werte sammeln, Fahrzeug und Gurt
+│   └── nui/                 Anzeige und Einstellungsmenü
 ├── moonshine-appearance/    Charaktereditor, Kleidung, Friseure, Outfits
 ├── moonshine-world/         Zeit, Wetter, Mondphasen, Weltereignisse
 │   ├── shared/              Config, Mondphasen, Ereignisse
@@ -181,7 +187,8 @@ Jobs stehen in `shared/jobs.lua`, Items in `shared/items.lua`.
 | `F2` | Inventar |
 | `F5` | Skillleiste aus-/einklappen |
 | `F6` | Fortschritt (Spielzeit, Missionen, Battle Pass, Kisten) |
-| `F7` | HUD ein-/ausblenden |
+| `F7` | Anzeige ein-/ausblenden |
+| `B` | Gurt an-/ablegen |
 | `F9` | Adminpanel (ab Level 2) |
 | `F10` | Fraktion |
 | `L` | Fahrzeug ver-/entriegeln |
@@ -213,11 +220,13 @@ frei ändern.
 | `/saveall` | 4 | Alle Charaktere speichern |
 
 Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
-[Aussehen](docs/APPEARANCE.md), [Welt](docs/WORLD.md), [Mystik](docs/MYSTIC.md),
+[Anzeige](docs/HUD.md), [Aussehen](docs/APPEARANCE.md), [Welt](docs/WORLD.md),
+[Mystik](docs/MYSTIC.md),
 [Bedürfnisse](docs/NEEDS.md),
 [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
 [Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md),
-[Auktionshaus](docs/AUCTION.md), [Fahrzeuge](docs/VEHICLES.md) und
+[Ritualkrieg](docs/RITUALWAR.md), [Auktionshaus](docs/AUCTION.md),
+[Fahrzeuge](docs/VEHICLES.md) und
 [Dienstleistungen](docs/SERVICES.md), [Arbeit](docs/JOBS.md) und
 [Administration](docs/ADMIN.md).
 

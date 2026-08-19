@@ -1009,6 +1009,196 @@ pruefe('Nekromant fuellt sich auf dem Friedhof',
     Needs.ZoneAmount('nekromant', 'friedhof') > 0)
 
 -- ===========================================================================
+-- Anzeige
+-- ===========================================================================
+
+laden('moonshine-hud/shared/config.lua')
+
+gruppe('Anzeige: Elemente')
+
+local okHud, doppeltHud = eindeutig(HudConfig.Elements, 'key')
+pruefe('Element-Schluessel sind eindeutig', okHud, doppeltHud)
+
+for _, element in ipairs(HudConfig.Elements) do
+    pruefe(('Element %s hat eine Bezeichnung'):format(element.key),
+        type(element.label) == 'string' and element.label ~= '')
+
+    pruefe(('Element %s gehoert zu einer Gruppe'):format(element.key),
+        type(element.gruppe) == 'string' and element.gruppe ~= '')
+
+    pruefe(('Element %s hat einen Standard'):format(element.key),
+        type(element.standard) == 'boolean')
+
+    pruefe(('Element %s laesst sich ueber den Schluessel finden'):format(element.key),
+        Hud.GetElement(element.key) == element)
+end
+
+pruefe('Unbekanntes Element liefert nichts', Hud.GetElement('gibtesnicht') == nil)
+
+-- Die Gruppen bauen das Einstellungsmenue auf. Jede muss auch vorkommen.
+local gruppen = Hud.Groups()
+pruefe('Es gibt mehr als eine Gruppe', #gruppen > 1, #gruppen)
+
+for _, name in ipairs(gruppen) do
+    local anzahl = 0
+    for _, element in ipairs(HudConfig.Elements) do
+        if element.gruppe == name then anzahl = anzahl + 1 end
+    end
+
+    pruefe(('Gruppe %s hat Elemente'):format(name), anzahl > 0)
+end
+
+local okGruppen = eindeutig(gruppen)
+pruefe('Keine Gruppe kommt zweimal vor', okGruppen)
+
+-- Jede Schwelle muss zu einem echten Element gehoeren, sonst blendet der
+-- dynamische Modus etwas aus, das es gar nicht gibt.
+for key in pairs(HudConfig.Schwellen) do
+    pruefe(('Schwelle %s gehoert zu einem Element'):format(key),
+        Hud.GetElement(key) ~= nil)
+end
+
+gruppe('Anzeige: Standardeinstellung')
+
+local standardHud = Hud.DefaultSettings()
+
+pruefe('Die Anzeige ist ab Werk an', standardHud.an == true)
+pruefe('Der Standardstil ist eine gueltige Auswahl',
+    Hud.IsChoice('stil', standardHud.stil), standardHud.stil)
+pruefe('Die Standardecke ist eine gueltige Auswahl',
+    Hud.IsChoice('ecke', standardHud.ecke), standardHud.ecke)
+pruefe('Die Standardeinheit ist eine gueltige Auswahl',
+    Hud.IsChoice('einheit', standardHud.einheit), standardHud.einheit)
+pruefe('Die Standardfarbe ist eine gueltige Auswahl',
+    Hud.IsChoice('akzent', standardHud.akzent), standardHud.akzent)
+
+pruefe('Die Standardgroesse liegt im erlaubten Bereich',
+    standardHud.groesse >= HudConfig.Limits.groesse.min
+        and standardHud.groesse <= HudConfig.Limits.groesse.max)
+pruefe('Die Standarddeckkraft liegt im erlaubten Bereich',
+    standardHud.deckkraft >= HudConfig.Limits.deckkraft.min
+        and standardHud.deckkraft <= HudConfig.Limits.deckkraft.max)
+
+for _, element in ipairs(HudConfig.Elements) do
+    pruefe(('Standard kennt Element %s'):format(element.key),
+        standardHud.elemente[element.key] == element.standard)
+end
+
+-- Ab Werk muss etwas zu sehen sein, sonst startet jeder mit leerem Bildschirm.
+local anZahl = 0
+for _, an in pairs(standardHud.elemente) do
+    if an then anZahl = anZahl + 1 end
+end
+pruefe('Ab Werk sind Elemente eingeschaltet', anZahl > 5, anZahl)
+
+gruppe('Anzeige: Einstellungen bereinigen')
+
+-- Nichts hineingeben ergibt den Standard.
+pruefe('Ohne Eingabe kommt der Standard', Hud.Sanitize(nil).stil == standardHud.stil)
+pruefe('Eine Zahl ergibt den Standard', Hud.Sanitize(42).ecke == standardHud.ecke)
+
+-- Erfundene Werte werden ersetzt, gueltige uebernommen.
+local verbogen = Hud.Sanitize({
+    an = 'vielleicht', stil = 'wuerfel', ecke = 'ur',
+    groesse = 99, deckkraft = -5, akzent = '#123456',
+    einheit = 'mph', dynamisch = true,
+    elemente = { leben = false, gibtesnicht = true, weste = 'ja' },
+})
+
+pruefe('Ein unsinniges "an" faellt auf den Standard zurueck', verbogen.an == true)
+pruefe('Ein erfundener Stil faellt zurueck', verbogen.stil == standardHud.stil)
+pruefe('Eine gueltige Ecke wird uebernommen', verbogen.ecke == 'ur')
+pruefe('Eine gueltige Einheit wird uebernommen', verbogen.einheit == 'mph')
+pruefe('Ein echter Schalter wird uebernommen', verbogen.dynamisch == true)
+pruefe('Eine erfundene Farbe faellt zurueck', verbogen.akzent == standardHud.akzent)
+
+pruefe('Zu grosse Groesse wird gekappt',
+    verbogen.groesse == HudConfig.Limits.groesse.max, verbogen.groesse)
+pruefe('Zu kleine Deckkraft wird gekappt',
+    verbogen.deckkraft == HudConfig.Limits.deckkraft.min, verbogen.deckkraft)
+
+pruefe('Ein abgeschaltetes Element bleibt abgeschaltet', verbogen.elemente.leben == false)
+pruefe('Ein erfundenes Element taucht nicht auf', verbogen.elemente.gibtesnicht == nil)
+pruefe('Ein unsinniger Elementwert faellt auf den Standard zurueck',
+    verbogen.elemente.weste == Hud.GetElement('weste').standard)
+
+-- Bereinigen darf sich nicht bei jedem Durchlauf weiter veraendern.
+local einmal = Hud.Sanitize(standardHud)
+local zweimal = Hud.Sanitize(einmal)
+pruefe('Zweimal bereinigen aendert nichts mehr',
+    einmal.stil == zweimal.stil and einmal.groesse == zweimal.groesse
+        and einmal.elemente.leben == zweimal.elemente.leben)
+
+-- Die Eingabe selbst darf dabei nicht verbogen werden.
+local eingabe = { stil = 'balken' }
+Hud.Sanitize(eingabe)
+pruefe('Die Eingabe bleibt unangetastet',
+    eingabe.stil == 'balken' and eingabe.elemente == nil)
+
+gruppe('Anzeige: Grenzen und Auswahl')
+
+pruefe('Zu klein wird angehoben',
+    Hud.ClampLimit('groesse', 0.1) == HudConfig.Limits.groesse.min)
+pruefe('Zu gross wird gekappt',
+    Hud.ClampLimit('groesse', 9.0) == HudConfig.Limits.groesse.max)
+pruefe('Ein Wert dazwischen bleibt stehen', Hud.ClampLimit('groesse', 1.0) == 1.0)
+pruefe('Kein Wert ergibt das Minimum',
+    Hud.ClampLimit('deckkraft', nil) == HudConfig.Limits.deckkraft.min)
+
+for feld, liste in pairs(HudConfig.Choices) do
+    pruefe(('Auswahl %s hat Eintraege'):format(feld), #liste > 0)
+
+    local okAuswahl, doppelteAuswahl = eindeutig(liste, 'value')
+    pruefe(('Auswahl %s ist eindeutig'):format(feld), okAuswahl, doppelteAuswahl)
+
+    for _, eintrag in ipairs(liste) do
+        pruefe(('Auswahl %s/%s hat eine Bezeichnung'):format(feld, eintrag.value),
+            type(eintrag.label) == 'string' and eintrag.label ~= '')
+
+        pruefe(('Auswahl %s/%s wird als gueltig erkannt'):format(feld, eintrag.value),
+            Hud.IsChoice(feld, eintrag.value))
+    end
+end
+
+pruefe('Ein erfundener Wert gilt nicht', not Hud.IsChoice('stil', 'wuerfel'))
+pruefe('Ein erfundenes Feld gilt nicht', not Hud.IsChoice('gibtesnicht', 'egal'))
+
+gruppe('Anzeige: Kompass')
+
+-- Handgerechnet: acht Sektoren zu je 45 Grad, Norden liegt mittig auf 0.
+local RICHTUNGEN = {
+    [0] = 'N', [45] = 'NO', [90] = 'O', [135] = 'SO',
+    [180] = 'S', [225] = 'SW', [270] = 'W', [315] = 'NW',
+}
+
+for grad, erwartet in pairs(RICHTUNGEN) do
+    pruefe(('%d Grad ist %s'):format(grad, erwartet),
+        Hud.Direction(grad) == erwartet, Hud.Direction(grad))
+end
+
+-- Die Sektorgrenzen: 22,4 Grad ist noch Norden, 22,6 schon Nordost.
+pruefe('22 Grad ist noch Norden', Hud.Direction(22) == 'N', Hud.Direction(22))
+pruefe('23 Grad ist schon Nordost', Hud.Direction(23) == 'NO', Hud.Direction(23))
+pruefe('337 Grad ist noch Nordwest', Hud.Direction(337) == 'NW', Hud.Direction(337))
+pruefe('338 Grad ist wieder Norden', Hud.Direction(338) == 'N', Hud.Direction(338))
+
+-- Ueber 360 hinaus und darunter darf nichts brechen.
+pruefe('360 Grad ist Norden', Hud.Direction(360) == 'N')
+pruefe('720 Grad ist Norden', Hud.Direction(720) == 'N')
+pruefe('-90 Grad ist Westen', Hud.Direction(-90) == 'W', Hud.Direction(-90))
+pruefe('Kein Wert ist Norden', Hud.Direction(nil) == 'N')
+
+-- Jede Richtung muss auch wirklich vorkommen.
+for _, richtung in ipairs(Hud.Compass) do
+    local gefunden = false
+    for grad = 0, 359 do
+        if Hud.Direction(grad) == richtung then gefunden = true break end
+    end
+
+    pruefe(('Die Richtung %s kommt vor'):format(richtung), gefunden)
+end
+
+-- ===========================================================================
 -- Ritualkrieg
 -- ===========================================================================
 

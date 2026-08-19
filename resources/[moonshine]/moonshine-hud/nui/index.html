@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Anzeige</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Kopfzeile: Uhr, Ort, Kompass ---------------------------------------------->
+<div id="kopf" class="hidden">
+    <div class="kopf-block" id="k-uhr">
+        <span class="kopf-icon" id="k-mond">🌙</span>
+        <span class="kopf-zeit" id="k-zeit">00:00</span>
+    </div>
+
+    <div class="kopf-block" id="k-ort">
+        <span class="kopf-strasse" id="k-strasse">—</span>
+        <span class="kopf-bezirk" id="k-bezirk">—</span>
+    </div>
+
+    <div class="kopf-block schmal" id="k-kompass">
+        <span class="kopf-richtung" id="k-richtung">N</span>
+    </div>
+
+    <div class="kopf-block ereignis hidden" id="k-ereignis">
+        <span class="kopf-icon" id="k-ereignis-icon">✦</span>
+        <span id="k-ereignis-label">—</span>
+    </div>
+</div>
+
+<!-- Statusgruppe -------------------------------------------------------------->
+<div id="status" class="hidden ecke-ul">
+    <div class="karte" id="karte">
+        <div class="karte-kopf">
+            <span class="karte-name" id="s-name">—</span>
+            <span class="karte-id" id="s-id">#0</span>
+        </div>
+        <div class="karte-job" id="s-job">—</div>
+        <div class="karte-fraktion hidden" id="s-fraktion">—</div>
+
+        <div class="karte-geld">
+            <span class="geld bar" id="g-bargeld"><i>💵</i><b>0</b></span>
+            <span class="geld bank" id="g-bank"><i>🏦</i><b>0</b></span>
+            <span class="geld schwarz" id="g-schwarz"><i>🖤</i><b>0</b></span>
+        </div>
+    </div>
+
+    <div class="ringe" id="ringe"></div>
+    <div class="balken" id="balken"></div>
+
+    <div class="mikro hidden" id="mikro">🎙</div>
+</div>
+
+<!-- Fahrzeug ------------------------------------------------------------------>
+<div id="fahrzeug" class="hidden">
+    <div class="tacho">
+        <svg viewBox="0 0 120 120" class="tacho-ring">
+            <circle class="tacho-spur" cx="60" cy="60" r="50"></circle>
+            <circle class="tacho-fuell" cx="60" cy="60" r="50" id="f-rpm"></circle>
+        </svg>
+        <div class="tacho-mitte">
+            <span class="tacho-wert" id="f-tempo">0</span>
+            <span class="tacho-einheit" id="f-einheit">km/h</span>
+        </div>
+        <span class="tacho-gang" id="f-gang">N</span>
+    </div>
+
+    <div class="fz-leisten">
+        <div class="fz-leiste" id="f-tank-box">
+            <span class="fz-icon">⛽</span>
+            <div class="spur"><div class="fuell tank" id="f-tank"></div></div>
+        </div>
+        <div class="fz-leiste" id="f-motor-box">
+            <span class="fz-icon">🔧</span>
+            <div class="spur"><div class="fuell motor" id="f-motor"></div></div>
+        </div>
+    </div>
+
+    <div class="fz-zeichen">
+        <span class="zeichen blinker links hidden" id="f-links">◀</span>
+        <span class="zeichen gurt hidden" id="f-gurt">🔒</span>
+        <span class="zeichen licht hidden" id="f-licht">💡</span>
+        <span class="zeichen tempomat hidden" id="f-tempomat">⏱</span>
+        <span class="zeichen blinker rechts hidden" id="f-rechts">▶</span>
+    </div>
+</div>
+
+<!-- Einstellungen -------------------------------------------------------------->
+<div id="menue" class="hidden">
+    <div class="menue-fenster">
+        <header>
+            <div>
+                <h1>Anzeige einstellen</h1>
+                <p class="leise">Alles hier gilt nur für dich und bleibt gespeichert.</p>
+            </div>
+            <button id="m-schliessen" title="Schließen">✕</button>
+        </header>
+
+        <div class="menue-koerper">
+            <section class="menue-teil">
+                <h2>Aussehen</h2>
+                <div id="m-aussehen"></div>
+            </section>
+
+            <section class="menue-teil">
+                <h2>Elemente</h2>
+                <div id="m-elemente"></div>
+            </section>
+        </div>
+
+        <footer>
+            <span class="leise">Esc schließt und speichert.</span>
+            <div class="menue-knoepfe">
+                <button class="knopf" id="m-reset">Zurücksetzen</button>
+                <button class="knopf haupt" id="m-fertig">Fertig</button>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

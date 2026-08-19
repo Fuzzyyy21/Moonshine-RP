@@ -236,3 +236,15 @@ CreateThread(function()
         TriggerServerEvent('mystic:server:requestProfile')
     end
 end)
+
+-- Schnittstelle ---------------------------------------------------------------
+
+--- Das zuletzt synchronisierte Profil, so wie es der Server geschickt hat.
+--- Die Anzeige (moonshine-hud) liest daraus Essenz, Klasse und Farbe.
+exports('GetProfileData', function()
+    return Mystic.Profile
+end)
+
+exports('GetActiveModifiers', function()
+    return Mystic.GetActiveModifiers()
+end)

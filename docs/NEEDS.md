@@ -1,7 +1,10 @@
 # Klassenbedürfnisse
 
 Resource: `moonshine-needs`
-Anzeige: links unten, taucht von selbst auf, wenn es knapp wird (`/beduerfnis`)
+Anzeige: als Ring oder Balken in der Statusgruppe von
+[`moonshine-hud`](HUD.md), in der Farbe und mit dem Zeichen des jeweiligen
+Bedürfnisses. Der eigene Balken dieser Resource ist deshalb ab Werk aus
+(`NeedsConfig.Hud.enabled`).
 
 Bis hierher konnten alle acht Klassen dasselbe: kämpfen. Hunger und Durst aus
 dem Core gelten für jeden gleich. Hier bekommt **jede Klasse etwas Eigenes**,
@@ -79,7 +82,7 @@ Davon hat auch das Protokoll etwas: Statt „X ist gestorben" steht dort jetzt
 
 | Command | Level | Beschreibung |
 |---|---|---|
-| `/beduerfnis` | – | Anzeige ein-/ausblenden |
+| `/beduerfnis` | – | Eigenen Balken ein-/ausblenden (ab Werk aus) |
 | `/beduerfnisinfo` | – | Wert und Bereich im Chat |
 | `/setbeduerfnis [id] [wert]` | 3 | Wert setzen |
 

@@ -73,7 +73,10 @@ WorldConfig.Events = {
 
 -- Anzeige ----------------------------------------------------------------------------
 WorldConfig.Hud = {
-    enabled = true,
+    -- Aus: Uhrzeit, Mondphase und Ereignis stehen jetzt in moonshine-hud,
+    -- zusammen mit allem anderen. Wer das alte Einzelwidget lieber mag,
+    -- schaltet es hier wieder ein - dann steht beides da.
+    enabled = false,
     -- Kleines Widget mit Uhrzeit, Mondphase und laufendem Ereignis.
     showClock = true,
     showMoon  = true,

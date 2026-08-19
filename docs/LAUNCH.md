@@ -1,6 +1,6 @@
 # Vor dem Livegang
 
-Der Server ist inhaltlich vollständig: 16 Resources, alle Systeme greifen
+Der Server ist inhaltlich vollständig: 17 Resources, alle Systeme greifen
 ineinander. **Nichts davon lief bisher auf einem laufenden FXServer.** Diese
 Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.400 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.700 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -112,7 +112,7 @@ streichen.
 Ein Durchlauf, der alle Systeme berührt:
 
 1. **Charakter anlegen** — der Editor muss von selbst aufgehen. Gesicht
-   mischen, Frisur wählen, anziehen. Danach Inventar (`F2`) und HUD (`F7`)
+   mischen, Frisur wählen, anziehen. Danach Inventar (`F2`) und Anzeige (`F7`)
 2. **Erwecken** an einem Ritualpunkt, Klasse wählen
 3. **Steine kaufen** beim Händler, 10+10 zum Klassenstein binden
 4. **Ersten Skill** kaufen (5 Steine) — danach muss die Klassenliste
@@ -138,7 +138,12 @@ Ein Durchlauf, der alle Systeme berührt:
 17. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
     erscheinen), stechen, wieder entfernen. Als Erweckter zusätzlich das
     Klassenmal — es darf nur das eigene sichtbar sein
-18. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+18. **Anzeige** einstellen (`/hudmenu`): Stil auf Balken, Ecke wechseln,
+    Größe ziehen, ein paar Elemente abschalten. Danach `/hud` aus und wieder
+    an — die Einstellung muss den Neustart des Clients überleben
+19. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
+    nichts passieren, ohne Gurt muss es den Fahrer hinauswerfen
+20. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 

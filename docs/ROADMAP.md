@@ -1,8 +1,9 @@
 # Ideen und Ausbaustufen
 
-Stand: 16 Resources sind gebaut — Core, Aussehen, Welt, Mystik, Beduerfnisse,
-Sterbesystem, Weltbosse, Fortschritt, Fraktionen, Ritualkrieg, Auktionshaus,
-Fahrzeuge, Dienstleistungen, Arbeit, Administration und der Beispiel-Shop.
+Stand: 17 Resources sind gebaut — Core, Anzeige, Aussehen, Welt, Mystik,
+Beduerfnisse, Sterbesystem, Weltbosse, Fortschritt, Fraktionen, Ritualkrieg,
+Auktionshaus, Fahrzeuge, Dienstleistungen, Arbeit, Administration und der
+Beispiel-Shop.
 
 Was vor dem Livegang zu prüfen ist, steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -105,6 +106,9 @@ steht in [`LAUNCH.md`](LAUNCH.md).
 
 ## Abgehakt
 
+* **Anzeige** — als `moonshine-hud` gebaut: eine HUD statt vier Widgets,
+  27 Elemente einzeln abschaltbar, Ringe oder Balken, Fahrzeug-Tacho mit
+  Gurt und Tempomat
 * **Tattoos** — als Tätowierer in `moonshine-appearance` gebaut: fünf Studios,
   acht Körperzonen, ein Klassenmal je Klasse
 * **Ritualpunkte als umkämpfte Gebiete** — als `moonshine-ritualwar` gebaut:

@@ -36,7 +36,6 @@ client_scripts {
     'client/main.lua',
     'client/callbacks.lua',
     'client/character.lua',
-    'client/hud.lua',
     'client/status.lua',
     'client/inventory.lua',
     'client/exports.lua',

@@ -70,7 +70,7 @@ local function enterSelection()
 
     startSelectionCamera()
     SetNuiFocus(true, true)
-    SendNUIMessage({ action = 'setHudVisible', data = false })
+    TriggerEvent('moonshine:client:nuiOpen', true)
     DoScreenFadeIn(500)
 end
 
@@ -99,7 +99,7 @@ function MS.SpawnPlayer(position)
 
     ShutdownLoadingScreen()
     SetNuiFocus(false, false)
-    SendNUIMessage({ action = 'setHudVisible', data = true })
+    TriggerEvent('moonshine:client:nuiOpen', false)
 
     -- Aussehen und alles, was am fertigen Ped haengt, kommt jetzt dran.
     TriggerEvent('moonshine:client:playerSpawned', MS.PlayerData)

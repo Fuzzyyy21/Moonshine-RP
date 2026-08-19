@@ -39,6 +39,7 @@ function MS.OpenInventory()
 
     inventoryOpen = true
     SetNuiFocus(true, true)
+    TriggerEvent('moonshine:client:nuiOpen', true)
     SendNUIMessage({ action = 'showInventory', data = true })
     SendNUIMessage({ action = 'setInventory', data = buildInventoryPayload() })
 end
@@ -48,6 +49,7 @@ function MS.CloseInventory()
 
     inventoryOpen = false
     SetNuiFocus(false, false)
+    TriggerEvent('moonshine:client:nuiOpen', false)
     SendNUIMessage({ action = 'showInventory', data = false })
 end
 

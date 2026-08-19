@@ -90,5 +90,5 @@ Config.Logs = {
 -- Tastenbelegung (client) ----------------------------------------------------
 Config.Keys = {
     inventory = 'F2',
-    hudToggle = 'F7',
+    -- Die Anzeige hat eine eigene Resource: HudConfig.Keys in moonshine-hud.
 }
