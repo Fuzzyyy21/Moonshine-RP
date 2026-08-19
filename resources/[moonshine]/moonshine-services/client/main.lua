@@ -15,6 +15,9 @@ function Services.Close()
     isOpen = false
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'services:close' })
+
+    -- Das Tuning haengt sich hier ein, um eine Vorschau zurueckzudrehen.
+    TriggerEvent('services:client:closed')
 end
 
 --- Oeffnet eine der Oberflaechen.

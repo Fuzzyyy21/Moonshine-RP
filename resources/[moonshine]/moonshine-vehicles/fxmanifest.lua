@@ -21,10 +21,12 @@ server_scripts {
     'server/keys.lua',
     'server/garage.lua',
     'server/main.lua',
+    'server/mods.lua',
 }
 
 client_scripts {
     'client/main.lua',
+    'client/mods.lua',
     'client/garage.lua',
     'client/keys.lua',
 }

@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.700 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.850 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -126,24 +126,29 @@ Ein Durchlauf, der alle Systeme berührt:
     Kasse) — nach 180 Sekunden muss der Blip die Wappenfarbe annehmen und
     nach 20 Minuten müssen Steine im Tresor liegen
 11. **Fahrzeug kaufen**, tanken, absichtlich schrotten, reparieren lassen
-12. **Auktion** einstellen und mit einem zweiten Spieler überbieten
-13. **Schicht** beim Postdienst, alle sechs Stationen, Abschlussbonus
-14. **Bedürfnis** mit `/setbeduerfnis <id> 10` auf schwach setzen — die
-    Klassenwerte müssen sofort schlechter sein, der Balken links unten
-    auftauchen. Dann stillen (Item, Passant, Zone) und zusehen, wie es steigt
-15. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
+12. **Tuning** an derselben Werkstatt (`G`): eine Felge anklicken — sie muss
+    sofort am Auto sitzen — dann abbrechen (alter Zustand kommt zurück),
+    danach etwas einbauen, einparken, wieder ausparken. Der Umbau muss noch
+    dran sein
+13. **Auktion** einstellen und mit einem zweiten Spieler überbieten
+14. **Schicht** beim Postdienst, alle sechs Stationen, Abschlussbonus
+15. **Bedürfnis** mit `/setbeduerfnis <id> 10` auf schwach setzen — die
+    Klassenwerte müssen sofort schlechter sein und der Ring in der
+    Statusgruppe pochen. Dann stillen (Item, Passant, Zone) und zusehen,
+    wie er sich füllt
+16. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
     anders sein (`/mystik` zeigt sie)
-16. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
+17. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
     Umkleide wieder wechseln
-17. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
+18. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
     erscheinen), stechen, wieder entfernen. Als Erweckter zusätzlich das
     Klassenmal — es darf nur das eigene sichtbar sein
-18. **Anzeige** einstellen (`/hudmenu`): Stil auf Balken, Ecke wechseln,
+19. **Anzeige** einstellen (`/hudmenu`): Stil auf Balken, Ecke wechseln,
     Größe ziehen, ein paar Elemente abschalten. Danach `/hud` aus und wieder
     an — die Einstellung muss den Neustart des Clients überleben
-19. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
+20. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
     nichts passieren, ohne Gurt muss es den Fahrer hinauswerfen
-20. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+21. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 

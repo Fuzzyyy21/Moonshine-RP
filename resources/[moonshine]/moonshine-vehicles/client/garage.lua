@@ -65,6 +65,9 @@ RegisterNetEvent('vehicles:client:spawn', function(payload)
     SetVehicleBodyHealth(vehicle, payload.body or 1000.0)
     SetVehiclePetrolTankHealth(vehicle, 1000.0)
 
+    -- Umbauten aus der Werkstatt.
+    Vehicles.ApplyMods(vehicle, payload.mods)
+
     local plate = Vehicles.CleanPlate(payload.plate)
     Vehicles.Mine[plate] = vehicle
     Vehicles.Fuel[plate] = payload.fuel or 100.0

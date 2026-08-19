@@ -47,6 +47,37 @@ findet es beim nächsten Login wieder in der Garage.
   `VehicleConfig.State`.
 * Alle 25 Sekunden meldet der Fahrer Tank, Motor und Karosserie an den Server.
 
+## Umbauten
+
+Die Spalte `mods` in `ms_vehicles` lag lange ungenutzt da. Gefüllt wird sie
+in der Werkstatt (`moonshine-services`, → [`SERVICES.md`](SERVICES.md#tuning));
+diese Resource speichert die Umbauten und trägt sie beim Ausparken wieder
+auf.
+
+Was drin steht:
+
+```lua
+{
+    teile       = { ['11'] = 3, ['23'] = 7, … },  -- GTA-Modart -> Stufe
+    primaer     = 146, sekundaer = 0,
+    perlmutt    = 0,   felgenfarbe = 0,
+    felgenart   = 7,
+    folie       = 2,
+    kennzeichen = 0,
+    neon        = { an = true, r = 155, g = 107, b = 216 },
+    xenon       = { an = true, farbe = 1 },
+    rauch       = { an = false },
+}
+```
+
+**`SetVehicleModKit(vehicle, 0)` muss vor allem anderen laufen**, sonst
+nimmt das Fahrzeug gar keine Umbauten an – das ist die häufigste
+Stolperfalle dabei. `Vehicles.ApplyMods` tut das von selbst.
+
+Motor (18), Reifenrauch (20) und Xenon (22) sind **Schalter, keine Stufen**.
+`GetVehicleMod` liefert dafür immer −1; abgefragt werden sie über
+`IsToggleModOn`.
+
 ## Schlüssel
 
 Ohne Schlüssel springt der Motor nicht an – das gilt nur für Fahrzeuge, die
@@ -94,14 +125,20 @@ exports['moonshine-vehicles']:GetVehicleByPlate('MS 04711')
 exports['moonshine-vehicles']:HasKey(source, 'MS 04711')
 exports['moonshine-vehicles']:ImpoundVehicle('MS 04711', 'Falschparken')
 exports['moonshine-vehicles']:GiveVehicle(source, 'sultan', 'innenstadt')
+
+-- Umbauten
+exports['moonshine-vehicles']:GetMods('MS 04711')
+exports['moonshine-vehicles']:SetMods('MS 04711', mods)
+exports['moonshine-vehicles']:MayModify(source, 'MS 04711')
 ```
 
-Clientseitig: `GetFuel(plate)` und `StoreCurrentVehicle()`.
+Clientseitig: `GetFuel(plate)`, `StoreCurrentVehicle()`, `ApplyMods(vehicle,
+mods)`, `ReadMods(vehicle)` und `CountMod(vehicle, modId)`.
 
 Ereignisse: `vehicles:server:bought`, `vehicles:server:sold`,
 `vehicles:server:transferred`, `vehicles:server:keyGiven`,
 `vehicles:server:takenOut`, `vehicles:server:storedAway`,
-`vehicles:server:impounded`.
+`vehicles:server:impounded`, `vehicles:server:modsChanged`.
 
 ## Eigene Fahrzeuge im Katalog
 

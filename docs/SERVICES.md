@@ -49,6 +49,59 @@ Karosserie wieder her – genug, um weiterzukommen, nicht genug, um sich die
 Werkstatt zu sparen. (Das Item existierte im Core schon, hatte aber keine
 Funktion.)
 
+## Tuning
+
+An derselben Werkstatt, aber auf **G** statt `E`. Damit füllt sich endlich
+die Spalte `mods` in `ms_vehicles`, die seit dem Fahrzeugsystem ungenutzt
+dalag.
+
+Geschraubt wird nur am eigenen Fahrzeug – oder an einem, für das man einen
+Zweitschlüssel hat. Der Server fragt das bei `moonshine-vehicles` nach,
+bevor er irgendetwas anbaut.
+
+### Leistung
+
+| Teil | Stufen | Preis |
+|---|---|---|
+| Motor | 4 | 12.000 → 85.000 $ |
+| Getriebe | 3 | 11.000 → 44.000 $ |
+| Bremsen | 3 | 8.000 → 32.000 $ |
+| Federung | 4 | 6.000 → 40.000 $ |
+| Panzerung | 5 | 15.000 → 140.000 $ |
+| Turbolader | an/aus | 62.000 $ |
+
+Stufen sind **nicht** kumulativ zu bezahlen: wer von Stufe 1 direkt auf 4
+geht, zahlt die 85.000 $ und nicht die Summe aller Stufen. Rückbau auf
+Serienzustand kostet nichts – bringt aber auch nichts zurück.
+
+### Aussehen
+
+15 Anbauteile (Spoiler, Stoßstangen, Schweller, Auspuff, Überrollbügel,
+Motorhaube, Kotflügel, Dach, Lenkrad, Sitze, Schaltknauf, Hupe, Felgen,
+Kennzeichenhalter) zu je 1.500 – 14.000 $, unabhängig von der gewählten
+Variante.
+
+Dazu Lackierung (Grund-, Zweit-, Perlmutt- und Felgenfarbe aus 22 Tönen),
+Fensterfolie in fünf Stufen, Xenon-Scheinwerfer, Neonbeleuchtung und
+Reifenrauch.
+
+**Nur was das Fahrzeug hergibt.** Ein Kleinwagen hat keinen Überrollbügel;
+solche Teile stehen gar nicht erst in der Liste. Der Client fragt das am
+Fahrzeug selbst ab (`GetNumVehicleMods`) und schickt es mit.
+
+### Angeschaut, dann bezahlt
+
+Jede Auswahl sitzt sofort am echten Fahrzeug – man sieht die Felge, bevor
+man sie kauft. Bezahlt wird erst beim **Einbauen**. Wer abbricht oder die
+Oberfläche schließt, bekommt den alten Zustand zurück.
+
+Bezahlt wird außerdem nur, was sich **ändert**: wer eine Stufe behält, zahlt
+dafür nichts. Mechaniker bekommen 25 % Rabatt.
+
+> Der Client schickt nur, *was* er will. **Was das kostet, rechnet der
+> Server aus seinem eigenen Katalog** – sonst baut sich ein manipulierter
+> Client den Motor umsonst ein.
+
 ## Schwarzmarkt
 
 Ein wandernder Händler, der alle 90 Minuten an einen von sechs Orten zieht:
@@ -78,6 +131,7 @@ Zweck.
 | `/kontostand` | – | Bar, Bank und Schwarzgeld im Chat |
 | `/ueberweisen [id] [betrag]` | – | Überweisung (nur in der Filiale) |
 | `/schwarzmarkt` | – | Wo der Markt steht und wie lange noch |
+| `/tuning` | – | Tuning an der Werkstatt öffnen (wie `G`) |
 | `/marktumzug` | 3 | Markt sofort umziehen lassen |
 
 ## API
@@ -90,10 +144,28 @@ exports['moonshine-services']:GetBlackMarket()      --> 'steinbruch' oder nil
 exports['moonshine-services']:MoveBlackMarket()
 ```
 
-Ereignisse: `services:server:vehicleRepaired`, `services:server:marketMoved`.
+Ereignisse: `services:server:vehicleRepaired`, `services:server:vehicleTuned`,
+`services:server:marketMoved`.
+
+Die Umbauten selbst liegen bei den Fahrzeugen:
+
+```lua
+exports['moonshine-vehicles']:GetMods(plate)          --> Tabelle
+exports['moonshine-vehicles']:SetMods(plate, mods)    --> speichert und trägt auf
+exports['moonshine-vehicles']:MayModify(source, plate)
+
+-- Client
+exports['moonshine-vehicles']:ApplyMods(vehicle, mods)
+exports['moonshine-vehicles']:ReadMods(vehicle)
+exports['moonshine-vehicles']:CountMod(vehicle, modId)
+```
 
 ## Was hier bewusst nicht drin ist
 
 Keine eigene Tabelle – die Resource speichert nichts. Kontostände liegen im
-Core, Tankstände und Schäden in `moonshine-vehicles`. Der Schwarzmarkt-Standort
-wird beim Neustart neu gewürfelt; das ist Absicht.
+Core, Tankstände, Schäden und **Umbauten** in `moonshine-vehicles`. Der
+Schwarzmarkt-Standort wird beim Neustart neu gewürfelt; das ist Absicht.
+
+Beim Tuning fehlt bewusst der **Handel mit Umbauteilen**: kein Ausbauen und
+Weiterverkaufen, kein Schwarzmarkt für Motoren. Das wäre ein eigenes System,
+kein Anbau an die Werkstatt.

@@ -15,6 +15,20 @@ function post(name, payload) {
     }).catch(() => {});
 }
 
+/** Wie post(), aber mit Antwort - die Vorschau bekommt den Preis zurueck. */
+async function ask(name, payload) {
+    try {
+        const antwort = await fetch(`https://${RESOURCE}/${name}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify(payload || {}),
+        });
+        return await antwort.json();
+    } catch (fehler) {
+        return null;
+    }
+}
+
 function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -316,9 +330,289 @@ $('btn-launder').addEventListener('click', () => {
     post('launder', { amount: Number($('laundry-amount').value) || 0 });
 });
 
+/* ------------------------------------------------------------------ Tuning */
+
+let wunsch = {};           // was angeklickt ist, noch nicht bezahlt
+let reiter = 'leistung';
+
+/** Alle Reiter des Tuningmenues. */
+function tuningReiter() {
+    return [
+        { id: 'leistung', label: 'Leistung',  icon: '⚙' },
+        { id: 'optik',    label: 'Anbauteile',icon: '🔧' },
+        { id: 'lack',     label: 'Lackierung',icon: '🎨' },
+        { id: 'licht',    label: 'Licht',     icon: '💡' },
+        { id: 'sonstig',  label: 'Sonstiges', icon: '🪟' },
+    ];
+}
+
+/** Die Stufe, die im Wunsch steht - sonst die verbaute. */
+function stufeVon(entry) {
+    const key = String(entry.mod);
+
+    if (wunsch.teile && wunsch.teile[entry.id] !== undefined) {
+        return wunsch.teile[entry.id];
+    }
+
+    const verbaut = (data.mods && data.mods.teile) || {};
+    return verbaut[key] !== undefined ? verbaut[key] : -1;
+}
+
+/** Meldet den aktuellen Wunsch an den Client und holt den Preis zurueck. */
+async function vorschau() {
+    const antwort = await ask('tuningPreview', { wunsch });
+
+    $('tuning-preis').textContent = money(antwort && antwort.preis);
+
+    if (antwort && antwort.rabatt > 0) {
+        $('tuning-rabatt').textContent =
+            `Mechanikerrabatt: ${Math.round(antwort.rabatt * 100)} %`;
+    } else {
+        $('tuning-rabatt').textContent = '';
+    }
+
+    if (antwort && antwort.balance !== undefined) {
+        $('tuning-konto').textContent = `Auf dem Konto: ${money(antwort.balance)}`;
+        $('btn-tuning-kauf').disabled = antwort.preis > antwort.balance
+            || antwort.preis <= 0;
+    }
+
+    zeichneTuningListe();
+}
+
+/** Ein Teil mit Stufenknöpfen. */
+function teilZeile(entry, anzahl, preisFuer) {
+    const box = el('div', 'teil');
+
+    const kopf = el('div', 'teil-kopf');
+    kopf.appendChild(el('span', 'tab-icon', entry.icon || '🔩'));
+    kopf.appendChild(el('span', 'teil-name', entry.label));
+    kopf.appendChild(el('span', 'teil-preis', preisFuer));
+    box.appendChild(kopf);
+
+    const stufen = el('div', 'stufen');
+    const gewaehlt = stufeVon(entry);
+    const verbaut = ((data.mods && data.mods.teile) || {})[String(entry.mod)];
+
+    for (let stufe = -1; stufe < anzahl; stufe += 1) {
+        const klassen = ['stufe'];
+        if (stufe === gewaehlt) klassen.push('gewaehlt');
+        else if (stufe === verbaut) klassen.push('verbaut');
+
+        const knopf = el('button', klassen.join(' '),
+            stufe < 0 ? 'Serie' : `${stufe + 1}`);
+
+        knopf.addEventListener('click', () => {
+            wunsch.teile = wunsch.teile || {};
+            wunsch.teile[entry.id] = stufe;
+            vorschau();
+        });
+
+        stufen.appendChild(knopf);
+    }
+
+    box.appendChild(stufen);
+    return box;
+}
+
+/** Eine Reihe Lackfarben. */
+function lackZeile(titel, feld) {
+    const box = el('div', 'teil');
+
+    const kopf = el('div', 'teil-kopf');
+    kopf.appendChild(el('span', 'teil-name', titel));
+    kopf.appendChild(el('span', 'teil-preis',
+        money(feld === 'perlmutt' ? data.katalog.preise.perlmutt
+            : feld === 'felgenfarbe' ? data.katalog.preise.felgenfarbe
+            : data.katalog.preise.lack)));
+    box.appendChild(kopf);
+
+    const reihe = el('div', 'lacke');
+    const aktiv = wunsch[feld] !== undefined ? wunsch[feld] : data.mods[feld];
+
+    data.katalog.lacke.forEach((farbe) => {
+        const punkt = el('div', `lack${farbe.id === aktiv ? ' gewaehlt' : ''}`);
+        punkt.style.background = farbe.hex;
+        punkt.title = farbe.label;
+
+        punkt.addEventListener('click', () => {
+            wunsch[feld] = farbe.id;
+            vorschau();
+        });
+
+        reihe.appendChild(punkt);
+    });
+
+    box.appendChild(reihe);
+    return box;
+}
+
+/** Eine Reihe Auswahlknöpfe mit an/aus. */
+function schalterZeile(titel, preis, an, eintraege, aktivId, beiWahl) {
+    const box = el('div', 'teil');
+
+    const kopf = el('div', 'teil-kopf');
+    kopf.appendChild(el('span', 'teil-name', titel));
+    kopf.appendChild(el('span', 'teil-preis', money(preis)));
+    box.appendChild(kopf);
+
+    const stufen = el('div', 'stufen');
+
+    const aus = el('button', `stufe${an ? '' : ' gewaehlt'}`, 'Aus');
+    aus.addEventListener('click', () => beiWahl(false, null));
+    stufen.appendChild(aus);
+
+    eintraege.forEach((eintrag) => {
+        const gewaehlt = an && eintrag.id === aktivId;
+        const knopf = el('button', `stufe${gewaehlt ? ' gewaehlt' : ''}`, eintrag.label);
+
+        if (eintrag.r !== undefined) {
+            knopf.style.borderColor = `rgb(${eintrag.r}, ${eintrag.g}, ${eintrag.b})`;
+        }
+
+        knopf.addEventListener('click', () => beiWahl(true, eintrag.id));
+        stufen.appendChild(knopf);
+    });
+
+    box.appendChild(stufen);
+    return box;
+}
+
+function zeichneTuningNav() {
+    const nav = $('tuning-nav');
+    clear(nav);
+
+    tuningReiter().forEach((eintrag) => {
+        const zeile = el('div', `tuning-tab${eintrag.id === reiter ? ' aktiv' : ''}`);
+        zeile.appendChild(el('span', 'tab-icon', eintrag.icon));
+        zeile.appendChild(el('span', null, eintrag.label));
+
+        zeile.addEventListener('click', () => {
+            reiter = eintrag.id;
+            zeichneTuningNav();
+            zeichneTuningListe();
+        });
+
+        nav.appendChild(zeile);
+    });
+}
+
+function zeichneTuningListe() {
+    const liste = $('tuning-liste');
+    clear(liste);
+
+    const verfuegbar = data.verfuegbar || {};
+    const katalog = data.katalog || {};
+
+    if (reiter === 'leistung') {
+        (katalog.leistung || []).forEach((entry) => {
+            const anzahl = verfuegbar[entry.id] || 0;
+            if (anzahl > 0) {
+                liste.appendChild(teilZeile(entry, anzahl,
+                    `bis ${money(entry.preise[entry.preise.length - 1])}`));
+            }
+        });
+
+        const turbo = katalog.turbo;
+        if (turbo) {
+            liste.appendChild(schalterZeile('Turbolader', turbo.preis,
+                stufeVon(turbo) > 0, [{ id: 1, label: 'Eingebaut' }],
+                1, (an) => {
+                    wunsch.teile = wunsch.teile || {};
+                    wunsch.teile[turbo.id] = an ? 1 : 0;
+                    vorschau();
+                }));
+        }
+
+        if (!liste.firstChild) {
+            liste.appendChild(el('p', 'muted',
+                'An diesem Fahrzeug lässt sich an der Leistung nichts machen.'));
+        }
+    } else if (reiter === 'optik') {
+        (katalog.optik || []).forEach((entry) => {
+            const anzahl = verfuegbar[entry.id] || 0;
+            if (anzahl > 0) liste.appendChild(teilZeile(entry, anzahl, money(entry.preis)));
+        });
+
+        if (!liste.firstChild) {
+            liste.appendChild(el('p', 'muted',
+                'Für dieses Fahrzeug gibt es keine Anbauteile.'));
+        }
+    } else if (reiter === 'lack') {
+        liste.appendChild(lackZeile('Grundfarbe', 'primaer'));
+        liste.appendChild(lackZeile('Zweitfarbe', 'sekundaer'));
+        liste.appendChild(lackZeile('Perlmuttschimmer', 'perlmutt'));
+        liste.appendChild(lackZeile('Felgenfarbe', 'felgenfarbe'));
+    } else if (reiter === 'licht') {
+        const xenon = wunsch.xenon || data.mods.xenon || {};
+        liste.appendChild(schalterZeile('Xenon-Scheinwerfer',
+            katalog.preise.xenon, xenon.an === true,
+            katalog.xenon || [], xenon.farbe,
+            (an, id) => {
+                wunsch.xenon = an ? { an: true, farbe: id } : { an: false };
+                vorschau();
+            }));
+
+        const neon = wunsch.neon || data.mods.neon || {};
+        liste.appendChild(schalterZeile('Neonbeleuchtung',
+            katalog.preise.neon, neon.an === true,
+            katalog.neon || [], neon.id,
+            (an, id) => {
+                wunsch.neon = an ? { an: true, id } : { an: false };
+                vorschau();
+            }));
+    } else if (reiter === 'sonstig') {
+        const folie = wunsch.folie !== undefined ? wunsch.folie : data.mods.folie;
+        const folienBox = el('div', 'teil');
+        const folienKopf = el('div', 'teil-kopf');
+        folienKopf.appendChild(el('span', 'teil-name', 'Fensterfolie'));
+        folienBox.appendChild(folienKopf);
+
+        const folienReihe = el('div', 'stufen');
+        (katalog.folien || []).forEach((eintrag) => {
+            const knopf = el('button',
+                `stufe${eintrag.id === folie ? ' gewaehlt' : ''}`,
+                `${eintrag.label}${eintrag.preis > 0 ? ` · ${money(eintrag.preis)}` : ''}`);
+
+            knopf.addEventListener('click', () => {
+                wunsch.folie = eintrag.id;
+                vorschau();
+            });
+
+            folienReihe.appendChild(knopf);
+        });
+        folienBox.appendChild(folienReihe);
+        liste.appendChild(folienBox);
+
+        const rauch = wunsch.rauch || data.mods.rauch || {};
+        liste.appendChild(schalterZeile('Reifenrauch',
+            katalog.preise.rauch, rauch.an === true,
+            katalog.neon || [], rauch.id,
+            (an, id) => {
+                wunsch.rauch = an ? { an: true, id } : { an: false };
+                vorschau();
+            }));
+    }
+}
+
+function renderTuning() {
+    $('title').textContent = data.label || 'Werkstatt';
+    $('subtitle').textContent = `Kennzeichen ${data.plate || '–'}`;
+    $('crest').textContent = '🔧';
+    $('foot-hint').textContent =
+        'Angeschaut wird sofort am Fahrzeug. Bezahlt wird erst beim Einbauen.';
+
+    zeichneTuningNav();
+    zeichneTuningListe();
+    vorschau();
+}
+
+$('btn-tuning-kauf').addEventListener('click', () => post('tuningBuy'));
+$('btn-tuning-abbruch').addEventListener('click', () => post('tuningCancel'));
+
 /* ----------------------------------------------------------------- Rendern */
 
-const PANELS = ['bank', 'fuel', 'repair', 'market'];
+const PANELS = ['bank', 'fuel', 'repair', 'market', 'tuning'];
 
 function render() {
     if (!data) return;
@@ -331,6 +625,7 @@ function render() {
     else if (mode === 'fuel') renderFuel();
     else if (mode === 'repair') renderRepair();
     else if (mode === 'market') renderMarket();
+    else if (mode === 'tuning') renderTuning();
 }
 
 $('btn-close').addEventListener('click', () => post('close'));
@@ -349,6 +644,7 @@ window.addEventListener('message', (event) => {
     switch (message.action) {
         case 'services:open':
             mode = message.mode || 'bank';
+            if (mode === 'tuning') { wunsch = {}; reiter = 'leistung'; }
             data = message.data || null;
 
             $('screen').classList.remove('hidden');

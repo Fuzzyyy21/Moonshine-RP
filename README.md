@@ -19,7 +19,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-ritualwar` | Ritualpunkte als umkämpfter Fraktionsbesitz: Bindung, Steinertrag, Wegzoll, Störung → [`docs/RITUALWAR.md`](docs/RITUALWAR.md) |
 | `moonshine-auction` | Auktionshaus mit Geboten, Sofortkauf und Abholfach → [`docs/AUCTION.md`](docs/AUCTION.md) |
 | `moonshine-vehicles` | Autohäuser, eigene Fahrzeuge, Garagen, Schlüssel und Verwahrstelle → [`docs/VEHICLES.md`](docs/VEHICLES.md) |
-| `moonshine-services` | Tankstellen, Werkstätten, Bank, Geldautomaten und Schwarzmarkt → [`docs/SERVICES.md`](docs/SERVICES.md) |
+| `moonshine-services` | Tankstellen, Werkstätten mit Tuning, Bank, Geldautomaten und Schwarzmarkt → [`docs/SERVICES.md`](docs/SERVICES.md) |
 | `moonshine-jobs` | Jobcenter und Arbeitsaufträge mit echtem Ablauf → [`docs/JOBS.md`](docs/JOBS.md) |
 | `moonshine-admin` | Adminpanel, Werkzeuge und Anticheat-Grundlagen → [`docs/ADMIN.md`](docs/ADMIN.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
@@ -47,6 +47,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Auktionshaus** | Gebote mit Anti-Sniping, Sofortkauf, Hausgebühr, Abholfach für Offline-Spieler |
 | **Fahrzeuge** | 42 Fahrzeuge in drei Autohäusern, sechs Garagen, Tank- und Schadenspersistenz, Schlüsselsystem und Verwahrstelle |
 | **Dienste** | 9 Tankstellen, 4 Werkstätten, 6 Bankfilialen, 16 Geldautomaten, wandernder Schwarzmarkt mit Geldwäsche |
+| **Tuning** | Motor, Getriebe, Bremsen, Federung, Panzerung, Turbo, 15 Anbauteile, 22 Lackfarben, Folie, Xenon, Neon, Reifenrauch — Vorschau am Fahrzeug, bezahlt wird erst beim Einbauen |
 | **Arbeit** | Jobcenter, vier Aufträge mit Stationen, Arbeitsfahrzeug, Taxi-Fahrgästen, Abschlussbonus und Bestenliste |
 | **Admin** | Rechtesystem über Adminlevel, Commands plus Panel mit Spielerliste, Protokoll, Noclip und Beobachten |
 | **Anticheat** | Wachhund mit Strikes für Leben, Weste, Waffen und Bewegung, dazu eine Ratenbegrenzung für eigene Resources |

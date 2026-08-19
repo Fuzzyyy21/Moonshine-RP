@@ -53,36 +53,32 @@ und gibt dem Ritualpunkt sofort Tiefe.
 
 ## Zuerst: kleine Schritte mit viel Wirkung
 
-### 1. Werkstatt-Tuning — klein
-Die Werkstätten reparieren bisher nur. Lackierung, Felgen und Leistungsteile
-wären der nächste Schritt; die Spalte `mods` in `ms_vehicles` liegt bereit.
-
-### 2. Mehr Aufträge — klein
+### 1. Mehr Aufträge — klein
 Das Auftragssystem in `moonshine-jobs` trägt beliebig viele. Naheliegend:
 Abschleppdienst, Busfahrer, Nachtwache an den Ritualpunkten.
 
 ## Danach: mehr Tiefe
 
-### 3. Zufluchtsorte statt Housing — mittel
+### 2. Zufluchtsorte statt Housing — mittel
 Klassengerecht: Sarg für Vampire, Höhle für Werwölfe, Turm für Magier. Lagerung
 von Steinen, sicherer Respawn, kleiner Essenz-Bonus beim Ausruhen.
 
-### 4. Telefon — groß
+### 3. Telefon — groß
 Nachrichten, Kontakte, Notruf, Fraktions-Chat, Anzeigenmarkt. Vieles davon
 hängt an den Fraktionen und am Notrufsystem, die beide schon stehen.
 
 ## Technik und Betrieb
 
-### 5. Discord-Anbindung — klein
+### 4. Discord-Anbindung — klein
 Rollen aus Discord auf Adminlevel und Whitelist-Jobs abbilden, Logs als Webhook
 (die Log-Funktion kann das bereits, `Config.Logs.webhook`).
 
-### 6. Statistiken und Bestenlisten — klein
+### 5. Statistiken und Bestenlisten — klein
 Die Arbeit hat schon eine. Sinnvoll wären außerdem: höchste Klassenstufe,
 meiste Weltbosse, größte Fraktionskasse, teuerste Auktion. Aus `ms_logs`,
 `ms_mystic`, `ms_factions` und `ms_auctions` direkt ableitbar.
 
-### 7. Testlauf auf echter Hardware — Pflicht vor dem Livegang
+### 6. Testlauf auf echter Hardware — Pflicht vor dem Livegang
 Nichts davon lief bisher auf einem laufenden FXServer. Die vollständige Liste
 steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -106,6 +102,9 @@ steht in [`LAUNCH.md`](LAUNCH.md).
 
 ## Abgehakt
 
+* **Werkstatt-Tuning** — in `moonshine-services` gebaut: Leistung, Anbauteile,
+  Lackierung, Licht und Zubehör, mit Vorschau am Fahrzeug. Die Spalte `mods`
+  in `ms_vehicles` ist damit endlich in Benutzung
 * **Anzeige** — als `moonshine-hud` gebaut: eine HUD statt vier Widgets,
   27 Elemente einzeln abschaltbar, Ringe oder Balken, Fahrzeug-Tacho mit
   Gurt und Tempomat

@@ -632,6 +632,7 @@ pruefe('Garagen-Ids sind eindeutig', ok8, doppelt8)
 
 laden('moonshine-services/shared/config.lua')
 laden('moonshine-services/shared/locations.lua')
+laden('moonshine-services/shared/tuning.lua')
 
 gruppe('Dienste: Reparaturpreis')
 
@@ -664,6 +665,161 @@ pruefe('Es gibt Geldautomaten', #Services.Atms > 0, #Services.Atms)
 local ok9, doppelt9 = eindeutig(Services.BlackMarkets, 'id')
 pruefe('Schwarzmarkt-Orte sind eindeutig', ok9, doppelt9)
 pruefe('Mehr als ein Schwarzmarkt-Ort', #Services.BlackMarkets > 1)
+
+gruppe('Dienste: Tuning-Katalog')
+
+local okTeile, doppelteTeile = eindeutig(Services.Performance, 'id')
+pruefe('Leistungsteile sind eindeutig', okTeile, doppelteTeile)
+
+local okOptik, doppelteOptik = eindeutig(Services.Cosmetics, 'id')
+pruefe('Anbauteile sind eindeutig', okOptik, doppelteOptik)
+
+-- Zwei Teile duerfen nie dieselbe GTA-Modart belegen, sonst ueberschreibt
+-- eins das andere.
+local modarten, doppelteModarten = {}, {}
+for _, liste in ipairs({ Services.Performance, Services.Cosmetics }) do
+    for _, entry in ipairs(liste) do
+        if modarten[entry.mod] then
+            doppelteModarten[#doppelteModarten + 1] =
+                ('%s/%s'):format(modarten[entry.mod], entry.id)
+        end
+        modarten[entry.mod] = entry.id
+    end
+end
+pruefe('Keine Modart kommt zweimal vor', #doppelteModarten == 0,
+    table.concat(doppelteModarten, ', '))
+
+pruefe('Der Turbo belegt keine fremde Modart', modarten[Services.Turbo.mod] == nil)
+
+for _, entry in ipairs(Services.Performance) do
+    pruefe(('%s hat Stufenpreise'):format(entry.id), #entry.preise > 0)
+
+    -- Jede weitere Stufe muss teurer sein als die davor, sonst lohnt sich
+    -- die kleinere nie.
+    local steigend = true
+    for index = 2, #entry.preise do
+        if entry.preise[index] <= entry.preise[index - 1] then steigend = false end
+    end
+
+    pruefe(('%s wird mit jeder Stufe teurer'):format(entry.id), steigend)
+    pruefe(('%s laesst sich ueber die Id finden'):format(entry.id),
+        Services.GetPerformance(entry.id) == entry)
+end
+
+for _, entry in ipairs(Services.Cosmetics) do
+    pruefe(('%s kostet etwas'):format(entry.id), entry.preis > 0)
+    pruefe(('%s laesst sich ueber die Id finden'):format(entry.id),
+        Services.GetCosmetic(entry.id) == entry)
+end
+
+pruefe('Unbekanntes Teil liefert nichts', Services.GetPart('gibtesnicht') == nil)
+pruefe('GetPart findet Leistungsteile', Services.GetPart('motor') ~= nil)
+pruefe('GetPart findet Anbauteile', Services.GetPart('spoiler') ~= nil)
+pruefe('GetPart findet den Turbo', Services.GetPart('turbo') == Services.Turbo)
+
+gruppe('Dienste: Tuning-Preise')
+
+-- Handgerechnet gegen den Katalog: Motorstufen 12.000 / 26.000 / 48.000 / 85.000.
+pruefe('Motor Serie kostet nichts', Services.PerformancePrice('motor', -1) == 0)
+pruefe('Motor Stufe 1 kostet 12.000',
+    Services.PerformancePrice('motor', 0) == 12000,
+    Services.PerformancePrice('motor', 0))
+pruefe('Motor Stufe 4 kostet 85.000',
+    Services.PerformancePrice('motor', 3) == 85000,
+    Services.PerformancePrice('motor', 3))
+
+-- Ueber die letzte Stufe hinaus darf der Preis nicht auf null fallen.
+pruefe('Eine zu hohe Stufe kostet die letzte',
+    Services.PerformancePrice('motor', 99) == 85000,
+    Services.PerformancePrice('motor', 99))
+
+pruefe('Der Turbo kostet 62.000', Services.PerformancePrice('turbo', 1) == 62000)
+pruefe('Ein abgeschalteter Turbo kostet nichts',
+    Services.PerformancePrice('turbo', 0) == 0)
+
+pruefe('Anbauteile kosten je Stufe gleich viel',
+    Services.CosmeticPrice('spoiler', 0) == Services.CosmeticPrice('spoiler', 5))
+pruefe('Ein Anbauteil auf Serie kostet nichts',
+    Services.CosmeticPrice('spoiler', -1) == 0)
+
+pruefe('Unbekanntes Teil kostet nichts', Services.PartPrice('gibtesnicht', 3) == 0)
+
+-- Die Panzerung ist das teuerste Einzelteil; ein Fahrzeug soll dadurch
+-- nicht guenstiger zu haben sein als durch Kaufen.
+local teuerste = 0
+for _, entry in ipairs(Services.Performance) do
+    teuerste = math.max(teuerste, entry.preise[#entry.preise])
+end
+pruefe('Kein Leistungsteil kostet ueber 200.000', teuerste <= 200000, teuerste)
+
+gruppe('Dienste: Tuning-Farben')
+
+local okLack, doppelterLack = eindeutig(Services.Paints, 'id')
+pruefe('Lackfarben sind eindeutig', okLack, doppelterLack)
+
+for _, farbe in ipairs(Services.Paints) do
+    pruefe(('Lack %s hat eine Bezeichnung'):format(farbe.id),
+        type(farbe.label) == 'string' and farbe.label ~= '')
+
+    pruefe(('Lack %s hat einen Farbwert'):format(farbe.id),
+        type(farbe.hex) == 'string' and farbe.hex:match('^#%x%x%x%x%x%x$') ~= nil,
+        farbe.hex)
+
+    pruefe(('Lack %s wird erkannt'):format(farbe.id), Services.IsPaint(farbe.id))
+end
+
+pruefe('Eine erfundene Lackfarbe wird abgelehnt', not Services.IsPaint(999))
+
+local okNeon, doppeltesNeon = eindeutig(Services.Neon, 'id')
+pruefe('Neonfarben sind eindeutig', okNeon, doppeltesNeon)
+
+for _, farbe in ipairs(Services.Neon) do
+    pruefe(('Neon %s hat drei Kanaele'):format(farbe.id),
+        farbe.r ~= nil and farbe.g ~= nil and farbe.b ~= nil)
+
+    for _, kanal in ipairs({ farbe.r, farbe.g, farbe.b }) do
+        pruefe(('Neon %s bleibt im Bereich'):format(farbe.id),
+            kanal >= 0 and kanal <= 255, kanal)
+    end
+
+    pruefe(('Neon %s laesst sich finden'):format(farbe.id),
+        Services.GetNeon(farbe.id) == farbe)
+end
+
+pruefe('Eine erfundene Neonfarbe liefert nichts',
+    Services.GetNeon('gibtesnicht') == nil)
+
+local okXenon, doppeltesXenon = eindeutig(Services.Xenon, 'id')
+pruefe('Xenonfarben sind eindeutig', okXenon, doppeltesXenon)
+pruefe('Xenon kennt den Standard', Services.IsXenon(-1))
+pruefe('Eine erfundene Xenonfarbe wird abgelehnt', not Services.IsXenon(99))
+
+-- Fensterfolie: Stufe 0 ist "keine" und muss umsonst sein, danach steigt es.
+local okFolie, doppelteFolie = eindeutig(Services.Tints, 'id')
+pruefe('Folienstufen sind eindeutig', okFolie, doppelteFolie)
+pruefe('Keine Folie kostet nichts', Services.GetTint(0).preis == 0)
+
+local vorher = -1
+local folieSteigt = true
+for _, folie in ipairs(Services.Tints) do
+    if folie.preis < vorher then folieSteigt = false end
+    vorher = folie.preis
+end
+pruefe('Dunklere Folie kostet mehr', folieSteigt)
+
+pruefe('Eine erfundene Folienstufe liefert nichts', Services.GetTint(9) == nil)
+
+-- Jeder Preis in der Config muss auch wirklich gesetzt sein.
+for _, feld in ipairs({ 'lack', 'perlmutt', 'felgenfarbe', 'neon', 'xenon',
+                        'rauch', 'kennzeichen' }) do
+    pruefe(('Preis fuer %s ist gesetzt'):format(feld),
+        type(ServiceConfig.Tuning.preise[feld]) == 'number'
+            and ServiceConfig.Tuning.preise[feld] > 0)
+end
+
+pruefe('Der Mechanikerrabatt liegt unter der Haelfte',
+    ServiceConfig.Tuning.mechanicDiscount > 0
+        and ServiceConfig.Tuning.mechanicDiscount < 0.5)
 
 laden('moonshine-auction/shared/config.lua')
 

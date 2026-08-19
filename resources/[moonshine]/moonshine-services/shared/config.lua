@@ -81,6 +81,29 @@ ServiceConfig.Repair = {
     },
 }
 
+-- Tuning -----------------------------------------------------------------------------
+ServiceConfig.Tuning = {
+    enabled = true,
+    account = 'bank',
+
+    -- Mechaniker bauen guenstiger an.
+    mechanicDiscount = 0.25,
+
+    -- Lackierung, Folie und Zubehoer.
+    preise = {
+        lack        = 4500,     -- je Farbe (primaer und sekundaer getrennt)
+        perlmutt    = 3500,
+        felgenfarbe = 2500,
+        neon        = 18000,    -- einmal fuer alle vier Seiten
+        xenon       = 9000,
+        rauch       = 5000,
+        kennzeichen = 800,
+    },
+
+    -- Wie lange die Werkstatt daran arbeitet (Sekunden).
+    dauer = 8,
+}
+
 -- Schwarzmarkt -----------------------------------------------------------------------
 ServiceConfig.BlackMarket = {
     enabled = true,

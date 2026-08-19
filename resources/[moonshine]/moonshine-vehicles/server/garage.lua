@@ -89,6 +89,7 @@ RegisterNetEvent('vehicles:server:take', function(vehicleId)
         fuel   = tonumber(row.fuel) or 100,
         engine = tonumber(row.engine) or 1000,
         body   = tonumber(row.body) or 1000,
+        mods   = Vehicles.GetMods(row.plate),
         spawn  = { x = garage.spawn.x, y = garage.spawn.y,
                    z = garage.spawn.z, w = garage.spawn.w },
     })

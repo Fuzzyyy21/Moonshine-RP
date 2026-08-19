@@ -12,6 +12,7 @@ dependency 'moonshine-core'
 shared_scripts {
     'shared/config.lua',
     'shared/locations.lua',
+    'shared/tuning.lua',
 }
 
 server_scripts {
@@ -19,6 +20,7 @@ server_scripts {
     'server/bank.lua',
     'server/fuel.lua',
     'server/repair.lua',
+    'server/tuning.lua',
     'server/blackmarket.lua',
     'server/main.lua',
 }
@@ -27,6 +29,7 @@ client_scripts {
     'client/main.lua',
     'client/fuel.lua',
     'client/repair.lua',
+    'client/tuning.lua',
 }
 
 ui_page 'nui/index.html'

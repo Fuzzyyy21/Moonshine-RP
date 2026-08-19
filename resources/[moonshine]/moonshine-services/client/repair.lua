@@ -171,11 +171,17 @@ CreateThread(function()
                         106, 169, 224, 150, false, true, 2, false, nil, nil, false)
 
                     if distance <= ServiceConfig.Range + 4.0 and not repairing then
-                        MS.DrawText3D(shop.coords + vector3(0.0, 0.0, 1.2),
-                            ('~b~E~s~  %s'):format(shop.label), 0.4)
+                        local text = ServiceConfig.Tuning.enabled
+                            and ('~b~E~s~  %s   ~b~G~s~  Tuning'):format(shop.label)
+                            or ('~b~E~s~  %s'):format(shop.label)
+
+                        MS.DrawText3D(shop.coords + vector3(0.0, 0.0, 1.2), text, 0.4)
 
                         if IsControlJustReleased(0, 38) then
                             Services.OpenWorkshop(shop)
+                        elseif ServiceConfig.Tuning.enabled
+                            and IsControlJustReleased(0, 47) then
+                            Services.OpenTuning(shop)
                         end
                     end
                 end
