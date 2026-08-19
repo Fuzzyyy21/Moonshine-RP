@@ -1,0 +1,6 @@
+# Playwright, nur fuer tools/vorschau gebraucht.
+node_modules/
+package-lock.json
+
+# Bilder der Vorschau werden bei Bedarf neu erzeugt.
+tools/vorschau/bilder/
