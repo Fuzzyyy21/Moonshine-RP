@@ -1,9 +1,8 @@
 # Ideen und Ausbaustufen
 
-Stand: 15 Resources sind gebaut — Core, Aussehen, Welt, Mystik, Beduerfnisse,
-Sterbesystem,
-Weltbosse, Fortschritt, Fraktionen, Auktionshaus, Fahrzeuge,
-Dienstleistungen, Arbeit, Administration und der Beispiel-Shop.
+Stand: 16 Resources sind gebaut — Core, Aussehen, Welt, Mystik, Beduerfnisse,
+Sterbesystem, Weltbosse, Fortschritt, Fraktionen, Ritualkrieg, Auktionshaus,
+Fahrzeuge, Dienstleistungen, Arbeit, Administration und der Beispiel-Shop.
 
 Was vor dem Livegang zu prüfen ist, steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -53,47 +52,41 @@ und gibt dem Ritualpunkt sofort Tiefe.
 
 ## Zuerst: das macht den Server rund
 
-### 1. Ritualpunkte als umkämpfte Gebiete — mittel
-Die Fraktionsgebiete liegen bisher neben den Ritualpunkten. Wer den Punkt hält,
-könnte dort passiv Steine bekommen und andere beim Ritual stören. **Warum:**
-Verbindet Gebietskontrolle und Steinwirtschaft zu einem Kreislauf statt zwei
-getrennten.
-
-### 2. Tattoos — klein
+### 1. Tattoos — klein
 Der Editor deckt alles ab außer Tattoos. `SetPedDecoration` und die
 Overlay-Sammlungen wären der nächste Schritt; die Struktur in
 `ms_characters.appearance` trägt das mit.
 
 ## Danach: mehr Tiefe
 
-### 3. Telefon — groß
+### 2. Telefon — groß
 Nachrichten, Kontakte, Notruf, Fraktions-Chat, Anzeigenmarkt. Vieles davon
 hängt an den Fraktionen und am Notrufsystem, die beide schon stehen.
 
-### 4. Zufluchtsorte statt Housing — mittel
+### 3. Zufluchtsorte statt Housing — mittel
 Klassengerecht: Sarg für Vampire, Höhle für Werwölfe, Turm für Magier. Lagerung
 von Steinen, sicherer Respawn, kleiner Essenz-Bonus beim Ausruhen.
 
-### 5. Werkstatt-Tuning — klein
+### 4. Werkstatt-Tuning — klein
 Die Werkstätten reparieren bisher nur. Lackierung, Felgen und Leistungsteile
 wären der nächste Schritt; die Spalte `mods` in `ms_vehicles` liegt bereit.
 
-### 6. Mehr Aufträge — klein
+### 5. Mehr Aufträge — klein
 Das Auftragssystem in `moonshine-jobs` trägt beliebig viele. Naheliegend:
 Abschleppdienst, Busfahrer, Nachtwache an den Ritualpunkten.
 
 ## Technik und Betrieb
 
-### 7. Discord-Anbindung — klein
+### 6. Discord-Anbindung — klein
 Rollen aus Discord auf Adminlevel und Whitelist-Jobs abbilden, Logs als Webhook
 (die Log-Funktion kann das bereits, `Config.Logs.webhook`).
 
-### 8. Statistiken und Bestenlisten — klein
+### 7. Statistiken und Bestenlisten — klein
 Die Arbeit hat schon eine. Sinnvoll wären außerdem: höchste Klassenstufe,
 meiste Weltbosse, größte Fraktionskasse, teuerste Auktion. Aus `ms_logs`,
 `ms_mystic`, `ms_factions` und `ms_auctions` direkt ableitbar.
 
-### 9. Testlauf auf echter Hardware — Pflicht vor dem Livegang
+### 8. Testlauf auf echter Hardware — Pflicht vor dem Livegang
 Nichts davon lief bisher auf einem laufenden FXServer. Die vollständige Liste
 steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -117,6 +110,9 @@ steht in [`LAUNCH.md`](LAUNCH.md).
 
 ## Abgehakt
 
+* **Ritualpunkte als umkämpfte Gebiete** — als `moonshine-ritualwar` gebaut:
+  Bindungsritual, Steinertrag in den Fraktionstresor, Wegzoll von fremden
+  Ritualen, Störung durch Danebenstehen und ein Segen für die Halter
 * **Zirkel / Fraktionen** — als `moonshine-factions` gebaut, inklusive Rängen,
   Kasse, Tresor, Skilltree und Gebietskontrolle
 * **Blutmond und Weltevents** — als `moonshine-world` gebaut, acht Ereignisse

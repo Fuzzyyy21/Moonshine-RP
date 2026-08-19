@@ -122,6 +122,17 @@ in einem Gebiet steht, sieht links unten eine Kontrollanzeige mit Besitzer,
 Fortschrittsbalken und Status. In der Oberfläche gibt es eine eigene
 Gebietskarte mit allen acht Zonen.
 
+## Ritualpunkte
+
+Die acht Gebiete sind nicht der einzige Besitz, um den sich Fraktionen
+streiten. Mit `moonshine-ritualwar` kommen die sechs Ritualpunkte dazu –
+teurer zu nehmen, aber sie werfen Steine statt Geld ab und besteuern jedes
+fremde Ritual. Der Fraktions-Skilltree greift dort mit denselben Knoten:
+*Schürfrechte* (`territoryIncome`), *Bollwerk* (`protectionBonus`),
+*Sturmtrupp* (`soloCapture`) und *Blitzeinnahme* (`captureSpeed`).
+
+Der Ablauf steht in [`RITUALWAR.md`](RITUALWAR.md).
+
 ## Fraktionsmissionen
 
 Drei tägliche Missionen je Fraktion, an denen alle Mitglieder mitzählen –

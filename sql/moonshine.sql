@@ -307,3 +307,17 @@ CREATE TABLE IF NOT EXISTS `ms_outfits` (
     PRIMARY KEY (`id`),
     KEY `character_id` (`character_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Ritualkrieg (moonshine-ritualwar)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_ritual_claims` (
+    `point_id`        VARCHAR(32) NOT NULL,
+    `faction_id`      INT         DEFAULT NULL,
+    `since`           INT         NOT NULL DEFAULT 0,
+    `protected_until` INT         NOT NULL DEFAULT 0,
+    `payouts`         INT         NOT NULL DEFAULT 0,
+    `updated_at`      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`point_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

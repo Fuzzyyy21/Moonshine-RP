@@ -221,6 +221,28 @@ Chiliad, Altruisten-Lager, Kirche Sandy Shores, Leuchtturm Paleto, Steinkreis
 bei Zancudo), jeweils mit Blip und Bodenmarker. Koordinaten sind Richtwerte –
 vor dem Livegang einmal im Spiel prüfen.
 
+Jeder Punkt trägt eine feste `id`. Daran hängt `moonshine-ritualwar`: dort
+gehören die Punkte Fraktionen, die sie binden können – siehe
+[`RITUALWAR.md`](RITUALWAR.md).
+
+### Wenn der Punkt jemandem gehört
+
+Läuft `moonshine-ritualwar` mit, ist der Ritualpunkt kein neutraler Ort mehr:
+
+| | Mitglied der haltenden Fraktion | Fremder |
+|---|---|---|
+| Ritualertrag | **+20 %** | **−25 %**, gehen in die Kasse des Halters |
+| Meditationspunkte | **+20 %** | **−30 %** |
+| In 25 m Umkreis | +0,6 Essenzregeneration, +0,3 Leben je Tick, +15 % XP | – |
+
+Außerdem bricht ein Mitglied einer **anderen** Fraktion, das sechs Sekunden
+lang im Umkreis von acht Metern steht, ein laufendes Ritual und eine
+laufende Meditation ab. Das Binden von Klassensteinen bleibt unberührt, und
+wer selbst in keiner Fraktion ist, stört niemanden.
+
+Ist die Resource nicht geladen, verhält sich alles wie zuvor – die Aufrufe
+stehen in `pcall` und fallen still auf die alten Werte zurück.
+
 ## Commands
 
 | Command | Level | Beschreibung |

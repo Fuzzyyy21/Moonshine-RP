@@ -212,6 +212,52 @@ exports('AddFactionXp', function(factionId, amount)
     return true
 end)
 
+--- Legt etwas in den Fraktionstresor. Fuer Systeme, die einer Fraktion
+--- Gegenstaende zuschreiben (Gebietsertrag, Belohnungen).
+---@return boolean ok
+exports('AddToVault', function(factionId, itemName, count)
+    local faction = Factions.Get(factionId)
+    if not faction then return false end
+
+    local item = MS.GetItem(itemName)
+    if not item then return false end
+
+    count = math.floor(tonumber(count) or 0)
+    if count < 1 then return false end
+
+    if #faction.vault >= faction:GetVaultSlots() then
+        local vorhanden = false
+
+        for _, entry in ipairs(faction.vault) do
+            if entry.name == itemName and entry.metadata == nil then
+                vorhanden = true
+                break
+            end
+        end
+
+        -- Voll und kein passender Stapel: nichts geht mehr rein.
+        if not vorhanden then return false end
+    end
+
+    for _, entry in ipairs(faction.vault) do
+        if entry.name == itemName and entry.metadata == nil then
+            entry.count = entry.count + count
+            faction.dirty = true
+            faction:Save()
+            faction:Sync()
+
+            return true
+        end
+    end
+
+    faction.vault[#faction.vault + 1] = { name = itemName, count = count }
+    faction.dirty = true
+    faction:Save()
+    faction:Sync()
+
+    return true
+end)
+
 exports('GetTerritoryOwner', function(territoryId)
     local state = Factions.TerritoryState[territoryId]
     return state and state.factionId or nil

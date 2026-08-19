@@ -35,6 +35,7 @@ ensure moonshine-death
 ensure moonshine-boss
 ensure moonshine-progress
 ensure moonshine-factions
+ensure moonshine-ritualwar
 ensure moonshine-auction
 ensure moonshine-vehicles
 ensure moonshine-services

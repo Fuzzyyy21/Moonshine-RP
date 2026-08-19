@@ -6,6 +6,15 @@ local function atRitualPoint(source)
     return Mystic.IsNearRitualPoint(GetEntityCoords(GetPlayerPed(source))) ~= nil
 end
 
+--- Stoert gerade jemand aus einer fremden Fraktion (moonshine-ritualwar)?
+--- Laeuft die Resource nicht, stoert niemand.
+local function disrupted(source, kind)
+    local yes = false
+    pcall(function() yes = exports['moonshine-ritualwar']:IsDisrupted(source, kind) end)
+
+    return yes == true
+end
+
 -- Erweckung ------------------------------------------------------------------
 
 RegisterNetEvent('mystic:server:awaken', function(raceName)
@@ -288,9 +297,23 @@ RegisterNetEvent('mystic:server:meditate', function()
             return
         end
 
+        if disrupted(source, 'meditation') then
+            profile:Notify('Jemand stoert deine Ruhe - die Meditation misslingt.', 'error')
+            return
+        end
+
         local points = math.random(MysticConfig.Meditation.points.min, MysticConfig.Meditation.points.max)
         -- Bonus aus dem persoenlichen Baum (Meditationsglueck, Erleuchtung).
         points = points + math.floor(profile:GetModifiers().meditationBonus or 0)
+
+        -- An einem gebundenen Punkt zahlt der Fremde drauf, das Mitglied
+        -- bekommt mehr (moonshine-ritualwar).
+        local factor = 1.0
+        pcall(function() factor = exports['moonshine-ritualwar']:MeditationFactor(source) end)
+
+        if type(factor) == 'number' and factor ~= 1.0 then
+            points = math.max(1, math.floor(points * factor))
+        end
 
         profile:AddMeditationPoints(points)
         profile:AddXp(MysticConfig.Progression.xpPerMeditation)
@@ -343,6 +366,11 @@ RegisterNetEvent('mystic:server:performRitual', function()
             return
         end
 
+        if disrupted(source, 'ritual') then
+            profile:Notify('Ein Fremder haelt sich am Punkt auf - das Ritual bricht ab.', 'error')
+            return
+        end
+
         local reward = MysticConfig.Ritual.reward
 
         -- Bonus aus dem persoenlichen Baum (Haendlerglueck, Goldene Hand).
@@ -357,9 +385,25 @@ RegisterNetEvent('mystic:server:performRitual', function()
 
         local amount = math.floor(reward.amount * (factor + worldBonus))
 
+        -- Gehoert der Punkt einer Fraktion, geht ein Anteil in ihre Kasse
+        -- (moonshine-ritualwar). Mitglieder bekommen stattdessen mehr.
+        local zoll, halter = 0, nil
+        pcall(function()
+            local netto, abzug, name = exports['moonshine-ritualwar']:ApplyToll(
+                source, amount, 'ritual')
+
+            if type(netto) == 'number' then
+                amount, zoll, halter = netto, abzug or 0, name
+            end
+        end)
+
         player:AddMoney(amount, reward.account, 'ritual')
 
-        if worldBonus > 0 then
+        if zoll > 0 then
+            profile:Notify(('Wegzoll an %s: %s. Dir bleiben %s.'):format(
+                halter or 'die haltende Fraktion', MS.Utils.FormatMoney(zoll),
+                MS.Utils.FormatMoney(amount)), 'warning', 9000)
+        elseif worldBonus > 0 then
             profile:Notify(('Die Kraefte stehen guenstig: %s.'):format(
                 MS.Utils.FormatMoney(amount)), 'success', 9000)
         else

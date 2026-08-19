@@ -60,6 +60,7 @@ laden('moonshine-mystic/shared/config.lua')
 laden('moonshine-mystic/shared/races.lua')
 laden('moonshine-mystic/shared/skills.lua')
 laden('moonshine-mystic/shared/personal.lua')
+laden('moonshine-mystic/shared/items.lua')
 
 gruppe('Mystik: Klassen')
 
@@ -871,6 +872,191 @@ pruefe('Fee fuellt sich nicht auf dem Friedhof',
     Needs.ZoneAmount('fee', 'friedhof') == 0)
 pruefe('Nekromant fuellt sich auf dem Friedhof',
     Needs.ZoneAmount('nekromant', 'friedhof') > 0)
+
+-- ===========================================================================
+-- Ritualkrieg
+-- ===========================================================================
+
+laden('moonshine-ritualwar/shared/config.lua')
+
+gruppe('Ritualkrieg: Ritualpunkte')
+
+-- Die Ids sind der Schluessel in der Datenbank. Doppelte wuerden sich
+-- gegenseitig ueberschreiben.
+local idsOk, doppelte = eindeutig(MysticConfig.RitualPoints, 'id')
+pruefe('Ritualpunkt-Ids sind eindeutig', idsOk, doppelte)
+
+for _, punkt in ipairs(MysticConfig.RitualPoints) do
+    pruefe(('Punkt %s laesst sich ueber die Id finden'):format(punkt.id),
+        Mystic.GetRitualPoint(punkt.id) == punkt)
+
+    pruefe(('Punkt %s wird an seinen eigenen Koordinaten erkannt'):format(punkt.id),
+        Mystic.IsNearRitualPoint(punkt.coords) ~= nil)
+
+    pruefe(('Punkt %s passt in VARCHAR(32)'):format(punkt.id), #punkt.id <= 32)
+end
+
+pruefe('Unbekannte Id liefert nichts', Mystic.GetRitualPoint('gibtesnicht') == nil)
+pruefe('Weit draussen ist kein Ritualpunkt',
+    Mystic.IsNearRitualPoint(vector3(9000.0, 9000.0, 9000.0)) == nil)
+
+gruppe('Ritualkrieg: Bindung')
+
+-- 180 Sekunden Ritual, alle 2 Sekunden ein Durchlauf: der Balken muss nach
+-- genau 90 Durchlaeufen voll sein.
+local proSekunde = RitualWar.ProgressPerSecond()
+local durchlaeufe = WarConfig.Binding.duration / WarConfig.TickInterval
+local balken = 0.0
+for _ = 1, durchlaeufe do balken = balken + proSekunde * WarConfig.TickInterval end
+
+pruefe('Der Balken ist nach der vollen Dauer voll',
+    math.abs(balken - 100.0) < 0.001, balken)
+
+pruefe('Nach der halben Dauer ist er halb voll',
+    math.abs(proSekunde * (WarConfig.Binding.duration / 2) - 50.0) < 0.001)
+
+-- Ein verlassenes Ritual darf nicht ewig stehen bleiben: der Verfall muss
+-- einen vollen Balken schneller leeren, als eine frische Bindung dauert.
+pruefe('Ein verlassener Balken leert sich schneller als eine neue Bindung',
+    RitualWar.DecayTime() < WarConfig.Binding.duration,
+    ('%.0f s Verfall gegen %d s Bindung'):format(
+        RitualWar.DecayTime(), WarConfig.Binding.duration))
+
+pruefe('Der Verfall ist mit 50 Sekunden angesetzt',
+    math.abs(RitualWar.DecayTime() - 50.0) < 0.001, RitualWar.DecayTime())
+
+pruefe('Eine Bindung braucht mehr als eine Person', WarConfig.Binding.minMembers >= 2)
+
+-- Ein gestoertes Ritual steht still. Die Obergrenze muss laenger sein als
+-- eine ungestoerte Bindung, sonst laeuft sie schon im Normalfall ab.
+pruefe('Die Obergrenze liegt ueber der normalen Bindungsdauer',
+    WarConfig.Binding.maxDuration > WarConfig.Binding.duration,
+    ('%d gegen %d Sekunden'):format(WarConfig.Binding.maxDuration,
+        WarConfig.Binding.duration))
+
+pruefe('Die Obergrenze laesst Raum fuer eine echte Auseinandersetzung',
+    WarConfig.Binding.maxDuration >= WarConfig.Binding.duration * 2)
+
+pruefe('Die Reichweite ist groesser als jeder Punktradius', (function()
+    for _, punkt in ipairs(MysticConfig.RitualPoints) do
+        if WarConfig.Binding.range <= punkt.radius then return false end
+    end
+    return true
+end)())
+
+pruefe('Der Skill fuer die Einzelbindung heisst wie im Fraktionsbaum',
+    Factions.SumSkills({}).soloCapture ~= nil)
+
+pruefe('Das Recht fuer die Bindung gibt es im Rangsystem',
+    Factions.PermissionById[WarConfig.Binding.permission] ~= nil,
+    WarConfig.Binding.permission)
+
+gruppe('Ritualkrieg: Wegzoll')
+
+-- Handgerechnet: 1000 $ Ritualertrag, 25 % Zoll, 20 % Mitgliederbonus.
+local fremdBetrag, fremdZoll = RitualWar.Split(1000, 'fremd')
+pruefe('Fremde zahlen 250 von 1000', fremdZoll == 250, fremdZoll)
+pruefe('Fremden bleiben 750 von 1000', fremdBetrag == 750, fremdBetrag)
+
+local eigenBetrag, eigenZoll = RitualWar.Split(1000, 'eigen')
+pruefe('Mitglieder bekommen 1200 von 1000', eigenBetrag == 1200, eigenBetrag)
+pruefe('Mitglieder zahlen keinen Zoll', eigenZoll == 0, eigenZoll)
+
+local freiBetrag, freiZoll = RitualWar.Split(1000, 'frei')
+pruefe('Am ungebundenen Punkt bleibt alles beim Spieler', freiBetrag == 1000)
+pruefe('Am ungebundenen Punkt faellt kein Zoll an', freiZoll == 0)
+
+-- Nichts darf aus dem Nichts entstehen: was der Fremde verliert, landet in
+-- der Kasse, keinen Cent mehr.
+pruefe('Betrag und Zoll ergeben zusammen wieder den Ertrag',
+    fremdBetrag + fremdZoll == 1000)
+
+pruefe('Ein Ertrag von null bleibt null', (RitualWar.Split(0, 'fremd')) == 0)
+pruefe('Ein negativer Ertrag bleibt bei null', (RitualWar.Split(-50, 'fremd')) == 0)
+
+-- Der Punkt muss sich fuer Mitglieder lohnen und fuer Fremde weh tun.
+pruefe('Mitglieder stehen besser da als Fremde', eigenBetrag > fremdBetrag)
+pruefe('Fremde stehen schlechter da als am freien Punkt', fremdBetrag < freiBetrag)
+
+gruppe('Ritualkrieg: Meditation')
+
+pruefe('Mitglieder meditieren mit Faktor 1.2',
+    math.abs(RitualWar.MeditationFactorFor('eigen') - 1.2) < 0.0001,
+    RitualWar.MeditationFactorFor('eigen'))
+
+pruefe('Fremde meditieren mit Faktor 0.7',
+    math.abs(RitualWar.MeditationFactorFor('fremd') - 0.7) < 0.0001,
+    RitualWar.MeditationFactorFor('fremd'))
+
+pruefe('Am freien Punkt bleibt es bei 1.0',
+    RitualWar.MeditationFactorFor('frei') == 1.0)
+
+-- Ein Fremder darf nie ganz leer ausgehen, sonst ist der Punkt fuer alle
+-- anderen tot statt teuer.
+pruefe('Die Strafe fuer Fremde frisst nicht alles',
+    RitualWar.MeditationFactorFor('fremd') > 0.0)
+
+gruppe('Ritualkrieg: Wirtschaft')
+
+-- Der Punkt muss sich einspielen, sonst bindet ihn niemand. Bewertet mit
+-- dem Preis, zu dem der Steinhaendler Grundsteine verkauft.
+local proAusschuettung = 0
+for _, eintrag in ipairs(WarConfig.Income.stones) do
+    proAusschuettung = proAusschuettung
+        + ((eintrag.min + eintrag.max) / 2) * MysticConfig.Merchant.price
+end
+
+local ausschuettungen = math.ceil(WarConfig.Binding.cost / proAusschuettung)
+local stunden = (ausschuettungen * WarConfig.Income.interval) / 60
+
+pruefe('Ein Punkt spielt seine Kosten in unter zehn Stunden ein',
+    stunden < 10, ('%.1f Stunden'):format(stunden))
+
+pruefe('Ein Punkt ist nicht binnen einer Stunde bezahlt',
+    stunden > 1, ('%.1f Stunden'):format(stunden))
+
+-- Die Schutzzeit muss mindestens eine Ausschuettung abdecken, sonst kann
+-- eine Fraktion den Punkt halten, ohne je etwas davon zu haben.
+pruefe('Die Schutzzeit deckt mindestens eine Ausschuettung',
+    WarConfig.Binding.protection >= WarConfig.Income.interval,
+    ('%d gegen %d Minuten'):format(WarConfig.Binding.protection,
+        WarConfig.Income.interval))
+
+pruefe('Die Rueckzahlung liegt zwischen null und voll',
+    WarConfig.Binding.refund >= 0 and WarConfig.Binding.refund <= 1)
+
+pruefe('Ein Abbruch kostet etwas', WarConfig.Binding.refund < 1)
+
+for _, eintrag in ipairs(WarConfig.Income.stones) do
+    pruefe(('Ertragsstein %s ist ein Grundstein'):format(eintrag.item),
+        Mystic.Stones[eintrag.item] ~= nil)
+
+    pruefe(('Ertrag %s hat sinnvolle Grenzen'):format(eintrag.item),
+        eintrag.min >= 1 and eintrag.max >= eintrag.min)
+end
+
+gruppe('Ritualkrieg: Stoerung und Segen')
+
+-- Wer stoeren will, muss das innerhalb eines laufenden Rituals schaffen.
+pruefe('Eine Stoerung greift, bevor ein Ritual fertig ist',
+    WarConfig.Disruption.delay < MysticConfig.Ritual.duration,
+    ('%d gegen %d Sekunden'):format(WarConfig.Disruption.delay,
+        MysticConfig.Ritual.duration))
+
+pruefe('Eine Stoerung greift auch waehrend einer Meditation',
+    WarConfig.Disruption.delay < MysticConfig.Meditation.duration)
+
+-- Der Stoerradius darf nicht groesser sein als der Bindungsradius, sonst
+-- kann jemand eine Bindung von ausserhalb blockieren, ohne selbst zu zaehlen.
+pruefe('Der Stoerradius liegt innerhalb des Bindungsradius',
+    WarConfig.Disruption.range <= WarConfig.Binding.range)
+
+pruefe('Der Segen reicht weiter als der Stoerradius',
+    WarConfig.Blessing.range > WarConfig.Disruption.range)
+
+for schluessel, wert in pairs(WarConfig.Blessing.effects) do
+    pruefe(('Der Segen %s ist ein Vorteil'):format(schluessel), wert > 0, wert)
+end
 
 -- ===========================================================================
 

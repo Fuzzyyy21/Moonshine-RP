@@ -106,14 +106,32 @@ MysticConfig.Merchant = {
 
 -- Ritualpunkte ---------------------------------------------------------------
 -- Hier oeffnet sich der Skilltree, hier wird erweckt und meditiert.
+--- Die Kennung muss stabil bleiben - moonshine-ritualwar speichert sie.
 MysticConfig.RitualPoints = {
-    { label = 'Vinewood Friedhof',   coords = vector3(-1671.2, -230.4, 55.1),  radius = 2.5 },
-    { label = 'Chiliad Gipfel',      coords = vector3(450.9, 5566.5, 781.2),   radius = 3.0 },
-    { label = 'Altruisten Lager',    coords = vector3(-1170.5, 4926.6, 224.3), radius = 3.0 },
-    { label = 'Kirche Sandy Shores', coords = vector3(1972.4, 3815.5, 33.4),   radius = 2.5 },
-    { label = 'Leuchtturm Paleto',   coords = vector3(3430.6, 5175.7, 21.0),   radius = 2.5 },
-    { label = 'Steinkreis Zancudo',  coords = vector3(-2295.1, 3384.3, 31.9),  radius = 3.0 },
+    { id = 'vinewood', label = 'Vinewood Friedhof',
+      coords = vector3(-1671.2, -230.4, 55.1),  radius = 2.5 },
+    { id = 'chiliad',  label = 'Chiliad Gipfel',
+      coords = vector3(450.9, 5566.5, 781.2),   radius = 3.0 },
+    { id = 'altruist', label = 'Altruisten Lager',
+      coords = vector3(-1170.5, 4926.6, 224.3), radius = 3.0 },
+    { id = 'sandy',    label = 'Kirche Sandy Shores',
+      coords = vector3(1972.4, 3815.5, 33.4),   radius = 2.5 },
+    { id = 'paleto',   label = 'Leuchtturm Paleto',
+      coords = vector3(3430.6, 5175.7, 21.0),   radius = 2.5 },
+    { id = 'zancudo',  label = 'Steinkreis Zancudo',
+      coords = vector3(-2295.1, 3384.3, 31.9),  radius = 3.0 },
 }
+
+--- Ritualpunkt anhand seiner Kennung.
+function Mystic.GetRitualPoint(id)
+    if type(id) ~= 'string' then return nil end
+
+    for _, point in ipairs(MysticConfig.RitualPoints) do
+        if point.id == id then return point end
+    end
+
+    return nil
+end
 
 MysticConfig.RitualBlip = {
     enabled = true,

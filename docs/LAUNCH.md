@@ -1,6 +1,6 @@
 # Vor dem Livegang
 
-Der Server ist inhaltlich vollständig: 15 Resources, alle Systeme greifen
+Der Server ist inhaltlich vollständig: 16 Resources, alle Systeme greifen
 ineinander. **Nichts davon lief bisher auf einem laufenden FXServer.** Diese
 Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
@@ -8,11 +8,12 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 1.900 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.200 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
-Seitenzuordnung, Command-Kollisionen und Schema-Drift — bevor der Server
+Seitenzuordnung, Command-Kollisionen, Schema-Drift und Globals aus einer
+Resource, die gar nicht mitgeladen wird — bevor der Server
 überhaupt startet. Der zweite Befehl führt die Rechenlogik der `shared`-Dateien
 tatsächlich aus. Beides läuft bei jedem Push ohnehin.
 
@@ -48,6 +49,7 @@ Jede Resource meldet sich. Fehlt eine Zeile, hat das Schema nicht geklappt:
 [Mystik] Datenbank bereit.
 [Progress] Datenbank bereit.
 [Fraktionen] Datenbank bereit.  [Fraktionen] 0 Fraktionen geladen.
+[Ritualkrieg] Datenbank bereit. [Ritualkrieg] 0 von 6 Punkten sind gebunden.
 [Auktion] Datenbank bereit.     [Auktion] 0 offene Auktionen geladen.
 [Fahrzeuge] Datenbank bereit.
 [Arbeit] Datenbank bereit.
@@ -63,7 +65,7 @@ Config korrigieren.
 
 | Was | Wo | Anzahl |
 |---|---|---|
-| Ritualpunkte | `moonshine-mystic/shared/config.lua` | 6 |
+| Ritualpunkte (auch Ritualkrieg) | `moonshine-mystic/shared/config.lua` | 6 |
 | Steinhändler | `moonshine-mystic/shared/config.lua` | 4 |
 | Weltboss-Spawns | `moonshine-boss/config.lua` | 6 |
 | Krankenhäuser | `moonshine-death/config.lua` | – |
@@ -107,23 +109,32 @@ Ein Durchlauf, der alle Systeme berührt:
 7. **Sterben**, Notruf, Wiederbeleben durch einen zweiten Spieler
 8. **Fortschritt** (`F6`): Spielzeit-Meilenstein abholen, Kiste öffnen
 9. **Fraktion gründen**, Wappen bauen, Ränge anlegen, Gebiet einnehmen
-10. **Fahrzeug kaufen**, tanken, absichtlich schrotten, reparieren lassen
-11. **Auktion** einstellen und mit einem zweiten Spieler überbieten
-12. **Schicht** beim Postdienst, alle sechs Stationen, Abschlussbonus
-13. **Bedürfnis** mit `/setbeduerfnis <id> 10` auf schwach setzen — die
+10. **Ritualpunkt binden** (`/bindung`, zwei Mitglieder, 75.000 $ in der
+    Kasse) — nach 180 Sekunden muss der Blip die Wappenfarbe annehmen und
+    nach 20 Minuten müssen Steine im Tresor liegen
+11. **Fahrzeug kaufen**, tanken, absichtlich schrotten, reparieren lassen
+12. **Auktion** einstellen und mit einem zweiten Spieler überbieten
+13. **Schicht** beim Postdienst, alle sechs Stationen, Abschlussbonus
+14. **Bedürfnis** mit `/setbeduerfnis <id> 10` auf schwach setzen — die
     Klassenwerte müssen sofort schlechter sein, der Balken links unten
     auftauchen. Dann stillen (Item, Passant, Zone) und zusehen, wie es steigt
-14. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
+15. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
     anders sein (`/mystik` zeigt sie)
-15. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
+16. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
     Umkleide wieder wechseln
-16. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+17. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 
 Vieles lässt sich allein nicht testen: Wiederbeleben, Fraktionseinladung,
 Gebietsstreit (zwei Fraktionen im selben Gebiet müssen den Balken anhalten),
 Auktionsgebote, Überweisung, Fahrzeugschlüssel, Fahrzeugübergabe.
+
+Für den Ritualkrieg gilt das doppelt: die Bindung braucht ohnehin zwei
+Mitglieder, und Störung wie Wegzoll lassen sich allein gar nicht auslösen.
+Zu prüfen ist, dass ein Fremder am gebundenen Punkt (a) den Balken anhält,
+(b) nach sechs Sekunden fremde Rituale abbricht und (c) beim eigenen Ritual
+25 % in der Kasse des Halters lässt.
 
 ## 6. Last
 
@@ -135,6 +146,9 @@ Bei vielen Spielern relevant:
 * **Gebiets-Tick** — läuft alle 2 Sekunden über alle Fraktionsmitglieder. Er
   sammelt die Positionen einmal, nicht je Gebiet; bei über 100 Spielern trotzdem
   im Auge behalten.
+* **Ritualkrieg-Ticks** — zwei weitere 2-Sekunden-Läufe über alle Spieler:
+  einer für die Bindung, einer für die Anwesenheit an den Punkten.
+  `WarConfig.TickInterval` erhöhen, wenn das zu viel wird.
 * **Wachhund-Bewegungsprüfung** — alle 5 Sekunden über alle Spieler.
   `AdminConfig.Guard.movement.interval` erhöhen, wenn es stört.
 

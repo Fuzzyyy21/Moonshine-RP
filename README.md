@@ -15,6 +15,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-boss` | Weltbosse alle 45 Minuten, lassen Runen- und Seelensteine fallen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-progress` | Spielzeit-Belohnungen, Daily/Weekly Missionen, Battle Pass, Kisten → [`docs/PROGRESS.md`](docs/PROGRESS.md) |
 | `moonshine-factions` | Fraktionen mit Wappen, Rängen, Skilltree, Kasse, Tresor, Shop, Garage und Gebieten → [`docs/FACTIONS.md`](docs/FACTIONS.md) |
+| `moonshine-ritualwar` | Ritualpunkte als umkämpfter Fraktionsbesitz: Bindung, Steinertrag, Wegzoll, Störung → [`docs/RITUALWAR.md`](docs/RITUALWAR.md) |
 | `moonshine-auction` | Auktionshaus mit Geboten, Sofortkauf und Abholfach → [`docs/AUCTION.md`](docs/AUCTION.md) |
 | `moonshine-vehicles` | Autohäuser, eigene Fahrzeuge, Garagen, Schlüssel und Verwahrstelle → [`docs/VEHICLES.md`](docs/VEHICLES.md) |
 | `moonshine-services` | Tankstellen, Werkstätten, Bank, Geldautomaten und Schwarzmarkt → [`docs/SERVICES.md`](docs/SERVICES.md) |
@@ -40,6 +41,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Welt** | Serverzeit mit 48-Minuten-Tag, Wetterzyklus, acht Mondphasen und acht Weltereignissen, die Klassenkräfte, Bossintervall und Ritualertrag verschieben |
 | **Fortschritt** | Spielzeit-Meilensteine, drei tägliche und drei wöchentliche Missionen, Battle Pass über 50 Stufen, vier Kistenarten |
 | **Fraktionen** | Wappen-Baukasten, bis zu acht Ränge mit 13 Rechten, eigener Skilltree, Kasse, Tresor, Shop, Garage, acht Gebiete mit Einnahme und Einkommen |
+| **Ritualkrieg** | Sechs Ritualpunkte als Fraktionsbesitz: 180-Sekunden-Bindungsritual, Steinertrag alle 20 Minuten, 25 % Wegzoll von fremden Ritualen, Störung durch Danebenstehen |
 | **Auktionshaus** | Gebote mit Anti-Sniping, Sofortkauf, Hausgebühr, Abholfach für Offline-Spieler |
 | **Fahrzeuge** | 42 Fahrzeuge in drei Autohäusern, sechs Garagen, Tank- und Schadenspersistenz, Schlüsselsystem und Verwahrstelle |
 | **Dienste** | 9 Tankstellen, 4 Werkstätten, 6 Bankfilialen, 16 Geldautomaten, wandernder Schwarzmarkt mit Geldwäsche |

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Ritualkrieg</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Anzeige am Punkt ---------------------------------------------------------->
+<div id="hud" class="hidden">
+    <div class="hud-head">
+        <span class="hud-mark" id="hud-mark">✦</span>
+        <div class="hud-text">
+            <div class="hud-label" id="hud-label">Ritualpunkt</div>
+            <div class="hud-owner" id="hud-owner">ungebunden</div>
+        </div>
+    </div>
+
+    <div class="hud-note hidden" id="hud-protected">
+        <span>🛡</span><span id="hud-protected-text">geschützt</span>
+    </div>
+
+    <div class="hud-binding hidden" id="hud-binding">
+        <div class="hud-binding-head">
+            <span id="hud-binding-label">Bindungsritual</span>
+            <span id="hud-binding-value">0 %</span>
+        </div>
+        <div class="track"><div class="fill" id="hud-binding-fill"></div></div>
+        <div class="hud-contested hidden" id="hud-contested">⚔ gestört – der Balken steht</div>
+    </div>
+</div>
+
+<!-- Übersicht ----------------------------------------------------------------->
+<div id="overlay" class="hidden">
+    <div id="panel">
+        <header>
+            <div>
+                <h1>Ritualpunkte</h1>
+                <p id="subtitle">Wer den Punkt bindet, verdient an allem, was dort geschieht.</p>
+            </div>
+            <button id="close" title="Schließen">✕</button>
+        </header>
+
+        <div id="list"></div>
+
+        <footer>
+            <div id="hint">Ein Bindungsritual dauert 3 Minuten und kostet die Fraktionskasse.</div>
+            <div class="actions">
+                <button id="cancel" class="ghost">Bindung abbrechen</button>
+                <button id="bind" class="primary">Bindung starten</button>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

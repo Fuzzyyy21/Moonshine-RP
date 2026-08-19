@@ -16,6 +16,7 @@ Was geprueft wird:
  10. Schema      - sql/moonshine.sql deckt sich mit dem, was die Resources anlegen
  11. Aufrufe     - keine Aufrufe auf Funktionen, die es nirgends gibt
  12. Config      - keine Zugriffe auf Config-Felder, die nie gesetzt werden
+ 13. Namensraum  - keine Globals aus einer Resource, die gar nicht geladen ist
 
 Aufruf:   python3 tools/pruefen.py [--nur-syntax]
 Rueckgabe: 0 wenn sauber, 1 bei Funden.
@@ -421,13 +422,14 @@ def check_schema():
 
 NAMESPACES = {
     'MS', 'Mystic', 'Progress', 'Factions', 'Auction', 'Vehicles', 'Services',
-    'Work', 'Admin', 'World', 'Appearance', 'Death', 'Boss',
+    'Work', 'Admin', 'World', 'Appearance', 'Death', 'Boss', 'Needs', 'RitualWar',
 }
 
 CONFIG_TABLES = {
     'Config', 'MysticConfig', 'ProgressConfig', 'FactionConfig', 'AuctionConfig',
     'VehicleConfig', 'ServiceConfig', 'WorkConfig', 'AdminConfig', 'WorldConfig',
-    'AppearanceConfig', 'DeathConfig', 'BossConfig',
+    'AppearanceConfig', 'DeathConfig', 'BossConfig', 'NeedsConfig', 'ShopConfig',
+    'WarConfig',
 }
 
 
@@ -522,6 +524,98 @@ def check_config_access():
                              f"{table}.{field} ist nirgends gesetzt ({side})")
 
 
+# --- 13. Globals aus einer Resource, die gar nicht geladen ist ---------------
+#
+# In FiveM hat jede Resource ihren eigenen Lua-Zustand. `MysticConfig` aus
+# moonshine-mystic ist in moonshine-needs schlicht nil, solange die Datei
+# nicht per '@moonshine-mystic/shared/config.lua' mitgeladen wird. Genau so
+# lief moonshine-needs eine Weile ins Leere, ohne dass es auffiel: der Code
+# hatte einen nil-Schutz und tat einfach nichts.
+
+def _reachable_files(res, side):
+    """Eigene Dateien plus alles, was per @resource/datei mitgeladen wird."""
+    sides = manifest_sides(res)
+    out = []
+
+    for name in sorted(sides['shared'] | sides[side]):
+        if name.startswith('@'):
+            # '@moonshine-mystic/shared/config.lua' -> Pfad im Repo.
+            target = os.path.join(ROOT, name[1:])
+            if os.path.exists(target):
+                out.append(target)
+            continue
+
+        path = os.path.join(ROOT, res, name)
+        if os.path.exists(path):
+            out.append(path)
+
+    return out
+
+
+def _names_in(paths):
+    """Namensraum-Felder, die diese Dateien definieren."""
+    found = set()
+
+    for path in paths:
+        body = read(path)
+
+        for pattern in (
+                r"function\s+(\w+)\.(\w+)\s*\(",
+                r"function\s+(\w+)\.(\w+)\.\w+\s*\(",
+                r"(\w+)\.(\w+)\s*=\s*function",
+                r"^\s*(\w+)\.(\w+)\s*=",
+                r"^\s*(\w+)\.(\w+)\.\w+\s*=",
+                r"^\s*(\w+)\.(\w+)\s*\[",
+        ):
+            for namespace, field in re.findall(pattern, body, re.M):
+                found.add((namespace, field))
+
+        for match in re.finditer(r"^(\w+)\s*=\s*\{(.*?)^\}", body, re.S | re.M):
+            namespace = match.group(1)
+            for field in re.findall(r"^\s*(\w+)\s*=", match.group(2), re.M):
+                found.add((namespace, field))
+
+    return found
+
+
+def check_foreign_globals():
+    for side in ('server', 'client'):
+        for res in resources():
+            own = _side_files(res, side)
+            if not own:
+                continue
+
+            reachable = _names_in(_reachable_files(res, side))
+
+            # Namensraeume, die sich diese Resource per Export holt, reisen
+            # legitim ueber die Grenze (MS = exports[...]:GetCoreObject()).
+            via_export = set()
+            for path in own:
+                for name in re.findall(r"^\s*(?:local\s+)?(\w+)\s*=\s*(?:\w+\s+or\s+)?exports\[",
+                                       read(path), re.M):
+                    via_export.add(name)
+
+            for path in own:
+                body = read(path)
+
+                for index, line in enumerate(body.split('\n'), 1):
+                    if line.strip().startswith('--'):
+                        continue
+
+                    for table, field in re.findall(
+                            r"(?<![\w.])(\w+)\.(\w+)", line):
+                        if table not in NAMESPACES and table not in CONFIG_TABLES:
+                            continue
+                        if table in via_export:
+                            continue
+                        if (table, field) in reachable:
+                            continue
+
+                        note('NAMENSRAUM-FREMD', f"{path}:{index}",
+                             f"{table}.{field} kommt aus einer anderen Resource "
+                             f"und wird hier nicht mitgeladen ({side})")
+
+
 def main():
     only_syntax = '--nur-syntax' in sys.argv
 
@@ -538,6 +632,7 @@ def main():
         check_schema()
         check_unknown_calls()
         check_config_access()
+        check_foreign_globals()
 
     if not findings:
         print('Alles sauber.')

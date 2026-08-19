@@ -372,6 +372,21 @@ function Profile:GetModifiers()
         mods.damageMult = math.max(0.4, mods.damageMult)
     end
 
+    -- Segen des eigenen Ritualpunktes (moonshine-ritualwar, optional).
+    local blessing = nil
+    pcall(function()
+        blessing = exports['moonshine-ritualwar']:GetBlessing(self.source)
+    end)
+
+    if type(blessing) == 'table' then
+        for _, key in ipairs({ 'essenceRegen', 'regenPerTick', 'xpBonus',
+                               'moneyBonus' }) do
+            if type(blessing[key]) == 'number' then
+                mods[key] = (mods[key] or 0) + blessing[key]
+            end
+        end
+    end
+
     -- Mondphase und laufendes Weltereignis (moonshine-world, optional).
     local world = nil
     pcall(function()
