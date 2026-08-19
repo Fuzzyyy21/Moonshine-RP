@@ -60,6 +60,24 @@ function Appearance.Apply(data)
         end
     end
 
+    -- Taetowierungen
+    --
+    -- Decorations lassen sich nicht einzeln entfernen, nur alle zusammen.
+    -- Also jedes Mal leeren und die Liste neu auftragen.
+    ClearPedDecorations(ped)
+
+    local gender = IsPedMale(ped) and 'm' or 'w'
+
+    for _, id in ipairs(data.tattoos or {}) do
+        local entry = Appearance.GetTattoo(id)
+        local overlay = Appearance.TattooOverlay(entry, gender)
+
+        if entry and overlay then
+            AddPedDecorationFromHashes(ped,
+                GetHashKey(entry.collection), GetHashKey(overlay))
+        end
+    end
+
     -- Anbauteile
     for _, prop in ipairs(Appearance.Props) do
         local entry = (data.props or {})[tostring(prop.id)]
@@ -116,6 +134,9 @@ function Appearance.Read()
     local base = Appearance.Current or {}
 
     return {
+        -- Decorations lassen sich nicht zurueckgelesen werden. Die Liste
+        -- kommt daher aus dem, was der Server zuletzt geschickt hat.
+        tattoos    = base.tattoos or {},
         model      = base.model,
         headBlend  = base.headBlend,
         features   = features,

@@ -31,8 +31,16 @@ end
 -- Speichern ------------------------------------------------------------------
 
 --- Prueft und uebernimmt ein Aussehen.
-local function sanitize(input, gender)
+---
+--- `current` ist das gespeicherte Aussehen. Alles, was Geld gekostet hat
+--- und nicht im Editor liegt - die Taetowierungen -, wird von dort
+--- uebernommen und aus der Einsendung gar nicht erst gelesen.
+local function sanitize(input, gender, current)
     local base = Appearance.Default(gender)
+
+    base.tattoos = Appearance.SanitizeTattoos(
+        type(current) == 'table' and current.tattoos or nil)
+
     if type(input) ~= 'table' then return base end
 
     local function number(value, fallback, min, max)
@@ -135,7 +143,7 @@ local function store(source, appearance)
     local player = MS.GetPlayer(source)
     if not player then return false end
 
-    player.appearance = sanitize(appearance, player.gender)
+    player.appearance = sanitize(appearance, player.gender, player.appearance)
     player:Save()
 
     return true
@@ -325,7 +333,7 @@ RegisterNetEvent('appearance:server:buy', function(appearance)
     end
 
     -- Der Server vergleicht selbst, was sich geaendert hat.
-    local clean = sanitize(appearance, player.gender)
+    local clean = sanitize(appearance, player.gender, player.appearance)
     local kleidung, accessoires = countChanges(player.appearance, clean)
 
     local total = kleidung * Appearance.GetPrice('kleidung', shop.tier)
@@ -381,7 +389,7 @@ RegisterNetEvent('appearance:server:saveOutfit', function(label, outfit)
     end
 
     -- Nur Kleidung sichern, nicht das Gesicht.
-    local clean = sanitize(outfit, player.gender)
+    local clean = sanitize(outfit, player.gender, player.appearance)
 
     local id = Appearance.DB.SaveOutfit(player.charId, label, {
         components = clean.components,
@@ -514,7 +522,7 @@ exports('SetOutfit', function(source, outfit)
     if type(outfit.components) == 'table' then appearance.components = outfit.components end
     if type(outfit.props) == 'table' then appearance.props = outfit.props end
 
-    player.appearance = sanitize(appearance, player.gender)
+    player.appearance = sanitize(appearance, player.gender, player.appearance)
     player:Save()
 
     TriggerClientEvent('appearance:client:apply', source, player.appearance)

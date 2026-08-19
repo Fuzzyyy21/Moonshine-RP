@@ -7,7 +7,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | Resource | Inhalt |
 |---|---|
 | `moonshine-core` | Framework: Accounts, Multicharacter, Geld, Inventar, Jobs, HUD, API |
-| `moonshine-appearance` | Charaktereditor, Kleidungsläden, Friseure und Outfits → [`docs/APPEARANCE.md`](docs/APPEARANCE.md) |
+| `moonshine-appearance` | Charaktereditor, Kleidungsläden, Friseure, Tätowierer und Outfits → [`docs/APPEARANCE.md`](docs/APPEARANCE.md) |
 | `moonshine-world` | Serverzeit, Wetter, Mondphasen und mystische Weltereignisse → [`docs/WORLD.md`](docs/WORLD.md) |
 | `moonshine-mystic` | Klassen-Skilltree (Klassensteine) und persönlicher Skillbaum mit 6 Kategorien (Fähigkeitspunkte), Skillleiste, Ritualpunkte → [`docs/MYSTIC.md`](docs/MYSTIC.md) |
 | `moonshine-needs` | Klassenbedürfnisse: jede Klasse braucht etwas Eigenes zum Überleben → [`docs/NEEDS.md`](docs/NEEDS.md) |
@@ -36,7 +36,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **HUD** | Name, Server-ID, Job, Geld, Leben, Weste, Hunger, Durst |
 | **Persistenz** | Autosave, Speichern bei Disconnect, Resource-Stop und Server-Shutdown |
 | **API** | Exports, Server-Callbacks, Events – für eigene Resources dokumentiert in [`docs/API.md`](docs/API.md) |
-| **Aussehen** | Charaktereditor mit Gesichtsmischung, 20 Gesichtszügen, 13 Auflagen und aller Kleidung; 6 Läden in drei Preisstufen, 5 Friseure, 10 Outfits je Charakter |
+| **Aussehen** | Charaktereditor mit Gesichtsmischung, 20 Gesichtszügen, 13 Auflagen und aller Kleidung; 6 Läden in drei Preisstufen, 5 Friseure, 5 Tätowierer mit 8 Körperzonen und einem Klassenmal je Klasse, 10 Outfits je Charakter |
 | **Bedürfnisse** | Acht klassenspezifische Bedürfnisse mit eigenen Quellen — Blut, rohes Fleisch, Mana, Reagenzien, Naturnähe, Seelen, Totenkraft, Vorräte |
 | **Welt** | Serverzeit mit 48-Minuten-Tag, Wetterzyklus, acht Mondphasen und acht Weltereignissen, die Klassenkräfte, Bossintervall und Ritualertrag verschieben |
 | **Fortschritt** | Spielzeit-Meilensteine, drei tägliche und drei wöchentliche Missionen, Battle Pass über 50 Stufen, vier Kistenarten |

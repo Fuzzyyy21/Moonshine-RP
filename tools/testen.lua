@@ -689,6 +689,7 @@ pruefe('Sofortkauf braucht eine Laufzeit', #AuctionConfig.Durations > 0)
 
 laden('moonshine-appearance/shared/config.lua')
 laden('moonshine-appearance/shared/data.lua')
+laden('moonshine-appearance/shared/tattoos.lua')
 
 gruppe('Aussehen')
 
@@ -729,6 +730,140 @@ pruefe('Auflagen-Ids sind eindeutig', ok11, doppelt11)
 pruefe('Es gibt 20 Gesichtszuege', #Appearance.Features == 20, #Appearance.Features)
 pruefe('Vater und Mutter haben gleich viele Vorlagen',
     #Appearance.Parents.male == #Appearance.Parents.female)
+
+gruppe('Aussehen: Taetowierungen')
+
+local okTat, doppelTat = eindeutig(Appearance.Tattoos, 'id')
+pruefe('Motiv-Ids sind eindeutig', okTat, doppelTat)
+
+-- Zwei Motive duerfen nie denselben Aufdruck haben - sonst kauft man
+-- zweimal dasselbe Bild unter verschiedenen Namen.
+local aufdrucke, doppelteAufdrucke = {}, {}
+for _, motiv in ipairs(Appearance.Tattoos) do
+    for _, name in ipairs({ motiv.male, motiv.female }) do
+        local schluessel = motiv.collection .. '/' .. name
+        if aufdrucke[schluessel] then
+            doppelteAufdrucke[#doppelteAufdrucke + 1] = schluessel
+        end
+        aufdrucke[schluessel] = true
+    end
+end
+pruefe('Kein Aufdruck kommt zweimal vor', #doppelteAufdrucke == 0,
+    table.concat(doppelteAufdrucke, ', '))
+
+local sammlungen = {}
+for _, name in pairs(Appearance.TattooCollections) do sammlungen[name] = true end
+
+for _, motiv in ipairs(Appearance.Tattoos) do
+    pruefe(('Motiv %s liegt in einer bekannten Zone'):format(motiv.id),
+        Appearance.GetTattooZone(motiv.zone) ~= nil, motiv.zone)
+
+    pruefe(('Motiv %s kommt aus einer bekannten Sammlung'):format(motiv.id),
+        sammlungen[motiv.collection] == true, motiv.collection)
+
+    pruefe(('Motiv %s hat fuer beide Geschlechter einen Aufdruck'):format(motiv.id),
+        type(motiv.male) == 'string' and type(motiv.female) == 'string')
+
+    pruefe(('Motiv %s unterscheidet Mann und Frau'):format(motiv.id),
+        motiv.male ~= motiv.female)
+
+    pruefe(('Motiv %s laesst sich ueber die Id finden'):format(motiv.id),
+        Appearance.GetTattoo(motiv.id) == motiv)
+end
+
+-- Jede Zone muss etwas anzubieten haben, sonst steht sie leer im Studio.
+for _, zone in ipairs(Appearance.TattooZones) do
+    pruefe(('Zone %s hat Motive'):format(zone.key),
+        #Appearance.TattoosInZone(zone.key) > 0)
+
+    pruefe(('Zone %s hat einen Preisbereich'):format(zone.key),
+        AppearanceConfig.Prices.tattoo[zone.tier] ~= nil, zone.tier)
+end
+
+pruefe('Unbekanntes Motiv liefert nichts', Appearance.GetTattoo('gibtesnicht') == nil)
+pruefe('Unbekannte Zone liefert nichts', Appearance.GetTattooZone('nirgends') == nil)
+
+-- Klassenmale: genau eines je Klasse, keines doppelt.
+local male = {}
+for _, motiv in ipairs(Appearance.Tattoos) do
+    if motiv.race then
+        pruefe(('Mal %s gehoert zu einer echten Klasse'):format(motiv.id),
+            Mystic.Races[motiv.race] ~= nil, motiv.race)
+
+        pruefe(('Klasse %s hat nur ein Mal'):format(motiv.race),
+            male[motiv.race] == nil)
+
+        male[motiv.race] = motiv
+    end
+end
+
+for rasse in pairs(Mystic.Races) do
+    pruefe(('Klasse %s hat ein Mal'):format(rasse), male[rasse] ~= nil)
+end
+
+-- Ein Mal kostet den Aufschlag, ein gewoehnliches Motiv nicht.
+local malPreis = Appearance.TattooPrice('mal_vampir')
+local normalPreis = Appearance.TattooPrice('brust_schaedel')
+
+pruefe('Beide liegen in derselben Zone',
+    Appearance.GetTattoo('mal_vampir').zone
+        == Appearance.GetTattoo('brust_schaedel').zone)
+
+pruefe('Brust kostet 12.000', normalPreis == 12000, normalPreis)
+pruefe('Ein Klassenmal kostet das Dreifache', malPreis == 36000, malPreis)
+
+-- Handgerechnet gegen die Konfiguration: klein 2.500, mittel 6.000.
+pruefe('Ein Bein kostet 2.500', Appearance.TattooPrice('beinl_dolch') == 2500,
+    Appearance.TattooPrice('beinl_dolch'))
+pruefe('Ein Arm kostet 6.000', Appearance.TattooPrice('arml_runen') == 6000,
+    Appearance.TattooPrice('arml_runen'))
+
+pruefe('Unbekanntes Motiv kostet nichts', Appearance.TattooPrice('gibtesnicht') == 0)
+
+-- Wegmachen muss teurer sein als stechen, sonst ist es keine Entscheidung.
+pruefe('Entfernen kostet mehr als stechen',
+    AppearanceConfig.Prices.tattooEntfernen > 1.0)
+pruefe('Ein Klassenmal kostet mehr als ein gewoehnliches Motiv',
+    AppearanceConfig.Prices.tattooMal > 1.0)
+
+gruppe('Aussehen: Taetowierungen bereinigen')
+
+pruefe('Eine leere Liste bleibt leer', #Appearance.SanitizeTattoos({}) == 0)
+pruefe('Kein Wert ergibt eine leere Liste', #Appearance.SanitizeTattoos(nil) == 0)
+
+local erfunden = Appearance.SanitizeTattoos({ 'gibtesnicht', 'auchnicht' })
+pruefe('Erfundene Motive fliegen raus', #erfunden == 0, #erfunden)
+
+local doppelt = Appearance.SanitizeTattoos({ 'brust_anker', 'brust_anker' })
+pruefe('Doppelte Motive werden zusammengefasst', #doppelt == 1, #doppelt)
+
+local gemischt = Appearance.SanitizeTattoos({
+    'brust_anker', 'gibtesnicht', 'ruecken_drache', 42, 'brust_anker' })
+pruefe('Aus der Mischung bleiben zwei', #gemischt == 2, #gemischt)
+pruefe('Die Reihenfolge bleibt erhalten',
+    gemischt[1] == 'brust_anker' and gemischt[2] == 'ruecken_drache')
+
+pruefe('HasTattoo findet ein getragenes Motiv',
+    Appearance.HasTattoo(gemischt, 'ruecken_drache'))
+pruefe('HasTattoo findet nichts Fremdes',
+    not Appearance.HasTattoo(gemischt, 'kopf_kreuz'))
+pruefe('HasTattoo kommt mit nil klar',
+    not Appearance.HasTattoo(nil, 'kopf_kreuz'))
+
+-- Der Standardcharakter startet ohne Taetowierung.
+for _, geschlecht in ipairs({ 'm', 'w' }) do
+    pruefe(('Standard "%s" startet ohne Taetowierung'):format(geschlecht),
+        #Appearance.Default(geschlecht).tattoos == 0)
+end
+
+-- Mann und Frau bekommen denselben Aufdruck in ihrer Fassung.
+local probe = Appearance.GetTattoo('ruecken_adler')
+pruefe('Mann bekommt die M-Fassung',
+    Appearance.TattooOverlay(probe, 'm') == probe.male)
+pruefe('Frau bekommt die F-Fassung',
+    Appearance.TattooOverlay(probe, 'w') == probe.female)
+pruefe('Ohne Motiv gibt es keinen Aufdruck',
+    Appearance.TattooOverlay(nil, 'm') == nil)
 
 
 -- ===========================================================================

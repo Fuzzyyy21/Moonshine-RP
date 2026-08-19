@@ -159,6 +159,10 @@ function Appearance.Default(gender)
         eyeColour  = 0,
         components = components,
         props      = props,
+
+        -- Ids aus Appearance.Tattoos. Nur ueber den Taetowierer aenderbar,
+        -- nie ueber ein gespeichertes Aussehen.
+        tattoos    = {},
     }
 end
 

@@ -738,6 +738,117 @@ function render() {
 
 /* -------------------------------------------------------------- Nachrichten */
 
+/* ------------------------------------------------------------ Tätowierstudio */
+
+let tattooData = null;
+let tattooZone = null;
+let tattooPick = null;
+
+function tattooZonenZeichnen() {
+    const nav = $('tattoo-zones');
+    clear(nav);
+
+    (tattooData.zonen || []).forEach((zone) => {
+        const motive = (tattooData.motive || []).filter((m) => m.zone === zone.key);
+        const getragen = motive.filter((m) => m.getragen).length;
+
+        const row = el('div', `group${zone.key === tattooZone ? ' active' : ''}`);
+        row.appendChild(el('span', 'icon', zone.icon || '🖋'));
+        row.appendChild(el('span', null, zone.label));
+        row.appendChild(el('span', 'tick',
+            getragen > 0 ? `${getragen}/${motive.length}` : ''));
+
+        row.addEventListener('click', () => {
+            tattooZone = zone.key;
+            tattooPick = null;
+            post('tattooZone', { zone: zone.key });
+            tattooZeichnen();
+        });
+
+        nav.appendChild(row);
+    });
+}
+
+function tattooZeichnen() {
+    if (!tattooData) return;
+
+    const zone = (tattooData.zonen || []).find((z) => z.key === tattooZone)
+        || (tattooData.zonen || [])[0];
+
+    if (zone) tattooZone = zone.key;
+
+    $('tattoo-title').textContent = tattooData.label || 'Tätowierer';
+    $('tattoo-balance').textContent = money(tattooData.balance);
+    $('tattoo-count').textContent = String((tattooData.getragen || []).length);
+    $('tattoo-zone-title').textContent = zone ? zone.label : '—';
+
+    tattooZonenZeichnen();
+
+    const liste = $('tattoo-list');
+    clear(liste);
+
+    const motive = (tattooData.motive || []).filter((m) => m.zone === tattooZone);
+
+    if (!motive.length) {
+        liste.appendChild(el('p', 'muted', 'Für diese Stelle gibt es hier nichts.'));
+        $('tattoo-zone-hint').textContent = '';
+        return;
+    }
+
+    const entfernung = tattooData.entfernen || 1;
+    $('tattoo-zone-hint').textContent =
+        `Entfernen kostet das ${entfernung.toLocaleString('de-DE')}-fache.`;
+
+    motive.forEach((motiv) => {
+        const klassen = ['motiv'];
+        if (motiv.id === tattooPick) klassen.push('gewaehlt');
+        if (motiv.getragen) klassen.push('getragen');
+        if (motiv.mal) klassen.push('mal');
+
+        const row = el('div', klassen.join(' '));
+
+        const text = el('div', 'motiv-text');
+        text.appendChild(el('div', 'motiv-label', motiv.label));
+        text.appendChild(el('div', 'motiv-note',
+            motiv.getragen ? 'gestochen' : (motiv.mal ? 'Klassenmal' : '')));
+        row.appendChild(text);
+
+        if (motiv.getragen) {
+            const weg = el('button', 'entfernen', 'Entfernen');
+            weg.title = money(Math.floor(motiv.preis * entfernung));
+            weg.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                post('tattooRemove', { id: motiv.id });
+            });
+            row.appendChild(weg);
+        } else {
+            const zuTeuer = motiv.preis > (tattooData.balance || 0);
+
+            const preis = el('span',
+                `motiv-preis${zuTeuer ? ' zuteuer' : ''}`, money(motiv.preis));
+            row.appendChild(preis);
+
+            const kaufen = el('button', 'stechen', 'Stechen');
+            kaufen.disabled = zuTeuer;
+            kaufen.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                if (!zuTeuer) post('tattooBuy', { id: motiv.id });
+            });
+            row.appendChild(kaufen);
+        }
+
+        row.addEventListener('click', () => {
+            tattooPick = motiv.id;
+            post('tattooPreview', { id: motiv.id });
+            tattooZeichnen();
+        });
+
+        liste.appendChild(row);
+    });
+}
+
+$('tattoo-close').addEventListener('click', () => post('tattooClose'));
+
 window.addEventListener('message', (event) => {
     const message = event.data || {};
 
@@ -764,6 +875,22 @@ window.addEventListener('message', (event) => {
 
         case 'appearance:buyFailed':
             updateCost();
+            break;
+
+        case 'tattoo:open':
+            tattooData = message.data || null;
+            if (tattooData && !tattooZone) {
+                tattooZone = (tattooData.zonen || [])[0]
+                    ? tattooData.zonen[0].key : null;
+            }
+            $('tattoo').classList.remove('hidden');
+            tattooZeichnen();
+            break;
+
+        case 'tattoo:close':
+            $('tattoo').classList.add('hidden');
+            tattooData = null;
+            tattooPick = null;
             break;
 
         default:

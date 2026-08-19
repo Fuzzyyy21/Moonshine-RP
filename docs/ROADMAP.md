@@ -50,43 +50,38 @@ Mein Vorschlag: **Ritualarten mit Auswahl** — dieselbe Handlung, aber der
 Spieler entscheidet, ob er Geld, Steine oder Punkte will. Das kostet wenig Code
 und gibt dem Ritualpunkt sofort Tiefe.
 
-## Zuerst: das macht den Server rund
+## Zuerst: kleine Schritte mit viel Wirkung
 
-### 1. Tattoos — klein
-Der Editor deckt alles ab außer Tattoos. `SetPedDecoration` und die
-Overlay-Sammlungen wären der nächste Schritt; die Struktur in
-`ms_characters.appearance` trägt das mit.
+### 1. Werkstatt-Tuning — klein
+Die Werkstätten reparieren bisher nur. Lackierung, Felgen und Leistungsteile
+wären der nächste Schritt; die Spalte `mods` in `ms_vehicles` liegt bereit.
+
+### 2. Mehr Aufträge — klein
+Das Auftragssystem in `moonshine-jobs` trägt beliebig viele. Naheliegend:
+Abschleppdienst, Busfahrer, Nachtwache an den Ritualpunkten.
 
 ## Danach: mehr Tiefe
-
-### 2. Telefon — groß
-Nachrichten, Kontakte, Notruf, Fraktions-Chat, Anzeigenmarkt. Vieles davon
-hängt an den Fraktionen und am Notrufsystem, die beide schon stehen.
 
 ### 3. Zufluchtsorte statt Housing — mittel
 Klassengerecht: Sarg für Vampire, Höhle für Werwölfe, Turm für Magier. Lagerung
 von Steinen, sicherer Respawn, kleiner Essenz-Bonus beim Ausruhen.
 
-### 4. Werkstatt-Tuning — klein
-Die Werkstätten reparieren bisher nur. Lackierung, Felgen und Leistungsteile
-wären der nächste Schritt; die Spalte `mods` in `ms_vehicles` liegt bereit.
-
-### 5. Mehr Aufträge — klein
-Das Auftragssystem in `moonshine-jobs` trägt beliebig viele. Naheliegend:
-Abschleppdienst, Busfahrer, Nachtwache an den Ritualpunkten.
+### 4. Telefon — groß
+Nachrichten, Kontakte, Notruf, Fraktions-Chat, Anzeigenmarkt. Vieles davon
+hängt an den Fraktionen und am Notrufsystem, die beide schon stehen.
 
 ## Technik und Betrieb
 
-### 6. Discord-Anbindung — klein
+### 5. Discord-Anbindung — klein
 Rollen aus Discord auf Adminlevel und Whitelist-Jobs abbilden, Logs als Webhook
 (die Log-Funktion kann das bereits, `Config.Logs.webhook`).
 
-### 7. Statistiken und Bestenlisten — klein
+### 6. Statistiken und Bestenlisten — klein
 Die Arbeit hat schon eine. Sinnvoll wären außerdem: höchste Klassenstufe,
 meiste Weltbosse, größte Fraktionskasse, teuerste Auktion. Aus `ms_logs`,
 `ms_mystic`, `ms_factions` und `ms_auctions` direkt ableitbar.
 
-### 8. Testlauf auf echter Hardware — Pflicht vor dem Livegang
+### 7. Testlauf auf echter Hardware — Pflicht vor dem Livegang
 Nichts davon lief bisher auf einem laufenden FXServer. Die vollständige Liste
 steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -110,6 +105,8 @@ steht in [`LAUNCH.md`](LAUNCH.md).
 
 ## Abgehakt
 
+* **Tattoos** — als Tätowierer in `moonshine-appearance` gebaut: fünf Studios,
+  acht Körperzonen, ein Klassenmal je Klasse
 * **Ritualpunkte als umkämpfte Gebiete** — als `moonshine-ritualwar` gebaut:
   Bindungsritual, Steinertrag in den Fraktionstresor, Wegzoll von fremden
   Ritualen, Störung durch Danebenstehen und ein Segen für die Halter

@@ -74,6 +74,53 @@
     </aside>
 </div>
 
+<!-- Tätowierstudio ---------------------------------------------------------->
+<div id="tattoo" class="hidden">
+    <aside class="sidebar">
+        <header class="brand">
+            <div class="crest">🖋</div>
+            <div>
+                <h1 id="tattoo-title">Tätowierer</h1>
+                <p class="sub">Was einmal drin ist, geht nur mit Laser wieder raus</p>
+            </div>
+        </header>
+
+        <nav class="groups" id="tattoo-zones"></nav>
+
+        <div class="sidebar-foot">
+            <div class="balance">
+                <span class="caption">Konto</span>
+                <span class="value" id="tattoo-balance">0 $</span>
+            </div>
+            <div class="cost">
+                <span class="caption">Gestochen</span>
+                <span class="value gold" id="tattoo-count">0</span>
+            </div>
+        </div>
+    </aside>
+
+    <div class="stage">
+        <div class="hint">
+            <span>Ein Motiv anklicken zeigt es an dir. <b>Stechen</b> kostet, <b>Entfernen</b> kostet mehr.</span>
+        </div>
+    </div>
+
+    <aside class="panel">
+        <div class="panel-head">
+            <h2 id="tattoo-zone-title">Kopf und Hals</h2>
+            <p class="muted" id="tattoo-zone-hint"></p>
+        </div>
+
+        <div class="controls" id="tattoo-list"></div>
+
+        <div class="panel-foot">
+            <div class="actions">
+                <button class="btn" id="tattoo-close">Schließen</button>
+            </div>
+        </div>
+    </aside>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

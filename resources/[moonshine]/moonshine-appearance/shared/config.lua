@@ -80,6 +80,24 @@ AppearanceConfig.BarberBlip = {
     enabled = true, sprite = 71, colour = 25, scale = 0.65, label = 'Friseur',
 }
 
+-- Taetowierer ---------------------------------------------------------------------------
+AppearanceConfig.TattooShops = {
+    { id = 'blackbird',  label = 'Blackbird Ink',
+      coords = vector3( 1322.6, -1651.9, 52.3) },
+    { id = 'hafenstich', label = 'Hafenstich',
+      coords = vector3( -1153.1, -1425.4, 4.9) },
+    { id = 'vespucci',   label = 'Nadel und Faden',
+      coords = vector3( -293.0, 6200.2, 31.5) },
+    { id = 'sandynadel', label = 'Sandy Nadel',
+      coords = vector3( 1864.5, 3747.7, 33.0) },
+    { id = 'elysian',    label = 'Elysian Ink',
+      coords = vector3( 322.1, 180.5, 103.6) },
+}
+
+AppearanceConfig.TattooBlip = {
+    enabled = true, sprite = 75, colour = 1, scale = 0.65, label = 'Tätowierer',
+}
+
 -- Preise --------------------------------------------------------------------------------
 AppearanceConfig.Prices = {
     account = 'bank',
@@ -96,6 +114,15 @@ AppearanceConfig.Prices = {
 
     -- Outfit speichern.
     outfitSlot = 500,
+
+    -- Taetowierung, je nach Groesse der Zone.
+    tattoo = { klein = 2500, mittel = 6000, gross = 12000 },
+
+    -- Aufschlag fuer ein Klassenmal.
+    tattooMal = 3.0,
+
+    -- Wegmachen kostet mehr als stechen - Laser statt Nadel.
+    tattooEntfernen = 1.6,
 }
 
 --- So viele Outfits darf ein Charakter speichern.

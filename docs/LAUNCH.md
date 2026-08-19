@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.200 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.400 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -87,12 +87,25 @@ Config korrigieren.
 | Naturgebiete | `moonshine-needs/shared/needs.lua` | 8 |
 | Friedhöfe | `moonshine-needs/shared/needs.lua` | 4 |
 | Kleidungsläden | `moonshine-appearance/shared/config.lua` | 6 |
+| Tätowierer | `moonshine-appearance/shared/config.lua` | 5 |
 | Friseure | `moonshine-appearance/shared/config.lua` | 5 |
 | Umkleiden | `moonshine-appearance/shared/config.lua` | 4 |
 
 Besonders heikel sind die **Fahrzeug-Ausgabepunkte** (Autohäuser, Garagen,
 Arbeitsfahrzeuge): Steht der Punkt in einer Wand, erscheint das Fahrzeug gar
 nicht oder fällt durch die Welt.
+
+### Und die Tattoo-Aufdrucke
+
+Dieselbe Sorte Arbeit, aber an anderer Stelle: die rund 35 Motive in
+`moonshine-appearance/shared/tattoos.lua` benennen GTA-Decorations
+(`MP_Bea_M_Chest_000` und so weiter). Die Namen folgen dem Muster der
+DLC-Pakete, sind aber nie im Spiel gegengeprüft.
+
+Ein falscher Name wirft **keinen Fehler** — es erscheint nichts. Deshalb:
+einmal mit `/gibtattoo <id> <motiv>` durch den Katalog gehen und schauen, was
+tatsächlich auftaucht. Was leer bleibt, in der Datei korrigieren oder
+streichen.
 
 ## 4. Durchspielen
 
@@ -122,7 +135,10 @@ Ein Durchlauf, der alle Systeme berührt:
     anders sein (`/mystik` zeigt sie)
 16. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
     Umkleide wieder wechseln
-17. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+17. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
+    erscheinen), stechen, wieder entfernen. Als Erweckter zusätzlich das
+    Klassenmal — es darf nur das eigene sichtbar sein
+18. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 

@@ -40,6 +40,7 @@ Spiel ab — die Zahlen stimmen also auch, wenn du Addon-Kleidung streamst.
 | **Kleidungsläden** (6) | Kleidung und Accessoires | je geändertem Teil |
 | **Friseure** (5) | Haare, Bart, Augenbrauen, Make-up | 1.200 $ einmalig |
 | **Umkleiden** (4) | Kleidung wechseln, Outfits verwalten | kostenlos |
+| **Tätowierer** (5) | Tätowierungen stechen und entfernen | je Motiv |
 
 Kleidungsläden gibt es in drei Preisstufen — Binco günstig, Suburban mittel,
 Ponsonbys teuer:
@@ -64,12 +65,56 @@ nach einem Friseurbesuch noch anziehen.
 
 In der Umkleide kostet das Wechseln nichts.
 
+## Tätowierungen
+
+Fünf Studios, acht Körperzonen, rund 35 Motive. Anders als Kleidung ist ein
+Tattoo eine Entscheidung: es lässt sich nicht ausziehen, und Wegmachen kostet
+das **1,6-fache** des Stechens.
+
+| Zone | Preis |
+|---|---|
+| Kopf und Hals, Brust, Rücken | 12.000 $ |
+| Bauch, linker und rechter Arm | 6.000 $ |
+| Linkes und rechtes Bein | 2.500 $ |
+
+Ein Motiv anklicken zeigt es sofort am eigenen Charakter, die Kamera springt
+dabei auf die passende Körperstelle. Erst **Stechen** kostet Geld.
+
+### Klassenmale
+
+Jede der acht Klassen hat ein eigenes Mal auf der Brust — *Mal des Blutes*
+für Vampire, *Mal der Wut* für Werwölfe, und so weiter. Es kostet das
+**Dreifache** (36.000 $) und ist nur für die eigene Klasse überhaupt
+sichtbar: wer nicht erweckt ist, sieht im Studio kein einziges Mal.
+
+Damit gibt es zum ersten Mal ein Zeichen der Zugehörigkeit, das man nicht
+mit einem Kleiderwechsel ablegt. Wer die Klasse wechselt, behält das alte
+Mal — bis er es sich wegmachen lässt.
+
+### Wo die Motive herkommen
+
+GTA legt Tattoos nicht als Kleidungsstück ab, sondern als *Decoration*: eine
+Sammlung plus ein Aufdruck, beides als Hash. Männer und Frauen haben eigene
+Aufdrucke, deshalb steht in `shared/tattoos.lua` je Eintrag beides.
+
+> **Vor dem Livegang prüfen.** Die Aufdrucknamen folgen dem Muster der
+> GTA-DLC-Pakete (`MP_Bea_M_Chest_000` und so weiter), sind aber nie im Spiel
+> gegengeprüft worden. Ein falscher Name wirft **keinen Fehler** — es
+> erscheint schlicht nichts. Sie gehören damit auf dieselbe Liste wie die
+> Koordinaten, siehe [`LAUNCH.md`](LAUNCH.md).
+
+Die Liste der getragenen Motive liegt als `tattoos` im Aussehen und wird
+**nur** vom Tätowierer geändert. Ein eingesendetes Aussehen kann sie nicht
+setzen — sonst tätowierte sich ein manipulierter Client umsonst.
+
 ## Commands
 
 | Command | Level | Beschreibung |
 |---|---|---|
 | `/outfits` | – | Eigene Outfits im Chat |
 | `/editor` | 3 | Editor überall öffnen, ohne Kosten |
+| `/tattoos` | – | Eigene Tätowierungen im Chat |
+| `/gibtattoo [id] [motiv]` | 3 | Motiv ohne Bezahlung stechen |
 
 ## API
 
@@ -84,13 +129,19 @@ exports['moonshine-appearance']:SetOutfit(source, {
     props      = { ['0']  = { drawable = 12, texture = 0 } },
 })
 
+-- Taetowierungen
+exports['moonshine-appearance']:GetTattoos(source)        -- Liste der Ids
+exports['moonshine-appearance']:GiveTattoo(source, id)    -- ohne Bezahlung
+exports['moonshine-appearance']:ClearTattoos(source)
+
 -- Client
 exports['moonshine-appearance']:GetAppearance()
 exports['moonshine-appearance']:ApplyAppearance(data)
 exports['moonshine-appearance']:IsEditing()
 ```
 
-Ereignis: `appearance:server:changed` mit der `source`.
+Ereignisse: `appearance:server:changed` mit der `source`, und
+`appearance:server:tattooed` mit `source` und der Motiv-Id.
 
 ## Aufbau der Daten
 
@@ -106,6 +157,7 @@ appearance = {
     eyeColour = 0,
     components = { ['11'] = { drawable, texture }, … },
     props      = { ['0']  = { drawable, texture }, … },  -- drawable -1 = nichts
+    tattoos    = { 'brust_wolf', 'mal_vampir' },         -- Ids aus tattoos.lua
 }
 ```
 

@@ -12,18 +12,21 @@ dependency 'moonshine-core'
 shared_scripts {
     'shared/config.lua',
     'shared/data.lua',
+    'shared/tattoos.lua',
 }
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/database.lua',
     'server/main.lua',
+    'server/tattoos.lua',
 }
 
 client_scripts {
     'client/appearance.lua',
     'client/editor.lua',
     'client/main.lua',
+    'client/tattoos.lua',
 }
 
 ui_page 'nui/index.html'
