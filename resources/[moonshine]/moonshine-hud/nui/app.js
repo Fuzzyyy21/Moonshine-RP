@@ -322,9 +322,10 @@ function auswahlZeile(name, feld, aktiv) {
     const zeile = el('div', 'zeile');
     zeile.appendChild(el('span', 'zeile-name', name));
 
-    const box = el('div', 'auswahl');
+    const liste = (setup.auswahl || {})[feld] || [];
+    const box = el('div', `auswahl${liste.length >= 4 ? ' vier' : ''}`);
 
-    ((setup.auswahl || {})[feld] || []).forEach((eintrag) => {
+    liste.forEach((eintrag) => {
         const knopf = el('button', eintrag.value === aktiv ? 'aktiv' : null, eintrag.label);
         knopf.addEventListener('click', () => {
             setzen(feld, eintrag.value);

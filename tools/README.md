@@ -26,6 +26,7 @@ Rückgabewert 0 wenn sauber, 1 bei Funden. Läuft bei jedem Push über
 | **Schema** | `sql/moonshine.sql` gegen das, was die Resources tatsächlich anlegen — fehlende Tabellen, verwaiste Tabellen, abweichende Spalten. Das Schema steht zwangsläufig doppelt da, also driftet es sonst. |
 | **Aufrufe** | `Mystic.Foo()`, `Work.Bar()` und so weiter, die nirgends definiert sind — getrennt nach Server- und Client-Seite, weil dort verschiedene Dateien laufen. |
 | **Config** | Zugriffe auf `MysticConfig.Foo`, `WorkConfig.Bar` und so weiter, die keine Config je setzt. |
+| **Namensraum** | Globals aus einer anderen Resource, die gar nicht mitgeladen wird. In FiveM hat jede Resource ihren eigenen Lua-Zustand — `MysticConfig` ist anderswo schlicht `nil`, solange die Datei nicht per `'@moonshine-mystic/shared/config.lua'` im Manifest steht. Genau so lief `moonshine-needs` eine Weile ins Leere. |
 
 ### Was er nicht kann
 
@@ -90,3 +91,21 @@ Tests fielen dabei durch und wurden ersetzt:
   Baum nie erreicht. Jetzt stehen exakte Sollwerte da, und die Kappungen
   werden über einen eingeschleusten Testknoten geprüft.
 * Eine Kappungsprüfung schlug nur durch Fließkomma-Zufall an.
+
+
+## `vorschau/`
+
+Rendert ein NUI ohne laufenden FXServer und schießt Bilder davon — die
+echte `index.html` samt `style.css` und `app.js`, gefüttert mit den
+Nachrichten des Client-Codes.
+
+```bash
+lua5.4 tools/vorschau/ziehen.lua    # Config -> daten/*.json
+node tools/vorschau/hud.js          # Bilder -> tools/vorschau/bilder/
+```
+
+Bei der Anzeige hat das auf Anhieb drei Layout-Fehler gezeigt, die im Code
+nicht zu sehen waren: acht Ringe brachen als 5+3 um, vier Auswahlknöpfe als
+3+1, und der Gang stand halb außerhalb des Tachorings.
+
+Einzelheiten in [`vorschau/README.md`](vorschau/README.md).
