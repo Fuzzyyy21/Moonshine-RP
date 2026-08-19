@@ -13,6 +13,7 @@ Was geprueft wird:
   7. Seiten      - keine reinen Client-Natives auf dem Server (und umgekehrt)
   8. Commands    - kein Command-Name doppelt ueber Resources hinweg
   9. Abhaengig   - kein ungeschuetzter Export auf eine Resource ohne dependency
+ 10. Schema      - sql/moonshine.sql deckt sich mit dem, was die Resources anlegen
 
 Aufruf:   python3 tools/pruefen.py [--nur-syntax]
 Rueckgabe: 0 wenn sauber, 1 bei Funden.
@@ -348,6 +349,72 @@ def check_dependencies():
                                  f"{target} ungeschuetzt, ohne dependency")
 
 
+# --- 10. Schema: Lua gegen sql/moonshine.sql --------------------------------
+
+def tables_in(text):
+    """Tabellenname -> Menge der Spaltennamen."""
+    out = {}
+
+    for match in re.finditer(
+            r"CREATE TABLE IF NOT EXISTS\s+`(\w+)`\s*\((.*?)\)\s*ENGINE",
+            text, re.S):
+        name, body = match.group(1), match.group(2)
+
+        columns = set()
+        for line in body.split('\n'):
+            column = re.match(r"\s*`(\w+)`\s+\w", line)
+            if column:
+                columns.add(column.group(1))
+
+        out[name] = columns
+
+    return out
+
+
+def check_schema():
+    """
+    Das Schema steht zweimal da: die Resources legen ihre Tabellen selbst an,
+    und sql/moonshine.sql ist die Referenz zum Handimportieren. Beides muss
+    uebereinstimmen, sonst hat wer manuell importiert ein kaputtes System.
+    """
+    reference = 'sql/moonshine.sql'
+    if not os.path.exists(reference):
+        note('SCHEMA', reference, 'Datei fehlt')
+        return
+
+    from_sql = tables_in(read(reference))
+    from_lua = {}
+
+    for res in resources():
+        for side in ('server',):
+            for path in files_for(res, side):
+                for name, columns in tables_in(read(path)).items():
+                    from_lua[name] = (columns, path)
+
+    for name in sorted(set(from_lua) - set(from_sql)):
+        note('SCHEMA-FEHLT-IM-SQL', from_lua[name][1],
+             f"{name} wird angelegt, steht aber nicht in {reference}")
+
+    for name in sorted(set(from_sql) - set(from_lua)):
+        note('SCHEMA-VERWAIST', reference,
+             f"{name} steht im SQL, aber keine Resource legt sie an")
+
+    for name in sorted(set(from_lua) & set(from_sql)):
+        lua_columns, path = from_lua[name]
+        sql_columns = from_sql[name]
+
+        only_lua = sorted(lua_columns - sql_columns)
+        only_sql = sorted(sql_columns - lua_columns)
+
+        if only_lua:
+            note('SCHEMA-SPALTEN', path,
+                 f"{name}: {only_lua} fehlen in {reference}")
+
+        if only_sql:
+            note('SCHEMA-SPALTEN', reference,
+                 f"{name}: {only_sql} kennt keine Resource")
+
+
 def main():
     only_syntax = '--nur-syntax' in sys.argv
 
@@ -361,6 +428,7 @@ def main():
         check_sides()
         check_commands()
         check_dependencies()
+        check_schema()
 
     if not findings:
         print('Alles sauber.')

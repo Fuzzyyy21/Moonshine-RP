@@ -66,6 +66,26 @@ CREATE TABLE IF NOT EXISTS `ms_logs` (
 -- UPDATE `ms_users` SET `admin_level` = 4 WHERE `license` = 'license:deinelizenz';
 
 -- ---------------------------------------------------------------------------
+-- Mystik (moonshine-mystic)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_mystic` (
+    `character_id`    INT         NOT NULL,
+    `race`            VARCHAR(32) DEFAULT NULL,
+    `xp`              INT         NOT NULL DEFAULT 0,
+    `xp_total`        INT         NOT NULL DEFAULT 0,
+    `meditation`      INT         NOT NULL DEFAULT 0,
+    `personal_points` INT         NOT NULL DEFAULT 0,
+    `unlocked`        LONGTEXT    DEFAULT NULL,
+    `skillbar`        LONGTEXT    DEFAULT NULL,
+    `perks`           LONGTEXT    DEFAULT NULL,
+    `seconds_played`  INT         NOT NULL DEFAULT 0,
+    `awakened_at`     TIMESTAMP   NULL DEFAULT NULL,
+    `updated_at`      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
 -- Fortschritt (moonshine-progress)
 -- ---------------------------------------------------------------------------
 

@@ -23,6 +23,7 @@ Rückgabewert 0 wenn sauber, 1 bei Funden. Läuft bei jedem Push über
 | **Seiten** | Reine Client-Natives in Serverdateien und umgekehrt. |
 | **Commands** | Kein Command-Name doppelt über Resources hinweg — sonst gewinnt je nach Ladereihenfolge ein anderer. |
 | **Abhängigkeiten** | Ungeschützte Exporte auf eine Resource, die nicht als `dependency` im Manifest steht. Ein `pcall` in den drei Zeilen davor gilt als abgesichert. |
+| **Schema** | `sql/moonshine.sql` gegen das, was die Resources tatsächlich anlegen — fehlende Tabellen, verwaiste Tabellen, abweichende Spalten. Das Schema steht zwangsläufig doppelt da, also driftet es sonst. |
 
 ### Was er nicht kann
 
