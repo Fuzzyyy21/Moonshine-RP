@@ -23,6 +23,9 @@ jobs:
       - name: Framework pruefen
         run: python3 tools/pruefen.py
 
+      - name: Rechenlogik testen
+        run: lua5.4 tools/testen.lua
+
       - name: SQL gegen MariaDB einspielen
         run: |
           sudo systemctl start mysql || sudo service mysql start

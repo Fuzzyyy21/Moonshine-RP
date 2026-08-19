@@ -7,13 +7,17 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 ## 0. Vorher: die statische Prüfung
 
 ```bash
-python3 tools/pruefen.py
+python3 tools/pruefen.py    # Syntax und Verdrahtung
+lua5.4 tools/testen.lua     # Rechenlogik, rund 1.900 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
-Seitenzuordnung und Command-Kollisionen — bevor der Server überhaupt startet.
-Bei jedem Push läuft sie ohnehin. Was sie **nicht** kann: Koordinaten prüfen,
-Spielmechanik testen, Balancing beurteilen. Dafür ist der Rest dieser Liste da.
+Seitenzuordnung, Command-Kollisionen und Schema-Drift — bevor der Server
+überhaupt startet. Der zweite Befehl führt die Rechenlogik der `shared`-Dateien
+tatsächlich aus. Beides läuft bei jedem Push ohnehin.
+
+Was sie **nicht** können: Koordinaten prüfen, Spielmechanik testen, Balancing
+beurteilen. Dafür ist der Rest dieser Liste da.
 
 ## 1. Aufsetzen
 

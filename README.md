@@ -148,6 +148,7 @@ docs/ADMIN.md                Adminpanel und Anticheat
 docs/ROADMAP.md              Ideen für den weiteren Ausbau
 docs/LAUNCH.md               Checkliste vor dem Livegang
 tools/pruefen.py             Prüft Syntax und Verdrahtung ohne laufenden Server
+tools/testen.lua             Führt die Rechenlogik aus (rund 1.900 Zusicherungen)
 ```
 
 ## Konfiguration
@@ -241,8 +242,9 @@ Vollständige Referenz: [`docs/API.md`](docs/API.md).
 * Kleidung und Charaktereditor liegen in `moonshine-appearance` und schreiben in
   die Spalte `appearance`, die dafür von Anfang an vorgesehen war.
 * `python3 tools/pruefen.py` prüft Syntax, Manifeste, Exporte, Events, NUI-
-  Callbacks, Seitentrennung und Command-Kollisionen — ohne laufenden Server.
-  Läuft auch bei jedem Push. Details in [`tools/README.md`](tools/README.md).
+  Callbacks, Seitentrennung, Command-Kollisionen und Schema-Drift.
+  `lua5.4 tools/testen.lua` führt die Rechenlogik tatsächlich aus. Beides läuft
+  bei jedem Push — Details in [`tools/README.md`](tools/README.md).
 * **Nichts davon lief bisher auf einem laufenden FXServer.** Die Checkliste vor
   dem Livegang — vor allem die nachzumessenden Koordinaten — steht in
   [`docs/LAUNCH.md`](docs/LAUNCH.md).

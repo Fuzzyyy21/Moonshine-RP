@@ -37,3 +37,56 @@ ein echter Testlauf — siehe [`docs/LAUNCH.md`](../docs/LAUNCH.md).
 
 Jede Prüfung ist eine Funktion, die `note(art, wo, was)` aufruft. In `main()`
 eintragen, fertig.
+
+## `testen.lua`
+
+Führt die reine Rechenlogik der `shared`-Dateien mit echtem Lua aus — ohne
+FXServer.
+
+```bash
+lua5.4 tools/testen.lua
+```
+
+Rückgabewert 0 wenn alles besteht, 1 bei Fehlschlägen. Läuft ebenfalls bei
+jedem Push.
+
+`attrappe.lua` stellt die FiveM-Globals bereit, die beim *Laden* gebraucht
+werden — `vector3`, `CreateThread`, `exports`, `json` und so weiter. Sie
+enthält bewusst keine Spiellogik.
+
+### Was geprüft wird
+
+Rund 1.900 Zusicherungen, unter anderem:
+
+* **Mystik** — jede Klasse vollständig, jede Voraussetzung im Skilltree zeigt
+  auf einen existierenden Knoten, jede Rangstufe kostet etwas, die erste
+  Fähigkeit kostet genau fünf Steine, `PickRankValue` verhält sich an den
+  Rändern richtig, der volle persönliche Baum bleibt in den Grenzen.
+* **Fortschritt** — die Battle-Pass-Kurve gegen von Hand gerechnete Werte,
+  Missions-Ids eindeutig, jede Kiste hat Lose mit positivem Gewicht,
+  Spielzeit-Meilensteine aufsteigend.
+* **Fraktionen** — der oberste Rang hat alle Rechte, `SanitizeRanks` und
+  `SanitizeEmblem` fangen Müll ab, die Kappungen im Skilltree greifen
+  wirklich, Gebiets-Ids eindeutig.
+* **Welt** — acht Mondphasen, der Zyklus schließt sich, jedes Ereignis nennt
+  nur Klassen, die es gibt, Phase und Ereignis addieren sich korrekt.
+* **Arbeit** — jeder Auftrag hat genug Stationen für eine Schicht, die
+  Auswahl zieht ohne Wiederholung, der Lohn bleibt in seiner Streuung.
+* **Fahrzeuge, Dienste, Auktion, Aussehen** — eindeutige Modelle, jede
+  Händlerkategorie existiert, der Reparaturpreis steigt monoton mit dem
+  Schaden, niemand startet nackt.
+
+### Warum das nicht selbstverständlich ist
+
+Ein Test, der immer besteht, ist wertlos. Jede Prüfgruppe wurde gegen
+absichtlich eingebauten Schaden gehalten — verbogene Kurven, entfernte
+Kappungen, ins Leere zeigende Voraussetzungen, zu wenige Stationen. Drei
+Tests fielen dabei durch und wurden ersetzt:
+
+* Die Battle-Pass-Prüfung verglich dieselbe Funktion mit sich selbst und
+  hätte jede Änderung der Kurve durchgewunken. Jetzt stehen von Hand
+  gerechnete Sollwerte da.
+* Die Bonus-Prüfungen der Fraktionen waren reine Obergrenzen, die der echte
+  Baum nie erreicht. Jetzt stehen exakte Sollwerte da, und die Kappungen
+  werden über einen eingeschleusten Testknoten geprüft.
+* Eine Kappungsprüfung schlug nur durch Fließkomma-Zufall an.
