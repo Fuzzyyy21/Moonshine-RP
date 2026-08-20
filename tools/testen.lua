@@ -587,6 +587,109 @@ local job = Work.GetJob(Work.Order[1])
 pruefe('Mehr Stationen anfordern als vorhanden liefert hoechstens alle',
     #Work.PickStops(job, 999) == #job.stops)
 
+gruppe('Arbeit: besondere Ablaeufe')
+
+-- Eine Linie faehrt man der Reihe nach. Gewuerfelt waere es keine Linie.
+local bus = Work.GetJob('bus')
+pruefe('Den Bus gibt es', bus ~= nil)
+pruefe('Der Bus faehrt eine feste Route', bus.fixedRoute == true)
+
+local route = Work.PickStops(bus, WorkConfig.Shift.stops)
+for index, halt in ipairs(route) do
+    pruefe(('Haltestelle %d steht an ihrer Stelle'):format(index),
+        halt.label == bus.stops[index].label, halt.label)
+end
+
+-- Zweimal ziehen muss dieselbe Route ergeben.
+local zweite = Work.PickStops(bus, WorkConfig.Shift.stops)
+local gleich = true
+for index, halt in ipairs(route) do
+    if zweite[index].label ~= halt.label then gleich = false end
+end
+pruefe('Die Linie ist bei jeder Schicht dieselbe', gleich)
+
+-- Die anderen Auftraege duerfen gerade nicht fest sein, sonst faehrt jeder
+-- immer dieselbe Runde.
+for _, id in ipairs(Work.Order) do
+    if id ~= 'bus' then
+        pruefe(('%s hat keine feste Route'):format(id),
+            Work.GetJob(id).fixedRoute ~= true)
+    end
+end
+
+-- Abschleppdienst: was verladen wird, muss auch abgeliefert werden.
+local tow = Work.GetJob('tow')
+pruefe('Den Abschleppdienst gibt es', tow ~= nil)
+pruefe('Der Abschlepper liefert ab', tow.abliefern == true)
+pruefe('Das Abliefern hat eine Beschriftung',
+    type(tow.ablieferLabel) == 'string' and tow.ablieferLabel ~= '')
+pruefe('Der Abschlepper hat ein Fahrzeug', tow.vehicle ~= nil)
+
+-- Nachtwache: nur nachts, und sie zahlt dafuer besser als der Durchschnitt.
+local wache = Work.GetJob('nachtwache')
+pruefe('Die Nachtwache gibt es', wache ~= nil)
+pruefe('Die Nachtwache geht nur nachts', wache.nurNachts == true)
+
+local schnitt, anzahl = 0, 0
+for _, id in ipairs(Work.Order) do
+    if id ~= 'nachtwache' then
+        schnitt = schnitt + Work.GetJob(id).pay
+        anzahl = anzahl + 1
+    end
+end
+schnitt = schnitt / anzahl
+
+pruefe('Die Nachtwache zahlt ueber dem Schnitt',
+    wache.pay > schnitt, ('%d gegen %.0f'):format(wache.pay, schnitt))
+
+-- Genau ein Auftrag je Sonderregel - sonst ist es keine Besonderheit mehr.
+local nachts, fest, liefert = 0, 0, 0
+for _, id in ipairs(Work.Order) do
+    local job = Work.GetJob(id)
+    if job.nurNachts then nachts = nachts + 1 end
+    if job.fixedRoute then fest = fest + 1 end
+    if job.abliefern then liefert = liefert + 1 end
+end
+
+pruefe('Nur ein Auftrag laeuft nachts', nachts == 1, nachts)
+pruefe('Nur ein Auftrag hat eine feste Route', fest == 1, fest)
+pruefe('Nur ein Auftrag liefert ab', liefert == 1, liefert)
+
+-- Jeder Auftrag braucht eine Handlung und eine Beschriftung dazu.
+for _, id in ipairs(Work.Order) do
+    local job = Work.GetJob(id)
+
+    pruefe(('%s hat eine Handlung'):format(id),
+        type(job.action) == 'string' and job.action ~= '')
+    pruefe(('%s beschriftet seine Handlung'):format(id),
+        type(job.actionLabel) == 'string' and job.actionLabel ~= '')
+    pruefe(('%s hat eine Dauer ueber null'):format(id), (job.duration or 0) > 0)
+    pruefe(('%s hat ein Zeichen'):format(id),
+        type(job.icon) == 'string' and job.icon ~= '')
+    pruefe(('%s hat eine Farbe'):format(id),
+        type(job.colour) == 'string' and job.colour:match('^#%x%x%x%x%x%x$') ~= nil,
+        job.colour)
+end
+
+-- Kein Anmeldepunkt darf zweimal vorkommen: sonst stehen zwei Marker
+-- uebereinander und man meldet sich beim falschen an.
+local plaetze, doppelt = {}, {}
+for _, id in ipairs(Work.Order) do
+    local start = Work.GetJob(id).start.coords
+
+    for anderer, coords in pairs(plaetze) do
+        if #(start - coords) < 10.0 then
+            doppelt[#doppelt + 1] = ('%s/%s'):format(anderer, id)
+        end
+    end
+
+    plaetze[id] = start
+end
+pruefe('Keine zwei Anmeldepunkte liegen uebereinander', #doppelt == 0,
+    table.concat(doppelt, ', '))
+
+pruefe('Es gibt sieben Auftraege', #Work.Order == 7, #Work.Order)
+
 gruppe('Arbeit: Lohn')
 
 for _ = 1, 200 do

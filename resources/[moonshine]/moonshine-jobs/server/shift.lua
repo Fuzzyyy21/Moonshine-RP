@@ -49,6 +49,15 @@ function Work.SyncShift(source)
     TriggerClientEvent('work:client:shift', source, Work.ShiftPayload(source))
 end
 
+--- Ist gerade Nacht? Ohne moonshine-world gilt: immer.
+function Work.IsNight()
+    local nacht = nil
+    pcall(function() nacht = exports['moonshine-world']:IsNight() end)
+
+    if type(nacht) ~= 'boolean' then return true end
+    return nacht
+end
+
 -- Anmelden ---------------------------------------------------------------------
 
 --- Beginnt eine Schicht.
@@ -71,6 +80,12 @@ function Work.Start(source, jobId)
 
     if not atStart(source, definition) then
         return false, ('Melde dich bei %s an.'):format(definition.start.label)
+    end
+
+    -- Manche Arbeit gibt es nur nachts. Laeuft moonshine-world nicht, geht
+    -- sie immer - eine fehlende Resource soll niemanden aussperren.
+    if definition.nurNachts and not Work.IsNight() then
+        return false, 'Diese Schicht gibt es nur nachts.'
     end
 
     local stops = Work.PickStops(definition, WorkConfig.Shift.stops)
@@ -189,6 +204,18 @@ RegisterNetEvent('work:server:completeStop', function()
     Work.DB.Track(player.charId, shift.job, 1, pay, false)
     TriggerEvent('work:server:stopCompleted', source, shift.job, shift.index)
 
+    -- Wer verlaedt, muss auch abliefern: erst zurueck zum Hof, dann weiter.
+    if definition.abliefern then
+        shift.phase = 'abliefern'
+        Work.SyncShift(source)
+
+        player:Notify(('%s: %s. Zurueck zu %s.'):format(
+            definition.actionLabel, MS.Utils.FormatMoney(pay),
+            definition.start.label), 'success', 8000)
+
+        return
+    end
+
     shift.index = shift.index + 1
 
     if shift.index > #shift.stops then
@@ -207,6 +234,38 @@ RegisterNetEvent('work:server:completeStop', function()
         else
             shift.phase = 'fahren'
         end
+    end
+
+    Work.SyncShift(source)
+end)
+
+--- Der Abschlepper hat am Hof abgeladen. Erst jetzt zaehlt die Station.
+RegisterNetEvent('work:server:deliver', function()
+    local source = source
+    if not MS.RateLimit(source, 'work:server:deliver', 10, 10) then return end
+
+    local player = MS.GetPlayer(source)
+    local shift = Work.Shifts[source]
+    if not player or not shift or shift.phase ~= 'abliefern' then return end
+
+    local definition = Work.GetJob(shift.job)
+    if not definition or not definition.abliefern then return end
+
+    if not atStart(source, definition) then
+        player:Notify(('Fahr zurueck zu %s.'):format(definition.start.label), 'error')
+        return
+    end
+
+    shift.lastAt = os.time()
+    shift.index = shift.index + 1
+
+    if shift.index > #shift.stops then
+        shift.phase = 'abmelden'
+        player:Notify('Alles abgeliefert. Melde dich ab.', 'success', 9000)
+    else
+        shift.phase = 'fahren'
+        player:Notify(('Abgeladen. Naechster Einsatz (%d von %d).'):format(
+            shift.index, #shift.stops), 'success')
     end
 
     Work.SyncShift(source)

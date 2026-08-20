@@ -103,7 +103,11 @@ document.querySelectorAll('.tab').forEach((tab) => {
 /* --------------------------------------------------------------- Auftraege */
 
 function contractCard(entry) {
-    const card = el('div', `contract${entry.locked ? ' locked' : ''}`);
+    // Zwei Gründe, warum ein Auftrag gerade nicht geht: falsche Anstellung
+    // oder falsche Tageszeit. Beide sperren die Karte, sagen aber
+    // Verschiedenes.
+    const zu = entry.locked || entry.gesperrt;
+    const card = el('div', `contract${zu ? ' locked' : ''}`);
     card.style.setProperty('--job', entry.colour || '#5fc98a');
 
     const head = el('div', 'contract-head');
@@ -126,6 +130,7 @@ function contractCard(entry) {
     ];
 
     if (entry.vehicle) rows.push(['Fahrzeug', entry.vehicle, false]);
+    if (entry.nurNachts) rows.push(['Dienstzeit', 'nur nachts', false]);
 
     rows.forEach(([label, value, gold]) => {
         const row = el('div', 'spec');
@@ -152,9 +157,11 @@ function contractCard(entry) {
     const actions = el('div', 'contract-actions');
 
     if (entry.locked) {
-        const hint = el('div', 'muted',
-            `Braucht die Anstellung „${entry.requiresLabel || entry.requiresJob}“.`);
-        actions.appendChild(hint);
+        actions.appendChild(el('div', 'muted',
+            `Braucht die Anstellung „${entry.requiresLabel || entry.requiresJob}“.`));
+    } else if (entry.gesperrt) {
+        actions.appendChild(el('div', 'muted',
+            'Diese Schicht gibt es erst wieder, wenn es dunkel wird.'));
     } else {
         const route = el('button', 'btn small', 'Wegpunkt');
         route.addEventListener('click', () => post('route', { coords: entry.startCoords }));

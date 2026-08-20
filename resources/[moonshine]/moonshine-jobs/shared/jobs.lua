@@ -6,9 +6,15 @@
 ---
 ---   requiresJob  Nur mit diesem Job im Core (nil = jeder darf)
 ---   action       Was an einer Station passiert: 'liefern', 'sammeln',
----                'absetzen', 'reparieren'
+---                'absetzen', 'verladen', 'sichern'
 ---   pay          Grundlohn je Station
 ---   finalPay     Zusatz beim Abmelden
+---
+--- Drei Felder aendern den Ablauf selbst:
+---   passengers   Vor jeder Station wird jemand aufgenommen (Taxi)
+---   fixedRoute   Stationen der Reihe nach statt zufaellig (Bus)
+---   abliefern    Nach jeder Station zurueck zum Anmeldepunkt (Abschlepper)
+---   nurNachts    Schicht laesst sich nur nachts beginnen (Nachtwache)
 
 Work.Definitions = {
 
@@ -158,9 +164,126 @@ Work.Definitions = {
             { label = 'Vespucci',        coords = vector3(-1180.0, -1080.0, 3.0) },
         },
     },
+
+    -- Abschleppdienst ---------------------------------------------------------
+    tow = {
+        id = 'tow', label = 'Abschleppdienst', icon = '🪝',
+        description = 'Liegengebliebene Fahrzeuge einsammeln. Jedes einzeln '
+            .. 'zurueck zum Hof - das ist die halbe Arbeit.',
+        requiresJob = nil,
+        colour = '#e07b39',
+
+        start = { label = 'Abschlepphof', coords = vector3( 409.0, -1622.0, 29.3) },
+
+        vehicle = {
+            model = 'flatbed',
+            spawn = vector4(398.0, -1638.0, 29.3, 230.0),
+            label = 'Abschleppwagen',
+        },
+
+        action = 'verladen',
+        actionLabel = 'Fahrzeug verladen',
+        duration = 8,
+        pay = 520,
+        finalPay = 1100,
+
+        -- Was verladen ist, muss auch abgeliefert werden.
+        abliefern = true,
+        ablieferLabel = 'Fahrzeug abladen',
+
+        stops = {
+            { label = 'Panne Olympic Freeway',  coords = vector3(  -600.0, -1250.0, 12.0) },
+            { label = 'Panne Route 68',         coords = vector3(  1230.0,  2700.0, 38.0) },
+            { label = 'Unfall Elysian Fields',  coords = vector3(   180.0, -2600.0, 6.0) },
+            { label = 'Panne Great Ocean Hwy',  coords = vector3( -2100.0,  1400.0, 200.0) },
+            { label = 'Falschparker Vinewood',  coords = vector3(   300.0,   200.0, 88.0) },
+            { label = 'Panne Senora Freeway',   coords = vector3(  2400.0,  3100.0, 48.0) },
+            { label = 'Unfall Del Perro Fwy',   coords = vector3( -1300.0,  -400.0, 36.0) },
+            { label = 'Panne Paleto',           coords = vector3(  -200.0,  6400.0, 31.0) },
+            { label = 'Falschparker Hafen',     coords = vector3(   850.0, -2900.0, 5.0) },
+            { label = 'Panne Grapeseed',        coords = vector3(  1700.0,  4800.0, 42.0) },
+        },
+    },
+
+    -- Busfahrer -----------------------------------------------------------------
+    bus = {
+        id = 'bus', label = 'Busfahrer', icon = '🚌',
+        description = 'Die Linie durch die Stadt, Haltestelle fuer Haltestelle. '
+            .. 'Immer dieselbe Runde, immer dieselbe Reihenfolge.',
+        requiresJob = nil,
+        colour = '#4caf7d',
+
+        start = { label = 'Busdepot', coords = vector3( 462.0, -601.0, 28.5) },
+
+        vehicle = {
+            model = 'bus',
+            spawn = vector4(451.0, -613.0, 28.4, 180.0),
+            label = 'Linienbus',
+        },
+
+        action = 'absetzen',
+        actionLabel = 'Haltestelle anfahren',
+        duration = 5,
+        pay = 190,
+        finalPay = 850,
+
+        -- Eine Linie faehrt man der Reihe nach, nicht gewuerfelt.
+        fixedRoute = true,
+
+        stops = {
+            { label = 'Haltestelle Legion Square',  coords = vector3(  216.0, -871.0, 30.5) },
+            { label = 'Haltestelle Alta',           coords = vector3(  -50.0, -100.0, 57.0) },
+            { label = 'Haltestelle Rockford Hills', coords = vector3( -800.0, -110.0, 37.0) },
+            { label = 'Haltestelle Del Perro',      coords = vector3(-1400.0, -600.0, 30.0) },
+            { label = 'Haltestelle Vespucci',       coords = vector3(-1200.0,-1450.0, 4.0) },
+            { label = 'Haltestelle Flughafen',      coords = vector3(-1037.0,-2737.0, 20.0) },
+            { label = 'Haltestelle Strawberry',     coords = vector3(  180.0,-1740.0, 29.0) },
+            { label = 'Haltestelle La Mesa',        coords = vector3(  820.0,-1100.0, 27.0) },
+            { label = 'Haltestelle Mirror Park',    coords = vector3( 1108.0, -400.0, 67.0) },
+            { label = 'Haltestelle Vinewood',       coords = vector3(  300.0,  200.0, 88.0) },
+        },
+    },
+
+    -- Nachtwache ------------------------------------------------------------------
+    nachtwache = {
+        id = 'nachtwache', label = 'Nachtwache', icon = '🕯',
+        description = 'Die Ritualpunkte abgehen, solange es dunkel ist. '
+            .. 'Bezahlt gut - es meldet sich nicht jeder freiwillig.',
+        requiresJob = nil,
+        colour = '#9b6bd8',
+
+        start = { label = 'Wachhaus am Friedhof', coords = vector3(-1680.0, -217.0, 57.0) },
+
+        vehicle = {
+            model = 'burrito3',
+            spawn = vector4(-1668.0, -228.0, 56.6, 320.0),
+            label = 'Wachwagen',
+        },
+
+        action = 'sichern',
+        actionLabel = 'Punkt sichern',
+        duration = 10,
+        pay = 780,
+        finalPay = 1800,
+
+        -- Tagsueber gibt es hier nichts zu bewachen.
+        nurNachts = true,
+
+        -- Dieselben sechs Punkte wie in der Mystik. Sie stehen hier noch
+        -- einmal, weil moonshine-jobs die Mystik nicht mitlaedt - die
+        -- Koordinaten gehoeren beim Nachmessen zusammen geaendert.
+        stops = {
+            { label = 'Vinewood Friedhof',   coords = vector3(-1671.2, -230.4, 55.1) },
+            { label = 'Chiliad Gipfel',      coords = vector3(  450.9, 5566.5, 781.2) },
+            { label = 'Altruisten Lager',    coords = vector3(-1170.5, 4926.6, 224.3) },
+            { label = 'Kirche Sandy Shores', coords = vector3( 1972.4, 3815.5, 33.4) },
+            { label = 'Leuchtturm Paleto',   coords = vector3( 3430.6, 5175.7, 21.0) },
+            { label = 'Steinkreis Zancudo',  coords = vector3(-2295.1, 3384.3, 31.9) },
+        },
+    },
 }
 
-Work.Order = { 'trucker', 'garbage', 'taxi', 'post' }
+Work.Order = { 'trucker', 'garbage', 'taxi', 'post', 'tow', 'bus', 'nachtwache' }
 
 function Work.GetJob(id)
     if type(id) ~= 'string' then return nil end
@@ -182,10 +305,20 @@ function Work.GetAvailable(coreJob)
     return list
 end
 
---- Zieht `count` zufaellige Stationen, ohne Wiederholung.
+--- Zieht `count` Stationen.
+---
+--- Eine Linie faehrt man der Reihe nach - beim Bus waere eine gewuerfelte
+--- Route keine Linie mehr, sondern eine Schnitzeljagd.
 function Work.PickStops(definition, count)
     local pool = {}
     for index, stop in ipairs(definition.stops) do pool[index] = stop end
+
+    if definition.fixedRoute then
+        local picked = {}
+        for index = 1, math.min(count, #pool) do picked[index] = pool[index] end
+
+        return picked
+    end
 
     for index = #pool, 2, -1 do
         local swap = math.random(index)

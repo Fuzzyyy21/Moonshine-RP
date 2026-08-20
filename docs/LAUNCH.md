@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.650 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.750 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -82,8 +82,8 @@ Config korrigieren.
 | Geldautomaten | `moonshine-services/shared/locations.lua` | 16 |
 | Schwarzmarkt-Orte | `moonshine-services/shared/locations.lua` | 6 |
 | Jobcenter | `moonshine-jobs/shared/config.lua` | 1 |
-| Auftrags-Anmeldungen | `moonshine-jobs/shared/jobs.lua` | 4 |
-| Auftrags-Stationen | `moonshine-jobs/shared/jobs.lua` | 40 |
+| Auftrags-Anmeldungen | `moonshine-jobs/shared/jobs.lua` | 7 |
+| Auftrags-Stationen | `moonshine-jobs/shared/jobs.lua` | 66 |
 | Kleidungsläden | `moonshine-appearance/shared/config.lua` | 6 |
 | Tätowierer | `moonshine-appearance/shared/config.lua` | 5 |
 | Friseure | `moonshine-appearance/shared/config.lua` | 5 |
@@ -130,22 +130,25 @@ Ein Durchlauf, der alle Systeme berührt:
     dran sein
 13. **Auktion** einstellen und mit einem zweiten Spieler überbieten
 14. **Schicht** beim Postdienst, alle sechs Stationen, Abschlussbonus
-15. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
+15. **Abschleppdienst**: nach der ersten Station muss die Route zurück zum
+    Hof zeigen, nicht zur nächsten Panne. **Nachtwache** tagsüber im
+    Jobcenter aufrufen — sie muss gesperrt sein mit Begründung, nachts nicht
+16. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
     anders sein (`/mystik` zeigt sie)
-16. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
+17. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
     Umkleide wieder wechseln
-17. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
+18. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
     erscheinen), stechen, wieder entfernen. Als Erweckter zusätzlich das
     Klassenmal — es darf nur das eigene sichtbar sein
-18. **Anzeige** einstellen (`/hudmenu`): alle sechs Darstellungen
+19. **Anzeige** einstellen (`/hudmenu`): alle sechs Darstellungen
     durchklicken, Ecke wechseln, Größe ziehen, ein paar Elemente
     abschalten. Als Erweckter muss das Klassenband den richtigen Namen
     zeigen (Blut, Mana …) und die Zahlen müssen zur Essenz passen. Danach
     `/hud` aus und wieder an — die Einstellung muss den Neustart des
     Clients überleben
-19. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
+20. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
     nichts passieren, ohne Gurt muss es den Fahrer hinauswerfen
-20. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+21. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 

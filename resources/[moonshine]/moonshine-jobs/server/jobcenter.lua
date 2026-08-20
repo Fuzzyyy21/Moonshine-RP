@@ -73,6 +73,11 @@ function Work.CenterPayload(source)
                             y = definition.start.coords.y,
                             z = definition.start.coords.z },
             stats       = stats[definition.id],
+
+            -- Die Nachtwache steht tagsueber zwar da, laesst sich aber
+            -- nicht beginnen. Das gehoert dazugesagt statt verschwiegen.
+            nurNachts   = definition.nurNachts == true,
+            gesperrt    = definition.nurNachts == true and not Work.IsNight(),
         }
     end
 

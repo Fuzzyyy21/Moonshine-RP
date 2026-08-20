@@ -59,6 +59,13 @@ local function currentTarget()
                ('Abmelden: %s'):format(definition and definition.start.label or '')
     end
 
+    -- Beim Abschleppdienst geht es nach jeder Station zurueck zum Hof.
+    if shift.phase == 'abliefern' then
+        local definition = Work.GetJob(shift.job)
+        return definition and definition.start.coords or nil,
+               ('Abliefern: %s'):format(definition and definition.start.label or '')
+    end
+
     if shift.stop then
         return shift.stop.coords, shift.stop.label
     end
@@ -255,6 +262,11 @@ CreateThread(function()
             local coords, _ = currentTarget()
 
             if coords and shift.phase ~= 'aufnehmen' and shift.phase ~= 'abmelden' then
+                local definition = Work.GetJob(shift.job)
+                local text = shift.phase == 'abliefern'
+                    and (definition and definition.ablieferLabel or 'Abliefern')
+                    or (shift.actionLabel or 'Arbeiten')
+
                 local target = vector3(coords.x, coords.y, coords.z)
                 local distance = #(GetEntityCoords(PlayerPedId()) - target)
 
@@ -268,10 +280,14 @@ CreateThread(function()
 
                 if distance <= WorkConfig.Shift.stopRange then
                     MS.DrawText3D(target + vector3(0.0, 0.0, 1.2),
-                        ('~b~E~s~  %s'):format(shift.actionLabel or 'Arbeiten'), 0.42)
+                        ('~b~E~s~  %s'):format(text), 0.42)
 
                     if IsControlJustReleased(0, 38) then
-                        Work.DoStop()
+                        if shift.phase == 'abliefern' then
+                            Work.DoDeliver()
+                        else
+                            Work.DoStop()
+                        end
                     end
                 end
             end
@@ -280,6 +296,32 @@ CreateThread(function()
         Wait(wait)
     end
 end)
+
+--- Laedt das verladene Fahrzeug am Hof wieder ab.
+function Work.DoDeliver()
+    if working or not shift or not shift.active then return end
+    if shift.phase ~= 'abliefern' then return end
+
+    local definition = Work.GetJob(shift.job)
+    if not definition then return end
+
+    working = true
+
+    CreateThread(function()
+        local dauer = math.max(2, math.floor((definition.duration or 6) / 2))
+        local schritte = 20
+
+        for index = 1, schritte do
+            Wait(math.floor(dauer * 1000 / schritte))
+            SendNUIMessage({ action = 'work:progress', value = index / schritte })
+        end
+
+        SendNUIMessage({ action = 'work:progress', value = 0 })
+        TriggerServerEvent('work:server:deliver')
+
+        working = false
+    end)
+end
 
 --- Fuehrt die Arbeit an einer Station aus.
 function Work.DoStop()

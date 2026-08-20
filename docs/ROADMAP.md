@@ -50,34 +50,28 @@ Mein Vorschlag: **Ritualarten mit Auswahl** — dieselbe Handlung, aber der
 Spieler entscheidet, ob er Geld, Steine oder Punkte will. Das kostet wenig Code
 und gibt dem Ritualpunkt sofort Tiefe.
 
-## Zuerst: kleine Schritte mit viel Wirkung
+## Zuerst: mehr Tiefe
 
-### 1. Mehr Aufträge — klein
-Das Auftragssystem in `moonshine-jobs` trägt beliebig viele. Naheliegend:
-Abschleppdienst, Busfahrer, Nachtwache an den Ritualpunkten.
-
-## Danach: mehr Tiefe
-
-### 2. Zufluchtsorte statt Housing — mittel
+### 1. Zufluchtsorte statt Housing — mittel
 Klassengerecht: Sarg für Vampire, Höhle für Werwölfe, Turm für Magier. Lagerung
 von Steinen, sicherer Respawn, kleiner Essenz-Bonus beim Ausruhen.
 
-### 3. Telefon — groß
+### 2. Telefon — groß
 Nachrichten, Kontakte, Notruf, Fraktions-Chat, Anzeigenmarkt. Vieles davon
 hängt an den Fraktionen und am Notrufsystem, die beide schon stehen.
 
 ## Technik und Betrieb
 
-### 4. Discord-Anbindung — klein
+### 3. Discord-Anbindung — klein
 Rollen aus Discord auf Adminlevel und Whitelist-Jobs abbilden, Logs als Webhook
 (die Log-Funktion kann das bereits, `Config.Logs.webhook`).
 
-### 5. Statistiken und Bestenlisten — klein
+### 4. Statistiken und Bestenlisten — klein
 Die Arbeit hat schon eine. Sinnvoll wären außerdem: höchste Klassenstufe,
 meiste Weltbosse, größte Fraktionskasse, teuerste Auktion. Aus `ms_logs`,
 `ms_mystic`, `ms_factions` und `ms_auctions` direkt ableitbar.
 
-### 6. Testlauf auf echter Hardware — Pflicht vor dem Livegang
+### 5. Testlauf auf echter Hardware — Pflicht vor dem Livegang
 Nichts davon lief bisher auf einem laufenden FXServer. Die vollständige Liste
 steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -101,6 +95,9 @@ steht in [`LAUNCH.md`](LAUNCH.md).
 
 ## Abgehakt
 
+* **Mehr Aufträge** — Abschleppdienst (mit Rückfahrt zum Hof), Busfahrer
+  (feste Linie) und Nachtwache an den Ritualpunkten (nur nachts). Aus vier
+  Aufträgen werden sieben, mit drei neuen Abläufen statt nur neuen Zielen
 * **Werkstatt-Tuning** — in `moonshine-services` gebaut: Leistung, Anbauteile,
   Lackierung, Licht und Zubehör, mit Vorschau am Fahrzeug. Die Spalte `mods`
   in `ms_vehicles` ist damit endlich in Benutzung
