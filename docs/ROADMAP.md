@@ -1,9 +1,8 @@
 # Ideen und Ausbaustufen
 
-Stand: 17 Resources sind gebaut — Core, Anzeige, Aussehen, Welt, Mystik,
-Beduerfnisse, Sterbesystem, Weltbosse, Fortschritt, Fraktionen, Ritualkrieg,
-Auktionshaus, Fahrzeuge, Dienstleistungen, Arbeit, Administration und der
-Beispiel-Shop.
+Stand: 16 Resources sind gebaut — Core, Anzeige, Aussehen, Welt, Mystik,
+Sterbesystem, Weltbosse, Fortschritt, Fraktionen, Ritualkrieg, Auktionshaus,
+Fahrzeuge, Dienstleistungen, Arbeit, Administration und der Beispiel-Shop.
 
 Was vor dem Livegang zu prüfen ist, steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -127,8 +126,6 @@ steht in [`LAUNCH.md`](LAUNCH.md).
   Beobachten und Protokollansicht
 * **Anticheat-Grundlagen** — Wachhund mit Strikes plus `MS.RateLimit`, das an
   allen geldbewegenden Ereignissen hängt
-* **Klassenbedürfnis** — als `moonshine-needs` gebaut: acht Bedürfnisse mit
-  eigenen Quellen, Zonen, Interaktionen und Wirkung auf die Klassenwerte
 * **Kleidung und Charaktereditor** — als `moonshine-appearance` gebaut, mit
   Gesichtsmischung, Läden in drei Preisstufen, Friseuren und Outfits
 * **Steinadern** — durch Weltbosse und den Steinhändler ersetzt

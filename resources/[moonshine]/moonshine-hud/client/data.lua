@@ -93,19 +93,6 @@ local function essenz()
     }
 end
 
---- Klassenbeduerfnis aus moonshine-needs.
-local function beduerfnis()
-    local daten = frag('moonshine-needs', 'GetNeedData')
-    if type(daten) ~= 'table' then return nil end
-
-    return {
-        wert  = math.max(0, math.min(100, math.floor(tonumber(daten.value) or 100))),
-        label = daten.label or 'Bedürfnis',
-        icon  = daten.icon,
-        farbe = daten.colour,
-    }
-end
-
 -- Welt -----------------------------------------------------------------------------
 
 --- Uhrzeit, Mondphase und laufendes Ereignis.
@@ -184,7 +171,6 @@ function Hud.Collect()
     }
 
     nutz.essenz = essenz()
-    nutz.beduerfnis = beduerfnis()
     nutz.welt = welt()
     nutz.fraktion = fraktion()
 

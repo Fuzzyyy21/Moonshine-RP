@@ -1,9 +1,8 @@
 # Anzeige – `moonshine-hud`
 
 Vorher lag die Anzeige verstreut: eine Karte im Core, eine Uhr in der Welt,
-ein Balken bei den Bedürfnissen, dazu die Skillleiste der Mystik. Vier
-Widgets in vier Ecken, kein gemeinsames Aussehen, und abschalten ließ sich
-nichts davon einzeln.
+dazu die Skillleiste der Mystik. Drei Widgets in drei Ecken, kein
+gemeinsames Aussehen, und abschalten ließ sich nichts davon einzeln.
 
 Hier läuft alles zusammen – und jeder Spieler stellt sich ein, was er sehen
 will.
@@ -30,7 +29,7 @@ will.
 | **Kopfzeile** | Uhrzeit, Mondphase, Straße und Bezirk, Kompass, laufendes Weltereignis |
 | **Karte** | Name, Server-ID, Job und Rang, Fraktion, Bargeld, Bank, Schwarzgeld |
 | **Statusgruppe** | Leben, Weste, Hunger, Durst, Ausdauer, Sauerstoff |
-| **Klassenband** | Blut, Mana, Höllenfeuer … mit Namen und Zahlen, darunter das Klassenbedürfnis |
+| **Klassenband** | Blut, Mana, Höllenfeuer … mit Namen und Zahlen |
 | **Fahrzeug** | Tacho, Drehzahlring, Gang, Tank, Motorzustand, Gurt, Licht, Blinker, Tempomat |
 
 Kontoänderungen blitzen kurz auf: grün nach oben, rot nach unten.
@@ -47,9 +46,6 @@ Zahlen und der Farbe der Klasse:
    │ 🩸  Blut              64 / 100  │
    │     ▓▓▓▓▓▓▓▓▓▓▓░░░░░░           │
    │     Vampir · Stufe 7            │
-   ├────────────────────────────────┤
-   │ 🌑  Blutdurst              33 % │
-   │     ▓▓▓▓▓░░░░░░░░░░░            │
    └────────────────────────────────┘
 ```
 
@@ -58,8 +54,8 @@ Zahlen (sonst steht dort der Prozentwert) und die Klassenstufe (ab Werk
 aus). Das Band hängt standardmäßig an der Statusgruppe, lässt sich aber auch
 frei an einen Rand setzen – unten mittig, unten rechts oder oben rechts.
 
-Beides taucht nur auf, wenn `moonshine-mystic` beziehungsweise
-`moonshine-needs` läuft; ohne sie fehlt genau dieses Band und sonst nichts.
+Es taucht nur auf, wenn `moonshine-mystic` läuft und der Charakter erweckt
+ist; sonst fehlt genau dieses Band und sonst nichts.
 
 ## Einstellen
 
@@ -185,7 +181,6 @@ dass der ganze Server geladen ist.
 |---|---|
 | Name, Job, Geld, Hunger, Durst | `moonshine-core` |
 | Essenz, Klasse, Klassenfarbe | `moonshine-mystic` (`GetProfileData`) |
-| Klassenbedürfnis | `moonshine-needs` (`GetNeedData`) |
 | Uhrzeit, Mondphase, Ereignis | `moonshine-world` (Ereignisse, nicht abgefragt) |
 | Fraktion | `moonshine-factions` (`GetFactionData`) |
 | Tankstand | `moonshine-vehicles` (`GetFuel`), sonst der Wert des Spiels |
@@ -207,13 +202,12 @@ Beides steht in `HudConfig.Tick` und `HudConfig.VehicleTick`.
 
 ## Was dafür abgeschaltet wurde
 
-Damit nichts doppelt dasteht, sind drei alte Einzelwidgets ab Werk aus:
+Damit nichts doppelt dasteht, sind die alten Einzelwidgets ab Werk aus:
 
 | Was | Wo | Wieder einschalten |
 |---|---|---|
 | HUD-Karte des Core | war `moonshine-core/client/hud.lua` | entfernt, ersetzt |
 | Uhr-Widget der Welt | `WorldConfig.Hud.enabled` | auf `true` setzen |
-| Bedürfnisbalken | `NeedsConfig.Hud.enabled` | auf `true` setzen |
 
 Die Skillleiste der Mystik (`F5`) bleibt, wo sie ist – sie ist eine
 Bedienoberfläche, keine Anzeige.

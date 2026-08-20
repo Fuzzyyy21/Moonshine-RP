@@ -39,7 +39,6 @@ const WERTE = {
     ausdauer: 88, sauerstoff: 100,
     essenz: { wert: 64, jetzt: 64, max: 100, label: 'Blut', farbe: '#a3232c',
               icon: '🩸', klasse: 'Vampir', stufe: 7 },
-    beduerfnis: { wert: 33, label: 'Blutdurst', icon: '🌑', farbe: '#a3232c' },
     welt: {
         zeit: '21:14', nacht: true,
         mond: { label: 'Blutmond', icon: '🌕' },

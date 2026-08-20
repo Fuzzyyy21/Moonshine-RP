@@ -206,14 +206,13 @@ function boegenZeichnen(werte) {
 
 /* ------------------------------------------------------------- Klassenband */
 
-/** Blut, Mana, Höllenfeuer — und das Klassenbedürfnis darunter. */
+/** Blut, Mana, Höllenfeuer — die Ressource der eigenen Klasse. */
 function klasseZeichnen(data) {
     const band = $('klasse');
     const essenz = zeigt('essenz') && data.essenz;
-    const bed = zeigt('beduerfnis') && data.beduerfnis;
 
-    band.classList.toggle('hidden', !(sichtbar && (essenz || bed)));
-    if (!sichtbar || (!essenz && !bed)) return;
+    band.classList.toggle('hidden', !(sichtbar && essenz));
+    if (!sichtbar || !essenz) return;
 
     // Wo das Band hängt. Bei "status" wandert es in die Statusgruppe hinein
     // und fließt mit ihr, statt seine Lage nachrechnen zu müssen.
@@ -229,43 +228,24 @@ function klasseZeichnen(data) {
         else wohin.appendChild(band);
     }
 
-    $('kl-essenz').classList.toggle('hidden', !essenz);
+    const zeile = $('kl-essenz');
+    zeile.style.setProperty('--kl-farbe', data.essenz.farbe || 'var(--akzent)');
+    zeile.classList.toggle('knapp', data.essenz.wert <= 25);
 
-    if (essenz) {
-        const zeile = $('kl-essenz');
-        zeile.style.setProperty('--kl-farbe', data.essenz.farbe || 'var(--akzent)');
-        zeile.classList.toggle('knapp', data.essenz.wert <= 25);
+    $('kl-icon').textContent = data.essenz.icon || '✦';
+    $('kl-name').textContent = data.essenz.label || 'Essenz';
+    $('kl-fuell').style.width = `${spanne(data.essenz.wert)}%`;
 
-        $('kl-icon').textContent = data.essenz.icon || '✦';
-        $('kl-name').textContent = data.essenz.label || 'Essenz';
-        $('kl-fuell').style.width = `${spanne(data.essenz.wert)}%`;
+    $('kl-zahl').textContent = zeigt('essenzzahl')
+        ? `${data.essenz.jetzt} / ${data.essenz.max}`
+        : `${spanne(data.essenz.wert)} %`;
 
-        $('kl-zahl').textContent = zeigt('essenzzahl')
-            ? `${data.essenz.jetzt} / ${data.essenz.max}`
-            : `${spanne(data.essenz.wert)} %`;
+    const teile = [];
+    if (zeigt('klassenname') && data.essenz.klasse) teile.push(data.essenz.klasse);
+    if (zeigt('klassenstufe') && data.essenz.stufe) teile.push(`Stufe ${data.essenz.stufe}`);
 
-        const teile = [];
-        if (zeigt('klassenname') && data.essenz.klasse) teile.push(data.essenz.klasse);
-        if (zeigt('klassenstufe') && data.essenz.stufe) {
-            teile.push(`Stufe ${data.essenz.stufe}`);
-        }
-
-        $('kl-unter').textContent = teile.join(' · ');
-        $('kl-unter').classList.toggle('hidden', teile.length === 0);
-    }
-
-    $('kl-bed').classList.toggle('hidden', !bed);
-
-    if (bed) {
-        const zeile = $('kl-bed');
-        zeile.style.setProperty('--kl-farbe', data.beduerfnis.farbe || 'var(--warn)');
-        zeile.classList.toggle('knapp', data.beduerfnis.wert <= 25);
-
-        $('kl-bed-icon').textContent = data.beduerfnis.icon || '🌑';
-        $('kl-bed-name').textContent = data.beduerfnis.label || 'Bedürfnis';
-        $('kl-bed-zahl').textContent = `${spanne(data.beduerfnis.wert)} %`;
-        $('kl-bed-fuell').style.width = `${spanne(data.beduerfnis.wert)}%`;
-    }
+    $('kl-unter').textContent = teile.join(' · ');
+    $('kl-unter').classList.toggle('hidden', teile.length === 0);
 }
 
 function statusZeichnen(data) {

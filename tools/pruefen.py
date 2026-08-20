@@ -422,13 +422,13 @@ def check_schema():
 
 NAMESPACES = {
     'MS', 'Mystic', 'Progress', 'Factions', 'Auction', 'Vehicles', 'Services',
-    'Work', 'Admin', 'World', 'Appearance', 'Death', 'Boss', 'Needs', 'RitualWar',
+    'Work', 'Admin', 'World', 'Appearance', 'Death', 'Boss', 'RitualWar',
 }
 
 CONFIG_TABLES = {
     'Config', 'MysticConfig', 'ProgressConfig', 'FactionConfig', 'AuctionConfig',
     'VehicleConfig', 'ServiceConfig', 'WorkConfig', 'AdminConfig', 'WorldConfig',
-    'AppearanceConfig', 'DeathConfig', 'BossConfig', 'NeedsConfig', 'ShopConfig',
+    'AppearanceConfig', 'DeathConfig', 'BossConfig', 'ShopConfig',
     'WarConfig',
 }
 
@@ -527,10 +527,10 @@ def check_config_access():
 # --- 13. Globals aus einer Resource, die gar nicht geladen ist ---------------
 #
 # In FiveM hat jede Resource ihren eigenen Lua-Zustand. `MysticConfig` aus
-# moonshine-mystic ist in moonshine-needs schlicht nil, solange die Datei
-# nicht per '@moonshine-mystic/shared/config.lua' mitgeladen wird. Genau so
-# lief moonshine-needs eine Weile ins Leere, ohne dass es auffiel: der Code
-# hatte einen nil-Schutz und tat einfach nichts.
+# moonshine-mystic ist in einer anderen Resource schlicht nil, solange die
+# Datei nicht per '@moonshine-mystic/shared/config.lua' mitgeladen wird.
+# Genau so lief eine Resource hier eine Weile ins Leere, ohne dass es
+# auffiel: der Code hatte einen nil-Schutz und tat einfach nichts.
 
 def _reachable_files(res, side):
     """Eigene Dateien plus alles, was per @resource/datei mitgeladen wird."""

@@ -26,7 +26,7 @@ Rückgabewert 0 wenn sauber, 1 bei Funden. Läuft bei jedem Push über
 | **Schema** | `sql/moonshine.sql` gegen das, was die Resources tatsächlich anlegen — fehlende Tabellen, verwaiste Tabellen, abweichende Spalten. Das Schema steht zwangsläufig doppelt da, also driftet es sonst. |
 | **Aufrufe** | `Mystic.Foo()`, `Work.Bar()` und so weiter, die nirgends definiert sind — getrennt nach Server- und Client-Seite, weil dort verschiedene Dateien laufen. |
 | **Config** | Zugriffe auf `MysticConfig.Foo`, `WorkConfig.Bar` und so weiter, die keine Config je setzt. |
-| **Namensraum** | Globals aus einer anderen Resource, die gar nicht mitgeladen wird. In FiveM hat jede Resource ihren eigenen Lua-Zustand — `MysticConfig` ist anderswo schlicht `nil`, solange die Datei nicht per `'@moonshine-mystic/shared/config.lua'` im Manifest steht. Genau so lief `moonshine-needs` eine Weile ins Leere. |
+| **Namensraum** | Globals aus einer anderen Resource, die gar nicht mitgeladen wird. In FiveM hat jede Resource ihren eigenen Lua-Zustand — `MysticConfig` ist anderswo schlicht `nil`, solange die Datei nicht per `'@moonshine-mystic/shared/config.lua'` im Manifest steht. Genau so lief eine Resource hier eine Weile unbemerkt ins Leere. |
 
 ### Was er nicht kann
 

@@ -1,6 +1,6 @@
 # Vor dem Livegang
 
-Der Server ist inhaltlich vollständig: 17 Resources, alle Systeme greifen
+Der Server ist inhaltlich vollständig: 16 Resources, alle Systeme greifen
 ineinander. **Nichts davon lief bisher auf einem laufenden FXServer.** Diese
 Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.900 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.650 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -84,8 +84,6 @@ Config korrigieren.
 | Jobcenter | `moonshine-jobs/shared/config.lua` | 1 |
 | Auftrags-Anmeldungen | `moonshine-jobs/shared/jobs.lua` | 4 |
 | Auftrags-Stationen | `moonshine-jobs/shared/jobs.lua` | 40 |
-| Naturgebiete | `moonshine-needs/shared/needs.lua` | 8 |
-| Friedhöfe | `moonshine-needs/shared/needs.lua` | 4 |
 | Kleidungsläden | `moonshine-appearance/shared/config.lua` | 6 |
 | Tätowierer | `moonshine-appearance/shared/config.lua` | 5 |
 | Friseure | `moonshine-appearance/shared/config.lua` | 5 |
@@ -132,26 +130,22 @@ Ein Durchlauf, der alle Systeme berührt:
     dran sein
 13. **Auktion** einstellen und mit einem zweiten Spieler überbieten
 14. **Schicht** beim Postdienst, alle sechs Stationen, Abschlussbonus
-15. **Bedürfnis** mit `/setbeduerfnis <id> 10` auf schwach setzen — die
-    Klassenwerte müssen sofort schlechter sein und der Ring in der
-    Statusgruppe pochen. Dann stillen (Item, Passant, Zone) und zusehen,
-    wie er sich füllt
-16. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
+15. **Weltereignis** mit `/startereignis blutmond` — Werte müssen sofort
     anders sein (`/mystik` zeigt sie)
-17. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
+16. **Kleidungsladen** aufsuchen, etwas kaufen, Outfit sichern, in der
     Umkleide wieder wechseln
-18. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
+17. **Tätowierer** aufsuchen: ein Motiv anklicken (muss sofort am Ped
     erscheinen), stechen, wieder entfernen. Als Erweckter zusätzlich das
     Klassenmal — es darf nur das eigene sichtbar sein
-19. **Anzeige** einstellen (`/hudmenu`): alle sechs Darstellungen
+18. **Anzeige** einstellen (`/hudmenu`): alle sechs Darstellungen
     durchklicken, Ecke wechseln, Größe ziehen, ein paar Elemente
     abschalten. Als Erweckter muss das Klassenband den richtigen Namen
     zeigen (Blut, Mana …) und die Zahlen müssen zur Essenz passen. Danach
     `/hud` aus und wieder an — die Einstellung muss den Neustart des
     Clients überleben
-20. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
+19. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
     nichts passieren, ohne Gurt muss es den Fahrer hinauswerfen
-21. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+20. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 

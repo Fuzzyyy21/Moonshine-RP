@@ -31,7 +31,6 @@ ensure moonshine-hud
 ensure moonshine-appearance
 ensure moonshine-world
 ensure moonshine-mystic
-ensure moonshine-needs
 ensure moonshine-death
 ensure moonshine-boss
 ensure moonshine-progress

@@ -51,7 +51,6 @@ HudConfig.Elements = {
     { key = 'essenz',       label = 'Essenz (Blut, Mana …)', gruppe = 'Klasse', standard = true },
     { key = 'klassenname',  label = 'Name der Klasse',       gruppe = 'Klasse', standard = true },
     { key = 'essenzzahl',   label = 'Essenz als Zahl',       gruppe = 'Klasse', standard = true },
-    { key = 'beduerfnis',   label = 'Klassenbedürfnis',      gruppe = 'Klasse', standard = true },
     { key = 'klassenstufe', label = 'Klassenstufe',          gruppe = 'Klasse', standard = false },
 
     -- Welt
@@ -124,7 +123,6 @@ HudConfig.Schwellen = {
     ausdauer   = 95,
     sauerstoff = 99,
     essenz     = 95,
-    beduerfnis = 80,
 }
 
 -- Standardeinstellung -----------------------------------------------------------
