@@ -353,6 +353,19 @@ function Profile:GetModifiers()
     mods.lootAmount      = personal.lootAmount
     mods.meditationBonus = personal.meditationBonus
 
+    -- Rast im eigenen Zufluchtsort (moonshine-refuge, optional).
+    local rast = nil
+    pcall(function() rast = exports['moonshine-refuge']:GetModifiers(self.source) end)
+
+    if type(rast) == 'table' then
+        for _, key in ipairs({ 'regenPerTick', 'essenceRegen', 'xpBonus',
+                               'moneyBonus' }) do
+            if type(rast[key]) == 'number' then
+                mods[key] = (mods[key] or 0) + rast[key]
+            end
+        end
+    end
+
     -- Segen des eigenen Ritualpunktes (moonshine-ritualwar, optional).
     local blessing = nil
     pcall(function()

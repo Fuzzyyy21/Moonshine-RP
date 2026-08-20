@@ -321,3 +321,20 @@ CREATE TABLE IF NOT EXISTS `ms_ritual_claims` (
     `updated_at`      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`point_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Zufluchtsorte (moonshine-refuge)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_refuges` (
+    `place_id`     VARCHAR(32) NOT NULL,
+    `character_id` INT         NOT NULL,
+    `name`         VARCHAR(48) DEFAULT NULL,
+    `stufe`        INT         NOT NULL DEFAULT 0,
+    `stash`        LONGTEXT    DEFAULT NULL,
+    `last_rest`    INT         NOT NULL DEFAULT 0,
+    `last_refuge`  INT         NOT NULL DEFAULT 0,
+    `created_at`   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`place_id`),
+    KEY `character_id` (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

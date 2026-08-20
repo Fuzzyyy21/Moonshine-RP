@@ -1126,6 +1126,171 @@ pruefe('Ohne Motiv gibt es keinen Aufdruck',
 
 
 -- ===========================================================================
+-- Zufluchtsorte
+-- ===========================================================================
+
+laden('moonshine-refuge/shared/config.lua')
+laden('moonshine-refuge/shared/places.lua')
+
+gruppe('Zuflucht: Plaetze')
+
+local okOrte, doppelteOrte = eindeutig(Refuge.Places, 'id')
+pruefe('Platz-Ids sind eindeutig', okOrte, doppelteOrte)
+
+for _, place in ipairs(Refuge.Places) do
+    pruefe(('Platz %s hat eine Bezeichnung'):format(place.id),
+        type(place.label) == 'string' and place.label ~= '')
+    pruefe(('Platz %s kostet etwas'):format(place.id), place.preis > 0)
+    pruefe(('Platz %s hat einen Zutritt'):format(place.id), place.zutritt ~= nil)
+    pruefe(('Platz %s hat einen Aufwachpunkt'):format(place.id), place.aufwachen ~= nil)
+    pruefe(('Platz %s passt in VARCHAR(32)'):format(place.id), #place.id <= 32)
+
+    pruefe(('Platz %s laesst sich ueber die Id finden'):format(place.id),
+        Refuge.GetPlace(place.id) == place)
+
+    -- Zutritt und Aufwachpunkt duerfen nicht weit auseinanderliegen: man
+    -- soll vor seiner Tuer aufwachen, nicht im Meer.
+    local weg = #(place.zutritt - vector3(place.aufwachen.x, place.aufwachen.y,
+        place.aufwachen.z))
+    pruefe(('Platz %s: Aufwachpunkt liegt beim Zutritt'):format(place.id),
+        weg < 8.0, ('%.1f m'):format(weg))
+end
+
+pruefe('Unbekannter Platz liefert nichts', Refuge.GetPlace('gibtesnicht') == nil)
+
+-- Zwei Plaetze duerfen nicht uebereinanderliegen.
+local nah = {}
+for index, a in ipairs(Refuge.Places) do
+    for zweiter = index + 1, #Refuge.Places do
+        local b = Refuge.Places[zweiter]
+        if #(a.zutritt - b.zutritt) < 25.0 then
+            nah[#nah + 1] = ('%s/%s'):format(a.id, b.id)
+        end
+    end
+end
+pruefe('Keine zwei Plaetze liegen uebereinander', #nah == 0, table.concat(nah, ', '))
+
+gruppe('Zuflucht: Klassen und Arten')
+
+-- Jede Klasse braucht einen Ort, der zu ihr passt - sonst ist eine Klasse
+-- dauerhaft benachteiligt.
+for rasse in pairs(Mystic.Races) do
+    local kind = RefugeConfig.Kinds[rasse]
+    pruefe(('Klasse %s hat eine Art'):format(rasse), kind ~= nil)
+
+    if kind then
+        pruefe(('Art von %s hat eine Bezeichnung'):format(rasse),
+            type(kind.label) == 'string' and kind.label ~= '')
+        pruefe(('Art von %s hat einen Ruhetext'):format(rasse),
+            type(kind.ruhe) == 'string' and kind.ruhe ~= '')
+
+        local passende = 0
+        for _, place in ipairs(Refuge.Places) do
+            if place.art == kind.ort then passende = passende + 1 end
+        end
+
+        pruefe(('Fuer %s gibt es einen passenden Platz'):format(rasse),
+            passende > 0, kind.ort)
+    end
+end
+
+-- Jede Ortsart, die es gibt, muss auch von einer Klasse gesucht werden.
+local gesucht = {}
+for _, kind in pairs(RefugeConfig.Kinds) do gesucht[kind.ort] = true end
+
+for _, art in ipairs(Refuge.Arts()) do
+    pruefe(('Die Art %s gehoert zu einer Klasse'):format(art), gesucht[art] == true)
+end
+
+pruefe('Ohne Klasse gibt es trotzdem eine Art',
+    Refuge.GetKind(nil) == RefugeConfig.DefaultKind)
+pruefe('Eine erfundene Klasse faellt auf den Standard zurueck',
+    Refuge.GetKind('gibtesnicht') == RefugeConfig.DefaultKind)
+
+pruefe('Der Vampir passt in die Gruft', Refuge.Fits('vampir', 'gruft'))
+pruefe('Der Vampir passt nicht in die Huette', not Refuge.Fits('vampir', 'huette'))
+pruefe('Ohne Klasse passt nichts', not Refuge.Fits(nil, 'gruft'))
+
+gruppe('Zuflucht: Lager und Ausbau')
+
+local basis = RefugeConfig.Stash.baseSlots
+pruefe('Ohne Ausbau gibt es die Grundplaetze', Refuge.GetSlots(0) == basis, Refuge.GetSlots(0))
+
+-- Handgerechnet gegen die Config: 40 + 20 + 20 + 30.
+pruefe('Stufe 1 gibt 60 Plaetze', Refuge.GetSlots(1) == 60, Refuge.GetSlots(1))
+pruefe('Stufe 2 gibt 80 Plaetze', Refuge.GetSlots(2) == 80, Refuge.GetSlots(2))
+pruefe('Stufe 3 gibt 110 Plaetze', Refuge.GetSlots(3) == 110, Refuge.GetSlots(3))
+
+-- Ueber die letzte Stufe hinaus darf nichts mehr dazukommen.
+pruefe('Ueber die letzte Stufe hinaus bleibt es gleich',
+    Refuge.GetSlots(99) == Refuge.GetSlots(#RefugeConfig.Stash.ausbau))
+
+-- Jede Stufe muss mehr bringen als die davor.
+local vorherSlots = 0
+local steigend = true
+for stufe = 0, #RefugeConfig.Stash.ausbau do
+    local jetzt = Refuge.GetSlots(stufe)
+    if stufe > 0 and jetzt <= vorherSlots then steigend = false end
+    vorherSlots = jetzt
+end
+pruefe('Jeder Ausbau bringt mehr Plaetze', steigend)
+
+-- Und jede Stufe muss teurer sein als die davor.
+local vorherPreis, teurer = 0, true
+for _, eintrag in ipairs(RefugeConfig.Stash.ausbau) do
+    if eintrag.preis <= vorherPreis then teurer = false end
+    vorherPreis = eintrag.preis
+end
+pruefe('Jeder Ausbau kostet mehr', teurer)
+
+pruefe('Der erste Ausbau hat einen Preis', Refuge.GetUpgradePrice(0) ~= nil)
+pruefe('Nach der letzten Stufe gibt es keinen Preis mehr',
+    Refuge.GetUpgradePrice(#RefugeConfig.Stash.ausbau) == nil)
+
+gruppe('Zuflucht: Rast')
+
+local schwach = RefugeConfig.Rest.segen
+local stark = RefugeConfig.Rest.segenPassend
+
+for schluessel, wert in pairs(stark) do
+    pruefe(('Der Segen %s ist ein Vorteil'):format(schluessel), wert > 0, wert)
+    pruefe(('Am passenden Ort ist %s staerker'):format(schluessel),
+        wert > (schwach[schluessel] or 0),
+        ('%s gegen %s'):format(wert, schwach[schluessel]))
+end
+
+for schluessel, wert in pairs(schwach) do
+    pruefe(('Auch am fremden Ort ist %s ein Vorteil'):format(schluessel), wert > 0)
+    pruefe(('Der starke Segen kennt %s ebenfalls'):format(schluessel),
+        stark[schluessel] ~= nil)
+end
+
+local passend, istPassend = Refuge.GetBlessing('vampir', 'gruft')
+pruefe('Der Vampir in der Gruft bekommt den starken Segen', passend == stark)
+pruefe('Und es wird auch so gemeldet', istPassend == true)
+
+local fremd, istFremd = Refuge.GetBlessing('vampir', 'huette')
+pruefe('Der Vampir in der Huette bekommt den schwachen Segen', fremd == schwach)
+pruefe('Und auch das wird gemeldet', istFremd == false)
+
+pruefe('Ohne Klasse gibt es den schwachen Segen',
+    (Refuge.GetBlessing(nil, 'gruft')) == schwach)
+
+-- Die Rast darf nicht laenger dauern als ihre eigene Abklingzeit.
+pruefe('Die Rast ist kuerzer als ihre Abklingzeit',
+    RefugeConfig.Rest.duration < RefugeConfig.Rest.cooldown * 60)
+
+-- Der Segen soll nicht laenger halten, als bis die naechste Rast frei ist -
+-- sonst laesst er sich stapeln.
+pruefe('Der Segen haelt nicht bis zur naechsten Rast',
+    RefugeConfig.Rest.segenDauer <= RefugeConfig.Rest.cooldown,
+    ('%d gegen %d Minuten'):format(RefugeConfig.Rest.segenDauer,
+        RefugeConfig.Rest.cooldown))
+
+pruefe('Ein Charakter haelt hoechstens einen Ort',
+    RefugeConfig.MaxPerCharacter == 1)
+
+-- ===========================================================================
 -- Anzeige
 -- ===========================================================================
 

@@ -37,12 +37,15 @@ local function playDownedAnimation()
     end
 end
 
-RegisterNetEvent('death:client:setDowned', function(remaining, respawnAfter)
+RegisterNetEvent('death:client:setDowned', function(remaining, respawnAfter, refuge)
     if Death.downed then return end
 
     Death.downed = true
     Death.downedUntil = GetGameTimer() + remaining * 1000
     Death.respawnAt = GetGameTimer() + (respawnAfter or 120) * 1000
+
+    -- Name der eigenen Zuflucht, falls es eine gibt (moonshine-refuge).
+    Death.refuge = refuge
 
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
@@ -63,6 +66,7 @@ RegisterNetEvent('death:client:revive', function(health)
     if not Death.downed then return end
 
     Death.downed = false
+    Death.refuge = nil
     local ped = PlayerPedId()
 
     ClearPedTasksImmediately(ped)
@@ -184,6 +188,21 @@ RegisterCommand('aufgeben', function()
 end, false)
 
 RegisterKeyMapping('aufgeben', 'Aufgeben (bewusstlos)', 'keyboard', DeathConfig.Keys.respawn)
+
+--- Wer einen Zufluchtsort hat, kriecht nach Hause statt ins Krankenhaus.
+RegisterCommand('zuflucht_kriechen', function()
+    if not Death.downed then return end
+
+    if GetGameTimer() < Death.respawnAt then
+        MS.Notify('Noch kannst du nicht aufgeben.', 'warning')
+        return
+    end
+
+    TriggerServerEvent('death:server:respawn', true)
+end, false)
+
+RegisterKeyMapping('zuflucht_kriechen', 'In die eigene Zuflucht (bewusstlos)',
+    'keyboard', DeathConfig.Keys.refuge)
 
 -- Wiederbeleben --------------------------------------------------------------
 

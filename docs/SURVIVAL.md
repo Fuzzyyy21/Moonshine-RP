@@ -21,6 +21,10 @@ Boden, keine Steuerung, kein Klassenskill, ein Bildschirm mit Countdown.
    *Wiedererweckung* (Nekromant) — sie räumen den Zustand direkt auf.
 4. **Aufgeben** (`G`) – ab 2 Minuten erlaubt. Kostet 750 $ Behandlungskosten und
    spawnt im nächstgelegenen Krankenhaus.
+5. **In die Zuflucht** (`H`) – nur wer einen Zufluchtsort hat
+   (→ [`REFUGE.md`](REFUGE.md)). Kostet **nichts**, dafür ist der Ort danach
+   20 Minuten erschöpft. Die Zeile taucht im Sterbebildschirm nur auf, wenn
+   es wirklich einen gibt.
 5. **Schwäche** – 2 Minuten lang maximal 140 Leben und langsameres Tempo.
 
 ### Gegen Combat-Log

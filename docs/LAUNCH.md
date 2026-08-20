@@ -1,6 +1,6 @@
 # Vor dem Livegang
 
-Der Server ist inhaltlich vollständig: 16 Resources, alle Systeme greifen
+Der Server ist inhaltlich vollständig: 17 Resources, alle Systeme greifen
 ineinander. **Nichts davon lief bisher auf einem laufenden FXServer.** Diese
 Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.750 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.900 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -50,6 +50,7 @@ Jede Resource meldet sich. Fehlt eine Zeile, hat das Schema nicht geklappt:
 [Progress] Datenbank bereit.
 [Fraktionen] Datenbank bereit.  [Fraktionen] 0 Fraktionen geladen.
 [Ritualkrieg] Datenbank bereit. [Ritualkrieg] 0 von 6 Punkten sind gebunden.
+[Zuflucht] Datenbank bereit.    [Zuflucht] 0 von 14 Plaetzen sind vergeben.
 [Auktion] Datenbank bereit.     [Auktion] 0 offene Auktionen geladen.
 [Fahrzeuge] Datenbank bereit.
 [Arbeit] Datenbank bereit.
@@ -86,6 +87,7 @@ Config korrigieren.
 | Auftrags-Stationen | `moonshine-jobs/shared/jobs.lua` | 66 |
 | Kleidungsläden | `moonshine-appearance/shared/config.lua` | 6 |
 | Tätowierer | `moonshine-appearance/shared/config.lua` | 5 |
+| Zufluchtsorte (Zutritt + Aufwachen) | `moonshine-refuge/shared/places.lua` | 14 (×2) |
 | Friseure | `moonshine-appearance/shared/config.lua` | 5 |
 | Umkleiden | `moonshine-appearance/shared/config.lua` | 4 |
 
@@ -148,7 +150,13 @@ Ein Durchlauf, der alle Systeme berührt:
     Clients überleben
 20. **Gurt** (`B`) im Auto: angeschnallt bei 100 km/h gegen eine Wand darf
     nichts passieren, ohne Gurt muss es den Fahrer hinauswerfen
-21. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
+21. **Zufluchtsort** kaufen, umbenennen, etwas einlagern, rasten (Bildschirm
+    muss abblenden, danach Leben und Essenz voll). Als Vampir in einer Gruft
+    muss der Segen stärker sein als in einer Hütte — `/mystik` zeigt es
+22. **Zuflucht im Tod**: bewusstlos hinlegen, `H` drücken. Man muss am
+    eigenen Ort aufwachen, ohne Behandlungskosten; direkt danach darf `H`
+    20 Minuten lang nicht mehr gehen
+23. **Adminpanel** (`F9`), Spieler beobachten, Protokoll prüfen
 
 ## 5. Zwei Spieler gleichzeitig
 

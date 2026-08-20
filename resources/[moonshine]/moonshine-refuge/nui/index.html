@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Moonshine Zuflucht</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Rast ---------------------------------------------------------------------->
+<div id="rast" class="hidden">
+    <div class="rast-text" id="rast-text">Du legst dich hin.</div>
+    <div class="rast-spur"><div class="rast-fuell" id="rast-fuell"></div></div>
+    <div class="rast-note hidden" id="rast-note">Der Ort passt zu dir.</div>
+</div>
+
+<!-- Zufluchtsort -------------------------------------------------------------->
+<div id="overlay" class="hidden">
+    <div id="fenster">
+        <header>
+            <div class="kopf-zeichen" id="zeichen">🏚</div>
+            <div class="kopf-text">
+                <h1 id="titel">Zufluchtsort</h1>
+                <p class="leise" id="untertitel">—</p>
+            </div>
+            <button id="schliessen" title="Schließen (Esc)">✕</button>
+        </header>
+
+        <nav class="reiter" id="reiter"></nav>
+
+        <!-- Übersicht -->
+        <section class="seite" id="seite-info">
+            <p class="beschreibung" id="beschreibung">—</p>
+
+            <div class="karten" id="karten"></div>
+
+            <div class="hinweis hidden" id="passt-hinweis"></div>
+
+            <div class="aktionen" id="aktionen"></div>
+        </section>
+
+        <!-- Lager -->
+        <section class="seite hidden" id="seite-lager">
+            <div class="lager">
+                <div class="lager-seite">
+                    <div class="lager-kopf">
+                        <span>Dein Inventar</span>
+                        <span class="leise" id="inv-zahl"></span>
+                    </div>
+                    <div class="lager-liste" id="inv-liste"></div>
+                </div>
+
+                <div class="lager-seite">
+                    <div class="lager-kopf">
+                        <span id="lager-titel">Lager</span>
+                        <span class="leise" id="lager-zahl"></span>
+                    </div>
+                    <div class="lager-liste" id="lager-liste"></div>
+                </div>
+            </div>
+
+            <div class="lager-fuss">
+                <label class="leise" for="menge">Menge</label>
+                <input type="number" id="menge" min="1" value="1">
+                <span class="leise">Anklicken legt ein oder entnimmt.</span>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

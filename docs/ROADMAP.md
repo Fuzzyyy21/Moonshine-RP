@@ -1,8 +1,9 @@
 # Ideen und Ausbaustufen
 
-Stand: 16 Resources sind gebaut — Core, Anzeige, Aussehen, Welt, Mystik,
-Sterbesystem, Weltbosse, Fortschritt, Fraktionen, Ritualkrieg, Auktionshaus,
-Fahrzeuge, Dienstleistungen, Arbeit, Administration und der Beispiel-Shop.
+Stand: 17 Resources sind gebaut — Core, Anzeige, Aussehen, Welt, Mystik,
+Sterbesystem, Weltbosse, Fortschritt, Fraktionen, Ritualkrieg, Zufluchtsorte,
+Auktionshaus, Fahrzeuge, Dienstleistungen, Arbeit, Administration und der
+Beispiel-Shop.
 
 Was vor dem Livegang zu prüfen ist, steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -52,26 +53,22 @@ und gibt dem Ritualpunkt sofort Tiefe.
 
 ## Zuerst: mehr Tiefe
 
-### 1. Zufluchtsorte statt Housing — mittel
-Klassengerecht: Sarg für Vampire, Höhle für Werwölfe, Turm für Magier. Lagerung
-von Steinen, sicherer Respawn, kleiner Essenz-Bonus beim Ausruhen.
-
-### 2. Telefon — groß
+### 1. Telefon — groß
 Nachrichten, Kontakte, Notruf, Fraktions-Chat, Anzeigenmarkt. Vieles davon
 hängt an den Fraktionen und am Notrufsystem, die beide schon stehen.
 
 ## Technik und Betrieb
 
-### 3. Discord-Anbindung — klein
+### 2. Discord-Anbindung — klein
 Rollen aus Discord auf Adminlevel und Whitelist-Jobs abbilden, Logs als Webhook
 (die Log-Funktion kann das bereits, `Config.Logs.webhook`).
 
-### 4. Statistiken und Bestenlisten — klein
+### 3. Statistiken und Bestenlisten — klein
 Die Arbeit hat schon eine. Sinnvoll wären außerdem: höchste Klassenstufe,
 meiste Weltbosse, größte Fraktionskasse, teuerste Auktion. Aus `ms_logs`,
 `ms_mystic`, `ms_factions` und `ms_auctions` direkt ableitbar.
 
-### 5. Testlauf auf echter Hardware — Pflicht vor dem Livegang
+### 4. Testlauf auf echter Hardware — Pflicht vor dem Livegang
 Nichts davon lief bisher auf einem laufenden FXServer. Die vollständige Liste
 steht in [`LAUNCH.md`](LAUNCH.md).
 
@@ -95,6 +92,9 @@ steht in [`LAUNCH.md`](LAUNCH.md).
 
 ## Abgehakt
 
+* **Zufluchtsorte statt Housing** — als `moonshine-refuge` gebaut: 14 Plätze
+  in sieben Arten, jede Klasse gehört zu einer, dazu Lager, Rast mit Segen
+  und Aufwachen zu Hause statt im Krankenhaus
 * **Mehr Aufträge** — Abschleppdienst (mit Rückfahrt zum Hof), Busfahrer
   (feste Linie) und Nachtwache an den Ritualpunkten (nur nachts). Aus vier
   Aufträgen werden sieben, mit drei neuen Abläufen statt nur neuen Zielen

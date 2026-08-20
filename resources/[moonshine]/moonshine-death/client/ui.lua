@@ -22,6 +22,8 @@ CreateThread(function()
                     untilRespawn = untilRespawn,
                     callKey      = DeathConfig.Keys.call,
                     respawnKey   = DeathConfig.Keys.respawn,
+                    refugeKey    = DeathConfig.Keys.refuge,
+                    refuge       = Death.refuge,
                 },
             })
         end

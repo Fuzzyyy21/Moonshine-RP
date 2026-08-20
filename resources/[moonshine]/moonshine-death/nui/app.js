@@ -26,5 +26,17 @@ window.addEventListener('message', (event) => {
         $('respawn-text').textContent = locked
             ? `Aufgeben in ${format(data.untilRespawn)}`
             : 'Aufgeben';
+
+        // Die Zuflucht steht nur da, wenn es wirklich eine gibt.
+        const refuge = $('refuge-hint');
+        refuge.classList.toggle('hidden', !data.refuge);
+
+        if (data.refuge) {
+            refuge.classList.toggle('locked', locked);
+            $('refuge-key').textContent = data.refugeKey || 'H';
+            $('refuge-text').textContent = locked
+                ? `${data.refuge} in ${format(data.untilRespawn)}`
+                : `In ${data.refuge} aufwachen`;
+        }
     }
 });

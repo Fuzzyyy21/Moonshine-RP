@@ -51,5 +51,6 @@ DeathConfig.Call = {
 DeathConfig.DisableCombatLog = true   -- Bewusstlosigkeit ueberlebt den Relog
 DeathConfig.Keys = {
     call    = 'E',   -- Notruf absetzen
-    respawn = 'G',   -- Aufgeben
+    respawn = 'G',   -- Aufgeben (Krankenhaus)
+    refuge  = 'H',   -- In die eigene Zuflucht (moonshine-refuge)
 }

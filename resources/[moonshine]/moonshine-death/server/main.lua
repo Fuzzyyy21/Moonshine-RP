@@ -71,7 +71,13 @@ local function setDowned(source, restored, killer)
     player:SetMetadata('downedSince', downed[source].since)
 
     local remaining = DeathConfig.BleedoutTime - (os.time() - downed[source].since)
-    TriggerClientEvent('death:client:setDowned', source, math.max(5, remaining), DeathConfig.RespawnAfter)
+    -- Hat der Spieler einen Zufluchtsort, darf er dorthin statt ins
+    -- Krankenhaus (moonshine-refuge, optional).
+    local refuge = nil
+    pcall(function() refuge = exports['moonshine-refuge']:GetRespawnPoint(source) end)
+
+    TriggerClientEvent('death:client:setDowned', source, math.max(5, remaining),
+        DeathConfig.RespawnAfter, refuge and refuge.label or nil)
     TriggerEvent('moonshine-death:server:playerDowned', source, killer)
 
     MS.Logger.Log('character', ('%s ist bewusstlos.'):format(player.fullname), player.license)
@@ -228,9 +234,29 @@ end)
 
 -- Aufgeben und Respawn -------------------------------------------------------
 
-local function respawn(source, paid)
+local function respawn(source, paid, zuflucht)
     local player = MS.GetPlayer(source)
     if not player then return end
+
+    -- Nach Hause statt ins Krankenhaus.
+    if zuflucht then
+        downed[source] = nil
+        player:SetMetadata('downed', false)
+        player:SetMetadata('downedSince', nil)
+
+        pcall(function() exports['moonshine-refuge']:MarkRefugeUsed(source) end)
+
+        TriggerClientEvent('death:client:respawn', source, {
+            coords   = zuflucht.coords,
+            label    = zuflucht.label,
+            weakness = DeathConfig.Weakness,
+        })
+
+        TriggerEvent('moonshine-death:server:playerRespawned', source, 0)
+        player:Notify(('Du wachst in %s auf.'):format(zuflucht.label), 'info', 8000)
+
+        return
+    end
 
     local hospital = DeathConfig.Hospitals[math.random(#DeathConfig.Hospitals)]
     local nearest, nearestDistance = hospital, math.huge
@@ -260,7 +286,8 @@ local function respawn(source, paid)
 end
 
 --- Aufgeben: Behandlungskosten zahlen und im Krankenhaus aufwachen.
-local function requestRespawn(source)
+---@param zumZufluchtsort boolean|nil nach Hause statt ins Krankenhaus
+local function requestRespawn(source, zumZufluchtsort)
     local player = MS.GetPlayer(source)
     local state = downed[source]
     if not player or not state then return end
@@ -268,6 +295,24 @@ local function requestRespawn(source)
     if os.time() - state.since < DeathConfig.RespawnAfter then
         player:Notify('Noch kannst du nicht aufgeben.', 'warning')
         return
+    end
+
+    -- Der Server fragt selbst nach, ob es die Zuflucht wirklich gibt - der
+    -- Client sagt nur, dass er dorthin will.
+    if zumZufluchtsort then
+        local refuge = nil
+        pcall(function() refuge = exports['moonshine-refuge']:GetRespawnPoint(source) end)
+
+        if not refuge then
+            player:Notify('Deine Zuflucht ist gerade nicht erreichbar.', 'error')
+            return
+        end
+
+        -- Wer nach Hause kriecht, zahlt keine Behandlung.
+        if refuge.kostenlos then
+            respawn(source, 0, refuge)
+            return
+        end
     end
 
     local cost = DeathConfig.RespawnCost
@@ -285,8 +330,8 @@ local function requestRespawn(source)
     respawn(source, paid)
 end
 
-RegisterNetEvent('death:server:respawn', function()
-    requestRespawn(source)
+RegisterNetEvent('death:server:respawn', function(zumZufluchtsort)
+    requestRespawn(source, zumZufluchtsort == true)
 end)
 
 -- Ausbluten ------------------------------------------------------------------

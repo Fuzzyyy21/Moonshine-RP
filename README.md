@@ -15,6 +15,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-boss` | Weltbosse alle 45 Minuten, lassen Runen- und Seelensteine fallen → [`docs/SURVIVAL.md`](docs/SURVIVAL.md) |
 | `moonshine-progress` | Spielzeit-Belohnungen, Daily/Weekly Missionen, Battle Pass, Kisten → [`docs/PROGRESS.md`](docs/PROGRESS.md) |
 | `moonshine-factions` | Fraktionen mit Wappen, Rängen, Skilltree, Kasse, Tresor, Shop, Garage und Gebieten → [`docs/FACTIONS.md`](docs/FACTIONS.md) |
+| `moonshine-refuge` | Zufluchtsorte: eigenes Lager, Rast mit Klassensegen, sicherer Respawn → [`docs/REFUGE.md`](docs/REFUGE.md) |
 | `moonshine-ritualwar` | Ritualpunkte als umkämpfter Fraktionsbesitz: Bindung, Steinertrag, Wegzoll, Störung → [`docs/RITUALWAR.md`](docs/RITUALWAR.md) |
 | `moonshine-auction` | Auktionshaus mit Geboten, Sofortkauf und Abholfach → [`docs/AUCTION.md`](docs/AUCTION.md) |
 | `moonshine-vehicles` | Autohäuser, eigene Fahrzeuge, Garagen, Schlüssel und Verwahrstelle → [`docs/VEHICLES.md`](docs/VEHICLES.md) |
@@ -41,6 +42,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Welt** | Serverzeit mit 48-Minuten-Tag, Wetterzyklus, acht Mondphasen und acht Weltereignissen, die Klassenkräfte, Bossintervall und Ritualertrag verschieben |
 | **Fortschritt** | Spielzeit-Meilensteine, drei tägliche und drei wöchentliche Missionen, Battle Pass über 50 Stufen, vier Kistenarten |
 | **Fraktionen** | Wappen-Baukasten, bis zu acht Ränge mit 13 Rechten, eigener Skilltree, Kasse, Tresor, Shop, Garage, acht Gebiete mit Einnahme und Einkommen |
+| **Zufluchtsorte** | 14 Plätze in sieben Arten, jede Klasse gehört zu einer; eigenes Lager in drei Ausbaustufen, Rast mit Segen auf Zeit, Aufwachen zu Hause statt im Krankenhaus |
 | **Ritualkrieg** | Sechs Ritualpunkte als Fraktionsbesitz: 180-Sekunden-Bindungsritual, Steinertrag alle 20 Minuten, 25 % Wegzoll von fremden Ritualen, Störung durch Danebenstehen |
 | **Auktionshaus** | Gebote mit Anti-Sniping, Sofortkauf, Hausgebühr, Abholfach für Offline-Spieler |
 | **Fahrzeuge** | 42 Fahrzeuge in drei Autohäusern, sechs Garagen, Tank- und Schadenspersistenz, Schlüsselsystem und Verwahrstelle |
@@ -220,7 +222,7 @@ Die Commands der übrigen Systeme stehen in den jeweiligen Dokumenten:
 [Mystik](docs/MYSTIC.md),
 [Sterbesystem und Weltbosse](docs/SURVIVAL.md),
 [Fortschritt](docs/PROGRESS.md), [Fraktionen](docs/FACTIONS.md),
-[Ritualkrieg](docs/RITUALWAR.md), [Auktionshaus](docs/AUCTION.md),
+[Zufluchtsorte](docs/REFUGE.md), [Ritualkrieg](docs/RITUALWAR.md), [Auktionshaus](docs/AUCTION.md),
 [Fahrzeuge](docs/VEHICLES.md) und
 [Dienstleistungen](docs/SERVICES.md), [Arbeit](docs/JOBS.md) und
 [Administration](docs/ADMIN.md).
