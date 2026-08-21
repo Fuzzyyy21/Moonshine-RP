@@ -36,6 +36,7 @@ function MS.CreateDrop(name, count, metadata, coords)
 end
 
 RegisterNetEvent('moonshine:server:dropItem', function(slot, count, coords)
+    if not MS.RateLimit(source, 'core:drop', 20, 10) then return end
     local player = MS.Players[source]
     if not player then return end
     if type(coords) ~= 'table' or type(coords.x) ~= 'number' then return end
@@ -71,6 +72,7 @@ RegisterNetEvent('moonshine:server:dropItem', function(slot, count, coords)
 end)
 
 RegisterNetEvent('moonshine:server:pickupDrop', function(dropId)
+    if not MS.RateLimit(source, 'core:pickup', 30, 10) then return end
     local player = MS.Players[source]
     if not player then return end
 

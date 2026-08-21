@@ -42,6 +42,9 @@ function AddEventHandler() end
 function RegisterCommand() end
 function RegisterKeyMapping() end
 function GetCurrentResourceName() return 'test' end
+
+--- Der Core fragt beim Laden, auf welcher Seite er laeuft.
+function IsDuplicityVersion() return true end
 function print_(...) end
 
 exports = setmetatable({}, {

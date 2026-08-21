@@ -113,3 +113,35 @@ function Utils.IsValidDate(value)
     if year < 1900 or year > 2010 then return false end
     return true
 end
+
+--- Ein Schritt der Ratenbegrenzung.
+---
+--- Die Rechnung steht hier und nicht beim Aufrufer, damit sie sich ohne
+--- laufenden Server pruefen laesst: sie haengt nur an ihren Argumenten.
+---
+--- Ein Eimer ist { count, resetAt, warned }. Ist er abgelaufen oder gibt es
+--- ihn noch nicht, faengt ein neuer an.
+---@param bucket table|nil bisheriger Zustand
+---@param now number Zeit in Sekunden
+---@param max number erlaubte Aufrufe je Fenster
+---@param windowSeconds number Fensterbreite
+---@return boolean allowed, table bucket, boolean melden
+function Utils.RateBucket(bucket, now, max, windowSeconds, strikes)
+    if type(bucket) ~= 'table' or (bucket.resetAt or 0) <= now then
+        return true, { count = 1, resetAt = now + windowSeconds, warned = 0 }, false
+    end
+
+    bucket.count = (bucket.count or 0) + 1
+    if bucket.count <= max then return true, bucket, false end
+
+    bucket.warned = (bucket.warned or 0) + 1
+
+    -- Erst nach mehreren Ueberschreitungen ist es eine Meldung wert. Ein
+    -- einzelner Ausreisser ist meist Lag, kein Angriff.
+    if bucket.warned >= (strikes or 3) then
+        bucket.warned = 0
+        return false, bucket, true
+    end
+
+    return false, bucket, false
+end

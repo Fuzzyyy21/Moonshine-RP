@@ -59,6 +59,7 @@ end
 -- Einlagern ---------------------------------------------------------------------
 
 RegisterNetEvent('factions:server:vaultPut', function(slot, count)
+    if not MS.RateLimit(source, 'factions:vaultPut', 20, 10) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player then return end

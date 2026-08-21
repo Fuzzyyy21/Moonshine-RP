@@ -43,6 +43,7 @@ end)
 
 --- Setzt den persoenlichen Baum zurueck und erstattet alle Punkte.
 RegisterNetEvent('mystic:server:resetPersonal', function()
+    if not MS.RateLimit(source, 'mystic:reset', 3, 60) then return end
     local source = source
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)

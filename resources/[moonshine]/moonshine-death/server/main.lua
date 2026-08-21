@@ -128,6 +128,7 @@ exports('RevivePlayer', RevivePlayer)
 exports('IsPlayerDowned', IsPlayerDowned)
 
 RegisterNetEvent('death:server:requestRevive', function(targetId)
+    if not MS.RateLimit(source, 'death:revive', 10, 10) then return end
     local source = source
     local player = MS.GetPlayer(source)
     targetId = tonumber(targetId)

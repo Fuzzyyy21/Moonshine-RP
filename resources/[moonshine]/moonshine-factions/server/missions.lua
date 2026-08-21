@@ -179,6 +179,7 @@ function Factions.BuildMissionPayload(faction)
 end
 
 RegisterNetEvent('factions:server:claimMission', function(missionId)
+    if not MS.RateLimit(source, 'factions:claimMission', 10, 20) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player then return end

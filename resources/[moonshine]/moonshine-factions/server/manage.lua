@@ -199,6 +199,7 @@ RegisterNetEvent('factions:server:upgradeSkill', function(nodeId)
 end)
 
 RegisterNetEvent('factions:server:resetSkills', function()
+    if not MS.RateLimit(source, 'factions:resetSkills', 3, 60) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player then return end

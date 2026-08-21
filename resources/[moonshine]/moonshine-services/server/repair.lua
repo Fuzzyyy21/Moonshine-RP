@@ -40,6 +40,7 @@ end)
 
 --- Reparatur beauftragen.
 RegisterNetEvent('services:server:repair', function(plate, engine, body)
+    if not MS.RateLimit(source, 'services:repair', 10, 10) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player or not ServiceConfig.Repair.enabled then return end
@@ -89,6 +90,7 @@ CreateThread(function()
 end)
 
 RegisterNetEvent('services:server:kitUsed', function(slot, plate)
+    if not MS.RateLimit(source, 'services:kitUse', 10, 10) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player then return end

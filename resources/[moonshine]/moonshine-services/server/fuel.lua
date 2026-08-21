@@ -52,6 +52,7 @@ end)
 
 --- Kanister kaufen.
 RegisterNetEvent('services:server:buyCanister', function(count)
+    if not MS.RateLimit(source, 'services:canisterBuy', 10, 10) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player or not ServiceConfig.Fuel.enabled then return end
@@ -111,6 +112,7 @@ end)
 
 --- Der Client bestaetigt, dass er den Kanister an einem Fahrzeug benutzt hat.
 RegisterNetEvent('services:server:canisterUsed', function(slot, plate)
+    if not MS.RateLimit(source, 'services:canisterUse', 10, 10) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player then return end

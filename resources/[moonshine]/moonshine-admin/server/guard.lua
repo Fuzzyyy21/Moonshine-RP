@@ -14,7 +14,6 @@ MS = MS or exports['moonshine-core']:GetCoreObject()
 
 Admin.Strikes = {}     -- [source] = { count, reasons, lastAt }
 Admin.Positions = {}   -- [source] = { coords, at }
-Admin.Rates = {}       -- [source] = { [key] = { count, until } }
 
 --- Ist dieser Spieler von der Pruefung ausgenommen?
 local function exempt(player)
@@ -107,45 +106,15 @@ end
 
 -- Ratenbegrenzung ----------------------------------------------------------------
 
---- Prueft und zaehlt einen Aufruf.
+--- Die Begrenzung rechnet der Core.
+---
+--- Sie lag frueher hier. Das war falsch herum: moonshine-admin startet als
+--- letzte Resource, und bis dahin waren saemtliche Limits im ganzen
+--- Framework aus. Jetzt kommt hier nur noch die Meldung an, wenn jemand
+--- wiederholt darueber geht - Admin.Flag ruft der Core selbst.
 ---@return boolean allowed
 function Admin.RateLimit(source, key, max, windowSeconds)
-    if not AdminConfig.Guard.enabled or not AdminConfig.Guard.rateLimit.enabled then
-        return true
-    end
-
-    local player = MS.GetPlayer(source)
-    if exempt(player) then return true end
-
-    max = max or AdminConfig.Guard.rateLimit.defaultMax
-    windowSeconds = windowSeconds or AdminConfig.Guard.rateLimit.defaultWindow
-
-    local buckets = Admin.Rates[source]
-    if not buckets then
-        buckets = {}
-        Admin.Rates[source] = buckets
-    end
-
-    local now = os.time()
-    local bucket = buckets[key]
-
-    if not bucket or bucket.resetAt <= now then
-        buckets[key] = { count = 1, resetAt = now + windowSeconds, warned = 0 }
-        return true
-    end
-
-    bucket.count = bucket.count + 1
-
-    if bucket.count <= max then return true end
-
-    bucket.warned = bucket.warned + 1
-
-    if bucket.warned >= AdminConfig.Guard.rateLimit.strikes then
-        bucket.warned = 0
-        Admin.Flag(source, ('Zu viele Aufrufe von "%s"'):format(key), 2)
-    end
-
-    return false
+    return MS.RateLimit(source, key, max, windowSeconds)
 end
 
 -- Meldungen vom Client -------------------------------------------------------------
@@ -257,7 +226,6 @@ end)
 AddEventHandler('playerDropped', function()
     Admin.Strikes[source] = nil
     Admin.Positions[source] = nil
-    Admin.Rates[source] = nil
 end)
 
 --- Nach einem Teleport durch einen Admin nicht sofort melden.

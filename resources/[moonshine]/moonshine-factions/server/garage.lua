@@ -206,6 +206,7 @@ end)
 
 --- Fahrzeug verkaufen (halber Preis zurueck in die Kasse).
 RegisterNetEvent('factions:server:sellVehicle', function(vehicleId)
+    if not MS.RateLimit(source, 'factions:sellVehicle', 5, 30) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player then return end

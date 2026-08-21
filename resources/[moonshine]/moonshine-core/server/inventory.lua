@@ -209,6 +209,7 @@ RegisterNetEvent('moonshine:server:useItem', function(slot)
 end)
 
 RegisterNetEvent('moonshine:server:giveItem', function(targetId, slot, count)
+    if not MS.RateLimit(source, 'core:give', 10, 10) then return end
     local player = MS.Players[source]
     if not player then return end
 

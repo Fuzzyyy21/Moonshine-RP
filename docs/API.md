@@ -255,9 +255,14 @@ Nach beiden Änderungen reicht ein `restart moonshine-core`.
 
 ## Ratenbegrenzung
 
-Jedes Netzwerkereignis, das Geld oder Items bewegt, sollte begrenzt sein.
-`MS.RateLimit` reicht an `moonshine-admin` durch und laesst alles durch, wenn
-diese Resource nicht laeuft.
+Jedes Netzwerkereignis, das Geld oder Items bewegt, **muss** begrenzt sein —
+`tools/pruefen.py` besteht darauf. Ohne Begrenzung laesst sich jeder Handler
+im Dauerfeuer aufrufen, und genau daran haengen die meisten Dupe-Luecken in
+FiveM.
+
+`MS.RateLimit` rechnet der Core selbst. Es braucht dafuer keine andere
+Resource; `moonshine-admin` bekommt nur die Meldung, wenn jemand wiederholt
+darueber geht.
 
 ```lua
 RegisterNetEvent('meinshop:server:kaufen', function(item, menge)
@@ -270,5 +275,8 @@ RegisterNetEvent('meinshop:server:kaufen', function(item, menge)
 end)
 ```
 
-Wer die Grenze wiederholt reisst, sammelt Strikes beim Wachhund. Details in
-[`ADMIN.md`](ADMIN.md).
+Wer die Grenze dreimal reisst, sammelt Strikes beim Wachhund. Laeuft
+`moonshine-admin` nicht, greift die Begrenzung trotzdem — nur die Meldung
+faellt aus. Einstellbar ist alles in `Config.RateLimit`.
+
+Details in [`ADMIN.md`](ADMIN.md).

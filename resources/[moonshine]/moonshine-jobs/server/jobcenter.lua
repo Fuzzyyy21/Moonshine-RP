@@ -138,6 +138,7 @@ end)
 
 --- Job wechseln.
 RegisterNetEvent('work:server:setJob', function(name)
+    if not MS.RateLimit(source, 'work:setJob', 5, 30) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player or not atCenter(source) then return end

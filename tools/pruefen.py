@@ -17,6 +17,7 @@ Was geprueft wird:
  11. Aufrufe     - keine Aufrufe auf Funktionen, die es nirgends gibt
  12. Config      - keine Zugriffe auf Config-Felder, die nie gesetzt werden
  13. Namensraum  - keine Globals aus einer Resource, die gar nicht geladen ist
+ 14. Ratenlimit  - kein Netz-Event bewegt Geld oder Items ungebremst
 
 Aufruf:   python3 tools/pruefen.py [--nur-syntax]
 Rueckgabe: 0 wenn sauber, 1 bei Funden.
@@ -616,6 +617,53 @@ def check_foreign_globals():
                              f"und wird hier nicht mitgeladen ({side})")
 
 
+# --- 14. Netz-Events, die Werte bewegen, ohne Ratenbegrenzung ---------------
+#
+# Ein Netz-Event ist eine offene Tuer: der Client entscheidet, wann und wie
+# oft er sie aufmacht. Die Handler pruefen zwar Besitz, Naehe und Kontostand -
+# aber ohne Begrenzung laesst sich jeder davon im Dauerfeuer aufrufen, und
+# genau daran haengen die meisten Dupe-Luecken in FiveM.
+#
+# Zwanzig Handler hatten hier keine, darunter factions:server:vaultPut,
+# waehrend vaultTake daneben eine hatte.
+
+WERTBEWEGEND = re.compile(
+    r"\b(AddMoney|RemoveMoney|SetMoney|AddItem|RemoveItem|AddKasse|RemoveKasse"
+    r"|AddToVault|AddFactionXp|AddMeditationPoints|GiveVehicle|SetMods)\b")
+
+
+def check_ratelimits():
+    for res in resources():
+        for path in _side_files(res, 'server'):
+            lines = read(path).split('\n')
+
+            index = 0
+            while index < len(lines):
+                match = re.match(r"RegisterNetEvent\('([^']+)'", lines[index])
+
+                if not match:
+                    index += 1
+                    continue
+
+                start = index
+                index += 1
+
+                # Der Handler endet am ersten 'end)' in Spalte 0. Sonst
+                # zaehlte eine Begrenzung aus dem naechsten Handler mit.
+                while index < len(lines) and not lines[index].startswith('end)'):
+                    index += 1
+
+                body = '\n'.join(lines[start:index + 1])
+                moved = sorted(set(WERTBEWEGEND.findall(body)))
+
+                if moved and 'RateLimit' not in body:
+                    note('OHNE-RATENBEGRENZUNG', f"{path}:{start + 1}",
+                         f"{match.group(1)} bewegt {', '.join(moved)} "
+                         f"ohne MS.RateLimit")
+
+                index += 1
+
+
 def main():
     only_syntax = '--nur-syntax' in sys.argv
 
@@ -633,6 +681,7 @@ def main():
         check_unknown_calls()
         check_config_access()
         check_foreign_globals()
+        check_ratelimits()
 
     if not findings:
         print('Alles sauber.')

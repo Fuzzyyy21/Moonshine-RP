@@ -47,6 +47,7 @@ end
 -- Stufen kaufen --------------------------------------------------------------
 
 RegisterNetEvent('mystic:server:upgradeSkill', function(skillId)
+    if not MS.RateLimit(source, 'mystic:upgrade', 15, 10) then return end
     local source = source
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)

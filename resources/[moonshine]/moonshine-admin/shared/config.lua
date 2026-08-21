@@ -79,14 +79,10 @@ AdminConfig.Guard = {
     },
 
     -- Ratenbegrenzung fuer Netzwerkereignisse.
-    rateLimit = {
-        enabled = true,
-        -- Standardgrenze, wenn eine Resource nichts anderes angibt.
-        defaultMax = 20,
-        defaultWindow = 10,
-        -- Wie viele Ueberschreitungen bis zur Meldung.
-        strikes = 3,
-    },
+    -- Die Ratenbegrenzung steht jetzt im Core (Config.RateLimit). Sie lag
+    -- hier, aber moonshine-admin startet als letzte Resource - bis dahin
+    -- waren alle Limits aus. Was hier bleibt, ist die Meldung: der Core
+    -- ruft Admin.Flag, wenn jemand wiederholt darueber geht.
 
     -- Was passiert, wenn das Strike-Limit erreicht ist.
     -- 'log' | 'kick' | 'ban'

@@ -53,6 +53,79 @@ local function eindeutig(liste, feld)
 end
 
 -- ===========================================================================
+-- Ratenbegrenzung
+-- ===========================================================================
+
+laden('moonshine-core/shared/config.lua')
+laden('moonshine-core/shared/utils.lua')
+
+gruppe('Ratenbegrenzung: Fenster')
+
+local Rate = MS.Utils.RateBucket
+
+-- Ohne Eimer faengt ein neuer an und ist erlaubt.
+local ok1, eimer1, melden1 = Rate(nil, 1000, 3, 10, 3)
+pruefe('Der erste Aufruf ist erlaubt', ok1 == true)
+pruefe('Er zaehlt als einer', eimer1.count == 1, eimer1.count)
+pruefe('Das Fenster endet nach der Fensterbreite', eimer1.resetAt == 1010, eimer1.resetAt)
+pruefe('Der erste Aufruf meldet nichts', melden1 == false)
+
+-- Bis zur Grenze bleibt alles erlaubt.
+local eimer = eimer1
+for nummer = 2, 3 do
+    local erlaubt
+    erlaubt, eimer = Rate(eimer, 1001, 3, 10, 3)
+    pruefe(('Aufruf %d liegt noch im Rahmen'):format(nummer), erlaubt == true)
+end
+pruefe('Nach drei Aufrufen steht der Zaehler auf drei', eimer.count == 3, eimer.count)
+
+-- Der vierte geht darueber.
+local ok4
+ok4, eimer = Rate(eimer, 1002, 3, 10, 3)
+pruefe('Der vierte Aufruf wird abgelehnt', ok4 == false)
+pruefe('Die Ueberschreitung wird gezaehlt', eimer.warned == 1, eimer.warned)
+
+-- Erst die dritte Ueberschreitung ist eine Meldung wert.
+local melden
+_, eimer, melden = Rate(eimer, 1002, 3, 10, 3)
+pruefe('Die zweite Ueberschreitung meldet noch nicht', melden == false)
+
+_, eimer, melden = Rate(eimer, 1002, 3, 10, 3)
+pruefe('Die dritte Ueberschreitung meldet', melden == true)
+pruefe('Danach faengt die Zaehlung von vorn an', eimer.warned == 0, eimer.warned)
+
+-- Ist das Fenster vorbei, faengt alles neu an.
+local okNeu, eimerNeu = Rate(eimer, 1011, 3, 10, 3)
+pruefe('Nach dem Fenster ist wieder alles erlaubt', okNeu == true)
+pruefe('Und der Zaehler steht wieder auf eins', eimerNeu.count == 1, eimerNeu.count)
+pruefe('Das neue Fenster laeuft ab jetzt', eimerNeu.resetAt == 1021, eimerNeu.resetAt)
+
+-- Genau auf der Fenstergrenze zaehlt als abgelaufen.
+local okGrenze = Rate({ count = 99, resetAt = 1010, warned = 0 }, 1010, 3, 10, 3)
+pruefe('Auf der Fenstergrenze faengt ein neues Fenster an', okGrenze == true)
+
+-- Ein kaputter Eimer darf nicht zum Durchmarsch fuehren, sondern faengt
+-- schlicht neu an.
+local okKaputt, eimerKaputt = Rate('unsinn', 1000, 3, 10, 3)
+pruefe('Ein unbrauchbarer Eimer wird ersetzt', okKaputt == true and eimerKaputt.count == 1)
+
+-- Eine Grenze von null laesst nichts durch.
+local okNull = Rate({ count = 1, resetAt = 2000, warned = 0 }, 1000, 0, 10, 3)
+pruefe('Eine Grenze von null laesst nichts durch', okNull == false)
+
+gruppe('Ratenbegrenzung: Einstellung')
+
+pruefe('Die Begrenzung ist ab Werk an', Config.RateLimit.enabled == true)
+pruefe('Es gibt eine Standardgrenze', Config.RateLimit.defaultMax > 0)
+pruefe('Es gibt ein Standardfenster', Config.RateLimit.defaultWindow > 0)
+pruefe('Erst mehrere Ueberschreitungen melden', Config.RateLimit.strikes > 1)
+
+-- Adminlevel gehen von 0 bis 4. Eine Ausnahme ab 0 haette alle befreit.
+pruefe('Die Ausnahme liegt ueber dem Spielerlevel',
+    Config.RateLimit.exemptLevel >= 1 and Config.RateLimit.exemptLevel <= 4,
+    Config.RateLimit.exemptLevel)
+
+-- ===========================================================================
 -- Mystik
 -- ===========================================================================
 

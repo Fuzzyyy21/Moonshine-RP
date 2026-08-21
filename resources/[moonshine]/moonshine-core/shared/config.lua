@@ -88,6 +88,27 @@ Config.Logs = {
 }
 
 -- Tastenbelegung (client) ----------------------------------------------------
+-- Ratenbegrenzung ------------------------------------------------------------
+--- Sie steht hier und nicht in moonshine-admin, obwohl der Wachhund dort
+--- lebt. Zwei Gruende: sie ist ein Grundbaustein, an dem jede Resource
+--- haengt - und moonshine-admin startet als letzte Resource. Laege sie
+--- dort, waeren zwischen Serverstart und Adminstart saemtliche Limits aus,
+--- ohne dass es jemand merkt.
+Config.RateLimit = {
+    enabled = true,
+
+    -- Vorgabe, wenn ein Aufruf keine eigenen Werte mitgibt.
+    defaultMax    = 20,
+    defaultWindow = 10,
+
+    -- Ab diesem Adminlevel greift keine Begrenzung mehr.
+    exemptLevel = 3,
+
+    -- So oft darf jemand ueber sein Limit gehen, bevor der Wachhund
+    -- (moonshine-admin) eine Meldung bekommt.
+    strikes = 3,
+}
+
 Config.Keys = {
     inventory = 'F2',
     -- Die Anzeige hat eine eigene Resource: HudConfig.Keys in moonshine-hud.

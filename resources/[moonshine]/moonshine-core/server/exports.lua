@@ -108,14 +108,55 @@ end)
 ---   if not MS.RateLimit(source, 'shop:kaufen', 10, 5) then return end
 ---
 ---@return boolean allowed
-function MS.RateLimit(source, key, max, windowSeconds)
-    local ok, allowed = pcall(function()
-        return exports['moonshine-admin']:RateLimit(source, key, max, windowSeconds)
-    end)
+--- [source] = { [key] = { count, resetAt, warned } }
+MS.Rates = {}
 
-    if not ok then return true end
-    return allowed ~= false
+--- Prueft und zaehlt einen Aufruf.
+---
+--- Vorher lag das in moonshine-admin und wurde von hier per Export geholt.
+--- Fiel die Resource aus oder war sie noch nicht gestartet, gab der pcall
+--- still `true` zurueck - und saemtliche Begrenzungen im ganzen Framework
+--- waren aus, ohne dass eine Zeile im Log stand. Jetzt rechnet der Core
+--- selbst; moonshine-admin bekommt nur noch die Meldung.
+---@return boolean allowed
+function MS.RateLimit(source, key, max, windowSeconds)
+    if not Config.RateLimit.enabled then return true end
+
+    local player = MS.Players[source]
+    if not player then return true end
+
+    -- Admins ab dem eingestellten Level laufen ungebremst.
+    if (player.adminLevel or 0) >= Config.RateLimit.exemptLevel then return true end
+
+    key = tostring(key or 'default')
+    max = max or Config.RateLimit.defaultMax
+    windowSeconds = windowSeconds or Config.RateLimit.defaultWindow
+
+    local buckets = MS.Rates[source]
+    if not buckets then
+        buckets = {}
+        MS.Rates[source] = buckets
+    end
+
+    local allowed, bucket, melden = MS.Utils.RateBucket(
+        buckets[key], os.time(), max, windowSeconds, Config.RateLimit.strikes)
+
+    buckets[key] = bucket
+
+    if melden then
+        -- Der Wachhund darf fehlen; die Begrenzung greift trotzdem.
+        pcall(function()
+            exports['moonshine-admin']:Flag(source,
+                ('Zu viele Aufrufe von "%s"'):format(key), 2)
+        end)
+    end
+
+    return allowed
 end
+
+AddEventHandler('playerDropped', function()
+    MS.Rates[source] = nil
+end)
 
 exports('RateLimit', function(source, key, max, windowSeconds)
     return MS.RateLimit(source, key, max, windowSeconds)

@@ -69,6 +69,7 @@ end)
 
 --- Fraktion gruenden.
 RegisterNetEvent('factions:server:create', function(name, tag)
+    if not MS.RateLimit(source, 'factions:create', 3, 60) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player then return end

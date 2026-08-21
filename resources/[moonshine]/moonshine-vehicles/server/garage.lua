@@ -156,6 +156,7 @@ function Vehicles.Impound(vehicleId, reason)
 end
 
 RegisterNetEvent('vehicles:server:release', function(vehicleId)
+    if not MS.RateLimit(source, 'vehicles:release', 5, 30) then return end
     local source = source
     local player = MS.GetPlayer(source)
     if not player then return end

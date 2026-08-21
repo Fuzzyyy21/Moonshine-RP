@@ -80,11 +80,16 @@ RegisterNetEvent('meinshop:server:kaufen', function(item, menge)
 end)
 ```
 
-`MS.RateLimit` kommt aus `moonshine-core` und reicht an diese Resource durch.
-Läuft `moonshine-admin` nicht, lässt der Core alles durch — jede Resource
-bleibt also für sich lauffähig.
+`MS.RateLimit` **rechnet der Core selbst** (`Config.RateLimit`). Das war
+früher andersherum: die Rechnung lag hier, und der Core holte sie sich per
+Export. Das hatte zwei Haken — fiel diese Resource aus, waren sämtliche
+Limits im ganzen Framework still aus, und `moonshine-admin` startet als
+**letzte** Resource, also war zwischen Serverstart und Adminstart ohnehin
+nichts begrenzt.
 
-Wird die Grenze dreimal überschritten, setzt es automatisch Strikes.
+Jetzt greift die Begrenzung ab der ersten Sekunde und auch ohne diese
+Resource. Was hier bleibt, ist die Meldung: wird die Grenze dreimal
+überschritten, ruft der Core `Admin.Flag` und es setzt Strikes.
 
 Im Framework selbst hängt die Begrenzung bereits an allen Ereignissen, die
 Geld oder Items bewegen: Auktionsgebote, Bank, Schwarzmarkt, Tanken,

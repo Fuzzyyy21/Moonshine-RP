@@ -8,12 +8,13 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.900 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 2.950 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
-Seitenzuordnung, Command-Kollisionen, Schema-Drift und Globals aus einer
-Resource, die gar nicht mitgeladen wird — bevor der Server
+Seitenzuordnung, Command-Kollisionen, Schema-Drift, Globals aus einer
+Resource, die gar nicht mitgeladen wird, und Netz-Events, die Geld oder
+Items ungebremst bewegen — bevor der Server
 überhaupt startet. Der zweite Befehl führt die Rechenlogik der `shared`-Dateien
 tatsächlich aus. Beides läuft bei jedem Push ohnehin.
 

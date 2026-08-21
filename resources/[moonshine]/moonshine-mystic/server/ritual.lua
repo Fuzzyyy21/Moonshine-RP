@@ -18,6 +18,7 @@ end
 -- Erweckung ------------------------------------------------------------------
 
 RegisterNetEvent('mystic:server:awaken', function(raceName)
+    if not MS.RateLimit(source, 'mystic:awaken', 5, 30) then return end
     local source = source
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)
@@ -267,6 +268,7 @@ end)
 -- Meditation gibt ausschliesslich Meditationspunkte.
 
 RegisterNetEvent('mystic:server:meditate', function()
+    if not MS.RateLimit(source, 'mystic:meditate', 5, 30) then return end
     local source = source
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)
@@ -330,6 +332,7 @@ end)
 -- Bringt vorerst nur Geld. Weitere Belohnungen sind noch offen.
 
 RegisterNetEvent('mystic:server:performRitual', function()
+    if not MS.RateLimit(source, 'mystic:ritual', 5, 30) then return end
     local source = source
     local profile = Mystic.Profiles[source]
     local player  = MS.GetPlayer(source)
