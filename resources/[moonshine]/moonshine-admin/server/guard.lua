@@ -94,13 +94,24 @@ function Admin.Enforce(source, entry)
         DropPlayer(source, reason)
 
     elseif config.action == 'ban' then
-        local player = MS.GetPlayer(source)
+        -- Ueber alle Kennungen, nicht nur die Lizenz: ein neuer
+        -- Rockstar-Account allein soll den Bann nicht abstreifen.
+        local gesetzt = 0
+        pcall(function()
+            gesetzt = MS.Bans.Ban(source, reason, config.banHours, 'Wachhund')
+        end)
 
-        if player then
-            pcall(function()
-                MS.DB.SetBan(player.license, true, reason,
-                    os.time() + config.banHours * 3600)
-            end)
+        if gesetzt == 0 then
+            -- Der alte Weg als Rueckfall, damit im Zweifel wenigstens die
+            -- Lizenz gesperrt ist.
+            local player = MS.GetPlayer(source)
+
+            if player then
+                pcall(function()
+                    MS.DB.SetBan(player.license, true, reason,
+                        os.time() + config.banHours * 3600)
+                end)
+            end
         end
 
         Admin.Strikes[source] = nil

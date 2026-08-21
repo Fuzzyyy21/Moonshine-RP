@@ -54,6 +54,23 @@ AddEventHandler('playerConnecting', function(playerName, _, deferrals)
         end
     end
 
+    -- Zweite Pruefung ueber alle Kennungen: Steam, Discord, IP und was
+    -- FiveM sonst noch liefert. Ein neuer Rockstar-Account allein reicht
+    -- damit nicht mehr, um einen Bann abzustreifen.
+    local bann = nil
+    pcall(function() bann = MS.Bans.Check(source) end)
+
+    if bann then
+        local until_ = bann.expires > 0
+            and os.date('%d.%m.%Y %H:%M', bann.expires)
+            or 'permanent'
+
+        MS.Utils.Print('warn', '%s abgewiesen (Bann auf %s)', playerName, bann.kind)
+        deferrals.done(('Du bist gebannt.\nGrund: %s\nBis: %s'):format(
+            bann.reason or 'kein Grund', until_))
+        return
+    end
+
     MS.Sessions[source] = { license = license, user = user, joinedAt = os.time() }
     deferrals.done()
 end)

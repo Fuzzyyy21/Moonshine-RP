@@ -11,9 +11,16 @@ Admin.Damage = {}
 --- Waffen-Hashes einmal vorberechnen, statt bei jedem Durchgang neu.
 local gesperrteWaffen = {}
 
+--- Dasselbe fuer die Spielermodelle.
+Admin.ErlaubteModelle = {}
+
 CreateThread(function()
     for _, name in ipairs(AdminConfig.Guard.beobachtung.waffen.gesperrt) do
         gesperrteWaffen[GetHashKey(name)] = name
+    end
+
+    for _, name in ipairs(AdminConfig.Guard.beobachtung.erlaubteModelle) do
+        Admin.ErlaubteModelle[GetHashKey(name)] = true
     end
 end)
 
@@ -59,6 +66,24 @@ local function durchgang()
                 if weste > config.maxWeste then
                     Admin.Flag(source, ('Zu viel Weste (%d)'):format(weste),
                         config.gewicht, { weste = weste })
+                end
+
+                -- Unverwundbarkeit. Das ist der direkteste Godmode-Fund,
+                -- den es gibt: der Server fragt das Flag selbst ab.
+                if config.godmode and GetPlayerInvincible(source) then
+                    Admin.Flag(source, 'Unverwundbar', config.godmodeGewicht,
+                        { quelle = 'GetPlayerInvincible' })
+                end
+
+                -- Ped-Modell. Wer als Panzer oder Tier herumlaeuft, hat sich
+                -- das nicht im Charaktereditor ausgesucht.
+                if config.modelle then
+                    local modell = GetEntityModel(ped)
+
+                    if not Admin.ErlaubteModelle[modell] then
+                        Admin.Flag(source, 'Fremdes Spielermodell',
+                            config.modellGewicht, { modell = modell })
+                    end
                 end
 
                 -- Waffe

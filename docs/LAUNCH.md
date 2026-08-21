@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 3.000 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 3.030 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -202,8 +202,19 @@ aufläuft — vor allem:
 * **Bewegung.** 190 m/s im Fahrzeug lässt Flugzeuge durch. Wer Bahnen oder
   schnelle Addon-Fahrzeuge einbaut, prüft das nach.
 
+* **Spielermodelle.** Nur die beiden Freemode-Peds sind erlaubt. Wer eigene
+  Modelle einbaut, trägt sie in `erlaubteModelle` nach — sonst läuft der
+  Wachhund gegen die eigenen Leute.
+* **Herzschlag.** 60 Sekunden Schonfrist nach dem Verbinden. Auf einem
+  Server mit langen Ladezeiten eher erhöhen als abschalten.
+
 `/verdacht [id]` zeigt die Vorgeschichte aus `ms_flags` — damit lässt sich
 ein Fehlalarm von einem echten Fund unterscheiden, bevor jemand fliegt.
+
+**Banne gehen über alle Kennungen.** Zum Prüfen: jemanden testweise bannen
+und mit einem zweiten Rockstar-Account vom selben Rechner verbinden — er
+muss über die IP oder Steam-Id abgewiesen werden. Wenn nicht, liefert der
+Server die Kennungen nicht; dann `Config.Bans.useIp` prüfen.
 
 ## 8. Balancing scharf stellen
 

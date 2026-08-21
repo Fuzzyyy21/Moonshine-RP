@@ -116,6 +116,14 @@ Config.RateLimit = {
     callbackWindow  = 10,
 }
 
+-- Banne ------------------------------------------------------------------------
+Config.Bans = {
+    -- Ein Bann gilt fuer alle Kennungen, die FiveM beim Verbinden liefert,
+    -- nicht nur fuer die Rockstar-Lizenz. Ein neuer Account allein reicht
+    -- dann nicht mehr, um zurueckzukommen.
+    useIp = true,   -- Vorsicht: hinter einer IP koennen Mitbewohner sitzen
+}
+
 Config.Keys = {
     inventory = 'F2',
     -- Die Anzeige hat eine eigene Resource: HudConfig.Keys in moonshine-hud.

@@ -275,10 +275,18 @@ registerCommand('ban', 'Bannt einen Spieler', {
     local reason = table.concat(args, ' ', 3)
     if reason == '' then reason = 'Kein Grund angegeben' end
 
-    local expires = hours > 0 and (os.time() + math.floor(hours * 3600)) or 0
-    MS.DB.SetBan(target.license, true, reason, expires)
-    MS.Logger.Log('admin', ('%s wurde gebannt (%s): %s'):format(
-        target.fullname, hours > 0 and (hours .. 'h') or 'permanent', reason), target.license)
+    -- Ueber alle Kennungen, nicht nur die Lizenz.
+    local gesetzt = MS.Bans.Ban(target.source, reason, hours,
+        source > 0 and (MS.GetPlayer(source) or {}).fullname or 'Konsole')
+
+    if gesetzt == 0 then
+        local expires = hours > 0 and (os.time() + math.floor(hours * 3600)) or 0
+        MS.DB.SetBan(target.license, true, reason, expires)
+    end
+
+    MS.Logger.Log('admin', ('%s wurde gebannt (%s, %d Kennungen): %s'):format(
+        target.fullname, hours > 0 and (hours .. 'h') or 'permanent',
+        gesetzt, reason), target.license)
 
     target:Kick(('Du wurdest gebannt.\nGrund: %s'):format(reason))
 end)
@@ -292,8 +300,9 @@ registerCommand('unban', 'Entbannt eine Lizenz', {
         return
     end
 
-    MS.DB.SetBan(license, false, nil, nil)
-    reply(source, ('Bann fuer %s aufgehoben.'):format(license), 'success')
+    local betroffen = MS.Bans.Unban(license)
+    reply(source, ('Bann fuer %s aufgehoben (%d Kennungen).'):format(
+        license, betroffen), 'success')
 end)
 
 registerCommand('setadmin', 'Setzt das Adminlevel eines Spielers', {

@@ -136,6 +136,52 @@ pruefe('Explosionen werden vorerst nur gemeldet',
 pruefe('Gesperrte Modelle werden abgebrochen',
     wache.entitaeten.aktion == 'abbrechen', wache.entitaeten.aktion)
 
+gruppe('Wachhund: Herzschlag und Modelle')
+
+-- Die groesste Luecke eines Lua-Anticheats ist ein abgeschalteter Client.
+-- Der Herzschlag faengt genau das - er muss deshalb an sein.
+pruefe('Der Herzschlag ist an', wache.herzschlag.enabled == true)
+pruefe('Der Herzschlag hat einen Takt', wache.herzschlag.interval > 0)
+pruefe('Ein einzelner Ausfall loest keine Massnahme aus',
+    wache.herzschlag.gewicht < wache.schwelle)
+
+-- Die Schonfrist muss laenger sein als ein Takt, sonst faellt jeder beim
+-- Verbinden auf, bevor sein Skript ueberhaupt geantwortet hat.
+pruefe('Die Schonfrist deckt mindestens einen Takt',
+    wache.herzschlag.karenz > wache.herzschlag.interval,
+    ('%d gegen %d'):format(wache.herzschlag.karenz, wache.herzschlag.interval))
+
+-- Spielermodelle
+local modelle2 = wache.beobachtung.erlaubteModelle
+pruefe('Es gibt erlaubte Spielermodelle', #modelle2 > 0)
+
+local okM, doppelteM = eindeutig(modelle2)
+pruefe('Kein Spielermodell steht zweimal drin', okM, doppelteM)
+
+-- Ohne die beiden Freemode-Modelle laeuft der Charaktereditor gegen den
+-- Wachhund: jeder normale Spieler waere sofort auffaellig.
+local freemode = {}
+for _, name in ipairs(modelle2) do freemode[name] = true end
+
+pruefe('Das maennliche Freemode-Modell ist erlaubt',
+    freemode['mp_m_freemode_01'] == true)
+pruefe('Das weibliche Freemode-Modell ist erlaubt',
+    freemode['mp_f_freemode_01'] == true)
+
+pruefe('Godmode wird geprueft', wache.beobachtung.godmode == true)
+pruefe('Godmode allein loest keine Massnahme aus',
+    wache.beobachtung.godmodeGewicht < wache.schwelle)
+pruefe('Ein fremdes Modell allein loest keine Massnahme aus',
+    wache.beobachtung.modellGewicht < wache.schwelle)
+
+gruppe('Wachhund: Banne')
+
+laden('moonshine-core/shared/config.lua')
+
+pruefe('Es gibt eine Banneinstellung', type(Config.Bans) == 'table')
+pruefe('Die IP laesst sich einzeln abschalten',
+    type(Config.Bans.useIp) == 'boolean')
+
 gruppe('Wachhund: Grenzen')
 
 pruefe('Der Beobachtungstakt ist nicht zu eng',

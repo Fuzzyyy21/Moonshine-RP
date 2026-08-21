@@ -73,6 +73,24 @@ AdminConfig.Guard = {
         maxWeste   = 105,
         gewicht    = 2,
 
+        -- Unverwundbarkeit fragt der Server direkt ab. Der direkteste
+        -- Godmode-Fund, den es gibt.
+        godmode = true,
+        godmodeGewicht = 4,
+
+        -- Spielermodelle. Wer als Panzer oder Tier herumlaeuft, hat sich
+        -- das nicht im Charaktereditor ausgesucht.
+        --
+        -- Die Liste bleibt bewusst kurz: alles andere ist verdaechtig. Wer
+        -- eigene Modelle einbaut (Job-Uniformen als eigenes Ped, Tiere fuer
+        -- Verwandlungen), traegt sie hier nach - sonst laeuft der Wachhund
+        -- gegen die eigenen Leute.
+        modelle = true,
+        modellGewicht = 3,
+        erlaubteModelle = {
+            'mp_m_freemode_01', 'mp_f_freemode_01',
+        },
+
         -- Gesperrte Waffen werden sofort entfernt.
         waffen = {
             enabled = true,
@@ -158,6 +176,20 @@ AdminConfig.Guard = {
         giveWeapon        = true,
         removeAllWeapons  = true,
         clearPedTasks     = true,
+    },
+
+    -- Schicht 5: Herzschlag -------------------------------------------------------
+    --- Die groesste Luecke eines Anticheats in reinem Lua: ein Cheatmenue
+    --- kann die clientseitigen Skripte anhalten. Danach ist der Spieler
+    --- unsichtbar fuer alles, was vom Client kommt.
+    ---
+    --- Dagegen hilft nur die Umkehrung: bleibt das Lebenszeichen aus, ist
+    --- genau das die Meldung.
+    herzschlag = {
+        enabled  = true,
+        interval = 20,      -- Sekunden zwischen zwei Zeichen
+        karenz   = 60,      -- Schonfrist nach dem Verbinden
+        gewicht  = 2,
     },
 
     -- Schicht 4: Beweise -------------------------------------------------------------

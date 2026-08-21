@@ -4,7 +4,7 @@ lua54 'yes'
 
 name 'moonshine-admin'
 author 'Moonshine RP'
-description 'Adminpanel, Werkzeuge und ein vierschichtiger Wachhund'
+description 'Adminpanel, Werkzeuge und ein sechsschichtiger Wachhund'
 version '1.0.0'
 
 dependency 'moonshine-core'
@@ -19,6 +19,7 @@ server_scripts {
     'server/guard.lua',
     'server/watch.lua',
     'server/events.lua',
+    'server/heartbeat.lua',
     'server/panel.lua',
     'server/main.lua',
 }
@@ -27,6 +28,7 @@ client_scripts {
     'client/main.lua',
     'client/tools.lua',
     'client/guard.lua',
+    'client/heartbeat.lua',
 }
 
 ui_page 'nui/index.html'

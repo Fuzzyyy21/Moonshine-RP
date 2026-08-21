@@ -21,7 +21,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | `moonshine-vehicles` | Autohäuser, eigene Fahrzeuge, Garagen, Schlüssel und Verwahrstelle → [`docs/VEHICLES.md`](docs/VEHICLES.md) |
 | `moonshine-services` | Tankstellen, Werkstätten mit Tuning, Bank, Geldautomaten und Schwarzmarkt → [`docs/SERVICES.md`](docs/SERVICES.md) |
 | `moonshine-jobs` | Jobcenter und sieben Arbeitsaufträge mit echtem Ablauf → [`docs/JOBS.md`](docs/JOBS.md) |
-| `moonshine-admin` | Adminpanel, Werkzeuge und ein vierschichtiger Wachhund → [`docs/ADMIN.md`](docs/ADMIN.md) |
+| `moonshine-admin` | Adminpanel, Werkzeuge und ein sechsschichtiger Wachhund → [`docs/ADMIN.md`](docs/ADMIN.md) |
 | `moonshine-shops` | Beispiel-Resource: 24/7 Läden über die Core-API |
 
 ## Features
@@ -50,7 +50,7 @@ Rassensystem. Kein ESX-/QBCore-Fork, keine Alt-Lasten – nur Lua,
 | **Tuning** | Motor, Getriebe, Bremsen, Federung, Panzerung, Turbo, 15 Anbauteile, 22 Lackfarben, Folie, Xenon, Neon, Reifenrauch — Vorschau am Fahrzeug, bezahlt wird erst beim Einbauen |
 | **Arbeit** | Jobcenter, sieben Aufträge mit Stationen und Arbeitsfahrzeug — Spedition, Müllabfuhr, Taxi mit Fahrgästen, Post, Abschleppdienst mit Rückfahrt, Buslinie in fester Reihenfolge, Nachtwache an den Ritualpunkten |
 | **Admin** | Rechtesystem über Adminlevel, Commands plus Panel mit Spielerliste, Protokoll, Noclip und Beobachten |
-| **Anticheat** | Vierschichtiger Wachhund: der Server liest Leben, Weste und Waffen selbst ab, wertet Explosionen, Waffenschaden und erzeugte Objekte aus den Spielereignissen aus und schreibt jede Meldung als Beweis nach `ms_flags`. Dazu eine Ratenbegrenzung im Core, an der jedes geldbewegende Netz-Event hängt |
+| **Anticheat** | Sechsschichtiger Wachhund: der Server liest Leben, Weste und Waffen selbst ab, wertet Explosionen, Waffenschaden und erzeugte Objekte aus den Spielereignissen aus und schreibt jede Meldung als Beweis nach `ms_flags`. Dazu ein Herzschlag, der auffällt wenn jemand den Anticheat abschaltet, Banne über alle Kennungen statt nur die Rockstar-Lizenz, und eine Ratenbegrenzung im Core, an der jedes geldbewegende Netz-Event hängt |
 
 ## Voraussetzungen
 

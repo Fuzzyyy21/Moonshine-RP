@@ -48,7 +48,7 @@ Bewusst zurückhaltend: Er meldet und sammelt **Strikes**, statt sofort zu
 kicken. Ein Fehlalarm soll niemanden aus dem Spiel werfen. Admins ab Level 3
 werden gar nicht geprüft.
 
-Er steht auf vier Schichten.
+Er steht auf sechs Schichten.
 
 ### Schicht 1 — Der Server sieht selbst nach
 
@@ -59,6 +59,8 @@ Er steht auf vier Schichten.
 | **Leben** | mehr als 200 + Klassenbonus + 60 Puffer | 2 |
 | **Weste** | über 105 | 2 |
 | **Waffen** | Railgun, Minigun, RPG, Werfer, Raumwaffen, Minen | 3 (+ Entzug) |
+| **Godmode** | `GetPlayerInvincible` steht auf wahr | 4 |
+| **Spielermodell** | etwas anderes als die beiden Freemode-Peds | 3 |
 
 > **Das war vorher andersherum**, und das war der wichtigste Fehler im alten
 > Wachhund: der *Client* meldete alle zwölf Sekunden sein eigenes Leben,
@@ -67,8 +69,14 @@ Er steht auf vier Schichten.
 > dann fällt es überhaupt nicht auf.
 >
 > Der Server kann all das selbst vom Ped ablesen (`GetEntityHealth`,
-> `GetPedArmour`, `GetSelectedPedWeapon` gibt es serverseitig). Er braucht
-> den Client dafür gar nicht. `client/guard.lua` schickt heute nichts mehr.
+> `GetPedArmour`, `GetSelectedPedWeapon`, `GetPlayerInvincible` gibt es
+> serverseitig). Er braucht den Client dafür gar nicht. `client/guard.lua`
+> schickt heute nichts mehr.
+
+> **Zur Modellprüfung:** die Liste erlaubter Peds ist bewusst kurz — die
+> beiden Freemode-Modelle, sonst nichts. Wer eigene Modelle einbaut
+> (Uniformen als eigenes Ped, Tiere für Verwandlungen), trägt sie in
+> `erlaubteModelle` nach. Sonst läuft der Wachhund gegen die eigenen Leute.
 
 ### Schicht 2 — Ortswechsel
 
@@ -115,6 +123,42 @@ JSON.
 Gesamtzahl. Eine einzelne Zeile im Chat sagt wenig — wichtig ist, ob
 derselbe Spieler dreimal in zehn Minuten auffiel oder einmal vor drei
 Wochen. Nach 30 Tagen werden alte Zeilen gelöscht.
+
+### Schicht 5 — Herzschlag
+
+`server/heartbeat.lua`. Der Server erwartet alle 20 Sekunden ein
+Lebenszeichen vom Client. Bleibt es aus, **ist genau das die Meldung**.
+
+Das ist die Antwort auf die größte Lücke eines Anticheats in reinem Lua: ein
+Cheatmenü kann die clientseitigen Skripte anhalten, bevor sie etwas melden —
+danach ist der Spieler unsichtbar für alles, was vom Client kommt. Dagegen
+hilft nur die Umkehrung. Wer den Anticheat abschaltet, fällt dadurch auf,
+dass er still wird.
+
+Das Zeichen trägt einen Wert, den nur der Server kennt und der sich bei
+jedem Schlag ändert. Ein Cheater müsste also nicht irgendetwas schicken,
+sondern das Richtige — und das bekommt er nur, wenn das echte Skript läuft.
+Ein **falscher** Wert wiegt schwerer als gar keiner.
+
+Nach dem Verbinden gibt es 60 Sekunden Schonfrist, damit niemand auffällt,
+bevor sein Client überhaupt geladen hat.
+
+### Schicht 6 — Bann über alle Kennungen
+
+`moonshine-core/server/bans.lua`, Tabelle `ms_bans`.
+
+Ein Bann hing vorher allein an der **Rockstar-Lizenz**. Neuer Account — oder
+ein Spoofer — und derselbe Mensch war wieder da. Jetzt wird auf allen
+Kennungen gesperrt, die FiveM beim Verbinden liefert:
+
+`license` · `steam` · `discord` · `fivem` · `xbl` · `live` · `ip`
+
+Beim Verbinden werden **alle** geprüft, nicht nur eine. `/ban` und der
+Wachhund benutzen denselben Weg; `/unban license:…` hebt alle Kennungen
+dieser Lizenz auf einmal auf.
+
+> Die **IP** ist mit Absicht abschaltbar (`Config.Bans.useIp`) — hinter einer
+> IP können Mitbewohner sitzen.
 
 ### Wann es knallt
 
@@ -196,18 +240,56 @@ Ereignis: `admin:server:flagged` mit `source`, `reason` und der Strike-Zahl.
 
 ## Was der Wachhund nicht ist
 
-Kein Ersatz für einen kommerziellen Anticheat mit eigenem Client-Modul. Was
-er **nicht** kann:
+Er ist **kein Ersatz für einen kommerziellen Anticheat** wie Electron,
+FiveGuard oder Wave — und das lässt sich in reinem Lua auch nicht ändern.
+Der Unterschied ist keine Frage des Aufwands, sondern der Ebene:
 
-* **Injizierte Clients erkennen.** Er sieht, was jemand *tut*, nicht womit.
-* **Menüs erkennen, die nichts auslösen.** Wer nur zusieht, fällt nicht auf.
-* **Aimbots und Wallhacks.** Beides erzeugt völlig normale Spielereignisse.
+| | kommerzieller Anticheat | dieser Wachhund |
+|---|---|---|
+| **Client-Modul** | kompiliert, verschleiert, teils mit Kernel-Treiber | Lua-Skript, für jeden lesbar |
+| **Speicher lesen** | ja — findet injizierte DLLs und bekannte Menüs | nein, geht aus Lua nicht |
+| **Prozesse prüfen** | ja | nein |
+| **Hardware-Kennung** | echte HWID über Systemwerte | nur die Kennungen, die FiveM liefert |
+| **Signaturen** | Datenbank, laufend gepflegt von einem Team | keine |
+| **Screenshots** | eingebaut | nur wenn `screenshot-basic` läuft |
+| **Verhalten prüfen** | ja | **ja — hier ist er ebenbürtig** |
+| **Serverseitige Prüfung** | ja | **ja — hier ist er ebenbürtig** |
 
-Was er kann, kann er dafür verlässlich: Er hängt an Quellen, die der Client
-nicht abschalten kann, und er sammelt Beweise statt nur zu kicken.
+Der Kern des Unterschieds: ein Cheatmenü läuft **über** der CitizenFX-Runtime
+und hat vollen Zugriff auf den Speicher des Spiels. Jedes Lua-Skript, das ich
+schreibe, kann es lesen, verändern oder anhalten. Deshalb hängt hier alles
+Wichtige an Quellen, die der Client nicht abschalten kann — und deshalb gibt
+es Schicht 5: wer die Skripte anhält, wird still, und Stille ist die Meldung.
 
-Die zweite Hälfte der Absicherung steckt ohnehin nicht hier, sondern in
-jeder einzelnen Resource: **der Client schickt nur Absichten, der Server
-prüft Distanz, Geld, Besitz und Rechte selbst.** Dass das durchgehend
-passiert, prüft `tools/pruefen.py` — unter anderem darüber, dass jedes
-Netz-Event, das Geld oder Items bewegt, eine Ratenbegrenzung hat.
+### Was er dadurch konkret nicht findet
+
+* **Injizierte Clients.** Er sieht, was jemand *tut*, nicht womit.
+* **Menüs, die nichts auslösen.** Wer nur zusieht, fällt nicht auf.
+* **Aimbots und Wallhacks.** Beides erzeugt völlig normale Spielereignisse —
+  ein Kopfschuss sieht aus wie ein Kopfschuss.
+* **Spoofer.** Wer alle Kennungen fälscht, kommt an Schicht 6 vorbei.
+
+### Was er dafür zuverlässig findet
+
+Alles, was sich im Spiel **auswirkt**: Godmode, unmöglicher Schaden,
+gesperrte Waffen und Fahrzeuge, Teleports, Explosionen aus Waffen, die es
+nicht geben dürfte, die Standard-Ereignisse jedes Cheatmenüs — und den
+Versuch, den Anticheat selbst loszuwerden.
+
+### Die zweite Hälfte steckt nicht hier
+
+Die wirksamste Absicherung dieses Frameworks ist nicht der Wachhund, sondern
+dass **jede Resource ihre eigenen Eingaben prüft**: der Client schickt nur
+Absichten, der Server prüft Distanz, Geld, Besitz und Rechte selbst. Ein
+Cheatmenü kann dann beliebig Events feuern und bekommt trotzdem nichts.
+
+Dass das durchgehend passiert, prüft `tools/pruefen.py` — unter anderem
+darüber, dass jedes Netz-Event, das Geld oder Items bewegt, eine
+Ratenbegrenzung hat.
+
+### Wenn du mehr brauchst
+
+Für einen Server mit vielen Spielern und echtem Cheat-Druck ist ein
+kommerzielles Produkt zusätzlich sinnvoll. Es ersetzt diesen Wachhund nicht,
+sondern ergänzt ihn: der eine prüft den *Rechner*, der andere prüft das
+*Spielgeschehen*. Beide zusammen decken ab, was keiner allein kann.

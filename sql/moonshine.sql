@@ -356,3 +356,22 @@ CREATE TABLE IF NOT EXISTS `ms_flags` (
     KEY `license` (`license`),
     KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Banne ueber alle Kennungen (moonshine-core)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_bans` (
+    `id`         INT          NOT NULL AUTO_INCREMENT,
+    `kind`       VARCHAR(16)  NOT NULL,
+    `value`      VARCHAR(96)  NOT NULL,
+    `license`    VARCHAR(64)  DEFAULT NULL,
+    `name`       VARCHAR(64)  DEFAULT NULL,
+    `reason`     VARCHAR(160) NOT NULL,
+    `by`         VARCHAR(64)  DEFAULT NULL,
+    `expires`    INT          NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `kind_value` (`kind`, `value`),
+    KEY `license` (`license`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
