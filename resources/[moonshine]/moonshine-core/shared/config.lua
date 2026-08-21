@@ -107,6 +107,13 @@ Config.RateLimit = {
     -- So oft darf jemand ueber sein Limit gehen, bevor der Wachhund
     -- (moonshine-admin) eine Meldung bekommt.
     strikes = 3,
+
+    -- Server-Callbacks. Zwei Stufen: eine grosszuegige Gesamtgrenze und
+    -- eine engere je Name, damit ein einzelner Callback nicht alles
+    -- blockiert, was gerade sonst noch laeuft.
+    callbackMax     = 60,
+    callbackPerName = 20,
+    callbackWindow  = 10,
 }
 
 Config.Keys = {

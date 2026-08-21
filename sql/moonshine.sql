@@ -338,3 +338,21 @@ CREATE TABLE IF NOT EXISTS `ms_refuges` (
     PRIMARY KEY (`place_id`),
     KEY `character_id` (`character_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- Wachhund-Beweise (moonshine-admin)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `ms_flags` (
+    `id`         INT          NOT NULL AUTO_INCREMENT,
+    `license`    VARCHAR(64)  NOT NULL,
+    `name`       VARCHAR(64)  DEFAULT NULL,
+    `reason`     VARCHAR(128) NOT NULL,
+    `weight`     INT          NOT NULL DEFAULT 1,
+    `strikes`    INT          NOT NULL DEFAULT 0,
+    `details`    LONGTEXT     DEFAULT NULL,
+    `created_at` TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `license` (`license`),
+    KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

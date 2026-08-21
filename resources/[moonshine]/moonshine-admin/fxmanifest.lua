@@ -4,7 +4,7 @@ lua54 'yes'
 
 name 'moonshine-admin'
 author 'Moonshine RP'
-description 'Adminpanel, Werkzeuge und Anticheat-Grundlagen'
+description 'Adminpanel, Werkzeuge und ein vierschichtiger Wachhund'
 version '1.0.0'
 
 dependency 'moonshine-core'
@@ -15,7 +15,10 @@ shared_scripts {
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
+    'server/evidence.lua',
     'server/guard.lua',
+    'server/watch.lua',
+    'server/events.lua',
     'server/panel.lua',
     'server/main.lua',
 }

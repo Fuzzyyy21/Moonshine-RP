@@ -1,14 +1,17 @@
---- Anticheat-Grundlagen.
+--- Anticheat: Meldungen, Strikes, Massnahmen.
 ---
---- Bewusst zurueckhaltend: der Wachhund meldet und sammelt Strikes, statt
---- sofort zu kicken. Ein Fehlalarm soll niemanden aus dem Spiel werfen.
+--- Der Wachhund steht auf vier Schichten:
 ---
---- Andere Resources benutzen die Ratenbegrenzung ueber den Core:
+---   1. Beobachtung (server/watch.lua)   - der Server liest Leben, Weste
+---      und Waffe selbst vom Ped ab, statt den Client zu fragen
+---   2. Ortswechsel (hier)               - Sprunge und Geschwindigkeit
+---   3. Spielereignisse (server/events.lua) - was FiveM dem Server von
+---      selbst meldet: Explosionen, Schaden, erzeugte Objekte
+---   4. Beweise (server/evidence.lua)    - jede Meldung landet in ms_flags
 ---
----   if not MS.RateLimit(source, 'shop:buy', 10, 5) then return end
----
---- Der Core reicht das hierher durch und laesst alles durch, wenn diese
---- Resource nicht laeuft - so bleibt jede Resource fuer sich lauffaehig.
+--- Diese Datei haelt nur die Strikes zusammen und setzt die Massnahme um.
+--- Ein Fehlalarm soll niemanden aus dem Spiel werfen, deshalb sammelt der
+--- Wachhund erst und handelt dann.
 
 MS = MS or exports['moonshine-core']:GetCoreObject()
 
@@ -16,20 +19,24 @@ Admin.Strikes = {}     -- [source] = { count, reasons, lastAt }
 Admin.Positions = {}   -- [source] = { coords, at }
 
 --- Ist dieser Spieler von der Pruefung ausgenommen?
-local function exempt(player)
+function Admin.Exempt(player)
     if not player then return true end
     return (player.adminLevel or 0) >= AdminConfig.Guard.exemptLevel
 end
+
+--- Kurzform fuer diese Datei.
+local exempt = Admin.Exempt
 
 --- Meldet einen Verdacht.
 ---@param source number
 ---@param reason string
 ---@param weight number|nil Wie schwer der Verdacht wiegt
-function Admin.Flag(source, reason, weight)
+---@param details table|nil Was genau gemessen wurde - kommt in die Beweise
+function Admin.Flag(source, reason, weight, details)
     if not AdminConfig.Guard.enabled then return end
 
     local player = MS.GetPlayer(source)
-    if exempt(player) then return end
+    if Admin.Exempt(player) then return end
 
     local entry = Admin.Strikes[source]
 
@@ -55,6 +62,11 @@ function Admin.Flag(source, reason, weight)
             name, reason, entry.count), player.license)
     end
 
+    -- In die Beweiskette, damit ein Admin spaeter die Vorgeschichte sieht.
+    if Admin.Evidence then
+        Admin.Evidence.Add(player, reason, weight or 1, entry.count, details)
+    end
+
     TriggerEvent('admin:server:flagged', source, reason, entry.count)
 
     -- Admins im Dienst bekommen es mit.
@@ -71,7 +83,9 @@ end
 --- Setzt die konfigurierte Massnahme um.
 function Admin.Enforce(source, entry)
     local config = AdminConfig.Guard
-    if entry.count < 6 then return end
+
+    -- Stand frueher als 6 fest im Code, obwohl daneben eine Config lag.
+    if entry.count < (config.schwelle or 6) then return end
 
     local reason = ('Wachhund: %s'):format(entry.reasons[#entry.reasons] or 'Auffaellig')
 
@@ -118,46 +132,11 @@ function Admin.RateLimit(source, key, max, windowSeconds)
 end
 
 -- Meldungen vom Client -------------------------------------------------------------
-
---- Der Client meldet Leben, Weste, Position und Waffen.
-RegisterNetEvent('admin:server:report', function(payload)
-    local source = source
-    local player = MS.GetPlayer(source)
-    if not player or exempt(player) or type(payload) ~= 'table' then return end
-
-    local config = AdminConfig.Guard
-
-    -- Leben und Weste.
-    if config.health.enabled then
-        local allowed = 200 + config.health.tolerance
-
-        -- Klassenboni erhoehen das Maximum.
-        pcall(function()
-            local mods = exports['moonshine-mystic']:GetModifiers(source)
-            if mods and mods.healthBonus then allowed = allowed + mods.healthBonus end
-        end)
-
-        if (tonumber(payload.health) or 0) > allowed then
-            Admin.Flag(source, ('Zu viel Leben (%d von %d)'):format(
-                payload.health, allowed), 2)
-        end
-
-        if (tonumber(payload.armour) or 0) > config.health.maxArmour then
-            Admin.Flag(source, ('Zu viel Weste (%d)'):format(payload.armour), 2)
-        end
-    end
-
-    -- Waffen.
-    if config.weapons.enabled and type(payload.weapon) == 'string' then
-        for _, name in ipairs(config.weapons.blacklist) do
-            if payload.weapon == name then
-                Admin.Flag(source, ('Gesperrte Waffe: %s'):format(name), 3)
-                TriggerClientEvent('admin:client:stripWeapon', source, name)
-                break
-            end
-        end
-    end
-end)
+--
+-- Es gibt keine mehr. Frueher schickte der Client alle zwoelf Sekunden
+-- Leben, Weste und Waffe an den Server, und der Server glaubte ihm. Wer
+-- cheatet, schickt eben saubere Werte - oder gar keine, dann faellt es
+-- ueberhaupt nicht auf. Das liest jetzt server/watch.lua selbst.
 
 --- Positionspruefung laeuft serverseitig, damit sie nicht manipulierbar ist.
 CreateThread(function()
@@ -188,7 +167,11 @@ CreateThread(function()
                             if speed > limit and not IsEntityDead(ped)
                                 and last.settled then
                                 Admin.Flag(source, ('Ortswechsel %d m in %d s'):format(
-                                    math.floor(distance), elapsed), 1)
+                                    math.floor(distance), elapsed),
+                                    AdminConfig.Guard.movement.gewicht,
+                                    { meter = math.floor(distance),
+                                      sekunden = elapsed,
+                                      imFahrzeug = inVehicle })
                             end
                         end
 

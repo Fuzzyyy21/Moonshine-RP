@@ -51,9 +51,8 @@ RegisterNetEvent('admin:client:freeze', function(state)
         state and 'error' or 'info')
 end)
 
-RegisterNetEvent('admin:client:stripWeapon', function(weapon)
-    RemoveWeaponFromPed(PlayerPedId(), joaat(weapon))
-end)
+-- 'admin:client:stripWeapon' liegt in client/guard.lua - dort nimmt es
+-- auch die Waffe aus der Hand, nicht nur aus dem Inventar.
 
 -- Noclip -------------------------------------------------------------------------
 

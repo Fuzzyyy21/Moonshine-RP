@@ -1,35 +1,25 @@
---- Clientseitige Meldungen an den Wachhund.
+--- Clientseitig bleibt fast nichts zu tun.
 ---
---- Der Client meldet nur - beurteilt wird serverseitig. Position und
---- Geschwindigkeit prueft der Server ohnehin selbst.
+--- Frueher meldete diese Datei alle zwoelf Sekunden Leben, Weste und Waffe
+--- an den Server. Das ist ersatzlos entfallen: der Server liest all das
+--- selbst vom Ped ab (server/watch.lua). Eine Meldung, die der Gemeldete
+--- selbst verschickt, ist keine Meldung.
+---
+--- Was bleibt, ist das Entfernen einer gesperrten Waffe - das muss auf der
+--- Seite passieren, auf der die Waffe liegt.
 
-CreateThread(function()
-    Wait(20000)
+RegisterNetEvent('admin:client:stripWeapon', function(name)
+    local ped = PlayerPedId()
+    if not ped or ped == 0 then return end
 
-    while true do
-        Wait(12000)
+    local hash = GetHashKey(name)
 
-        if AdminConfig.Guard.enabled then
-            local ped = PlayerPedId()
+    if HasPedGotWeapon(ped, hash, false) then
+        RemoveWeaponFromPed(ped, hash)
+    end
 
-            if DoesEntityExist(ped) and not IsEntityDead(ped) then
-                local weapon = GetSelectedPedWeapon(ped)
-                local name = nil
-
-                -- Nur gesperrte Waffen melden, alles andere geht niemanden an.
-                for _, entry in ipairs(AdminConfig.Guard.weapons.blacklist) do
-                    if weapon == joaat(entry) then
-                        name = entry
-                        break
-                    end
-                end
-
-                TriggerServerEvent('admin:server:report', {
-                    health = GetEntityHealth(ped),
-                    armour = GetPedArmour(ped),
-                    weapon = name,
-                })
-            end
-        end
+    -- Zur Sicherheit auch das, was gerade in der Hand liegt.
+    if GetSelectedPedWeapon(ped) == hash then
+        SetCurrentPedWeapon(ped, GetHashKey('WEAPON_UNARMED'), true)
     end
 end)

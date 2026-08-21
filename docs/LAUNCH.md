@@ -8,7 +8,7 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 
 ```bash
 python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 2.950 Zusicherungen
+lua5.4 tools/testen.lua     # Rechenlogik, rund 3.000 Zusicherungen
 ```
 
 Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
@@ -187,7 +187,25 @@ Bei vielen Spielern relevant:
 * **Wachhund-Bewegungsprüfung** — alle 5 Sekunden über alle Spieler.
   `AdminConfig.Guard.movement.interval` erhöhen, wenn es stört.
 
-## 7. Balancing scharf stellen
+## 7. Den Wachhund einstellen
+
+Er läuft ab Werk auf `kick` bei 6 Strikes. Für die ersten Tage besser auf
+`log` stellen (`AdminConfig.Guard.action`) und mitlesen, was tatsächlich
+aufläuft — vor allem:
+
+* **Explosionen.** Die Typennummern in `AdminConfig.Guard.explosionen.gesperrt`
+  sind nicht im Spiel gegengeprüft. Sie stehen deshalb auf `'melden'`. Erst
+  wenn im Log nur echte Fälle stehen, auf `'abbrechen'` umstellen.
+* **Leben.** Klassenboni aus `moonshine-mystic` heben das Maximum. Der Puffer
+  von 60 sollte reichen — wenn Vampire mit Blutmond-Bonus trotzdem auflaufen,
+  `lebenPuffer` erhöhen statt die Prüfung abzuschalten.
+* **Bewegung.** 190 m/s im Fahrzeug lässt Flugzeuge durch. Wer Bahnen oder
+  schnelle Addon-Fahrzeuge einbaut, prüft das nach.
+
+`/verdacht [id]` zeigt die Vorgeschichte aus `ms_flags` — damit lässt sich
+ein Fehlalarm von einem echten Fund unterscheiden, bevor jemand fliegt.
+
+## 8. Balancing scharf stellen
 
 Die Zahlen sind gesetzt, aber nie gegen echtes Spielverhalten geprüft. Die
 Punkte stehen in [`ROADMAP.md`](ROADMAP.md#balancing-das-später-aufmerksamkeit-braucht).
@@ -199,7 +217,7 @@ Am wichtigsten zuerst:
 * **Weltereignisse** — ein Blutmond darf Vampire stark machen, aber nicht so
   stark, dass sich alle anderen ausloggen.
 
-## 8. Was noch fehlt
+## 9. Was noch fehlt
 
 Nichts, was den Server unfertig aussehen ließe. Alles Weitere ist Ausbau:
 Telefon, Zufluchtsorte, Fahrzeug-Tuning, Discord-Anbindung. Der Server läuft

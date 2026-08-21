@@ -53,6 +53,110 @@ local function eindeutig(liste, feld)
 end
 
 -- ===========================================================================
+-- Wachhund
+-- ===========================================================================
+
+laden('moonshine-admin/shared/config.lua')
+
+gruppe('Wachhund: Massnahme')
+
+local wache = AdminConfig.Guard
+
+pruefe('Der Wachhund ist ab Werk an', wache.enabled == true)
+pruefe('Es gibt eine Schwelle', (wache.schwelle or 0) > 0)
+pruefe('Die Massnahme ist eine bekannte',
+    wache.action == 'log' or wache.action == 'kick' or wache.action == 'ban',
+    wache.action)
+pruefe('Strikes verfallen mit der Zeit', wache.decay > 0)
+
+-- Adminlevel gehen bis 4. Eine Ausnahme ab 0 haette alle befreit.
+pruefe('Die Ausnahme liegt ueber dem Spielerlevel',
+    wache.exemptLevel >= 1 and wache.exemptLevel <= 4, wache.exemptLevel)
+
+-- Kein einzelner Verdacht darf allein zur Massnahme fuehren. Ein Fehlalarm
+-- soll niemanden aus dem Spiel werfen - das ist der ganze Grund, warum es
+-- Strikes gibt und nicht einen Sofortkick.
+local gewichte = {
+    Beobachtung = wache.beobachtung.gewicht,
+    Waffen      = wache.beobachtung.waffen.gewicht,
+    Bewegung    = wache.movement.gewicht,
+    Explosionen = wache.explosionen.gewicht,
+    Schaden     = wache.schaden.gewicht,
+    Entitaeten  = wache.entitaeten.gewicht,
+    Ereignisse  = wache.ereignisse.gewicht,
+}
+
+for name, gewicht in pairs(gewichte) do
+    pruefe(('%s hat ein Gewicht ueber null'):format(name), (gewicht or 0) > 0, gewicht)
+    pruefe(('%s allein loest keine Massnahme aus'):format(name),
+        gewicht < wache.schwelle, ('%d gegen %d'):format(gewicht, wache.schwelle))
+end
+
+gruppe('Wachhund: Sperrlisten')
+
+local waffen = wache.beobachtung.waffen.gesperrt
+pruefe('Es gibt gesperrte Waffen', #waffen > 0)
+
+local okWaffen, doppelteWaffen = eindeutig(waffen)
+pruefe('Keine Waffe steht zweimal drin', okWaffen, doppelteWaffen)
+
+for _, name in ipairs(waffen) do
+    pruefe(('Waffe %s ist ein WEAPON_-Name'):format(name),
+        name:match('^WEAPON_%u') ~= nil, name)
+end
+
+local modelle = wache.entitaeten.gesperrteModelle
+pruefe('Es gibt gesperrte Modelle', #modelle > 0)
+
+local okModelle, doppelteModelle = eindeutig(modelle)
+pruefe('Kein Modell steht zweimal drin', okModelle, doppelteModelle)
+
+for _, name in ipairs(modelle) do
+    pruefe(('Modell %s ist klein geschrieben'):format(name),
+        name == name:lower(), name)
+end
+
+local explosionen = 0
+for nummer, name in pairs(wache.explosionen.gesperrt) do
+    explosionen = explosionen + 1
+
+    pruefe(('Explosionstyp %s ist eine Zahl'):format(tostring(nummer)),
+        type(nummer) == 'number' and nummer >= 0, nummer)
+    pruefe(('Explosionstyp %s hat einen Namen'):format(tostring(nummer)),
+        type(name) == 'string' and name ~= '')
+end
+pruefe('Es gibt gesperrte Explosionstypen', explosionen > 0)
+
+-- Die Explosionsnummern sind nicht im Spiel gegengeprueft. Solange das so
+-- ist, darf die Massnahme nicht 'abbrechen' sein - eine falsche Nummer
+-- wuerde sonst normales Spiel unterbinden.
+pruefe('Explosionen werden vorerst nur gemeldet',
+    wache.explosionen.aktion == 'melden', wache.explosionen.aktion)
+
+pruefe('Gesperrte Modelle werden abgebrochen',
+    wache.entitaeten.aktion == 'abbrechen', wache.entitaeten.aktion)
+
+gruppe('Wachhund: Grenzen')
+
+pruefe('Der Beobachtungstakt ist nicht zu eng',
+    wache.beobachtung.interval >= 2, wache.beobachtung.interval)
+pruefe('Leben hat einen Puffer ueber dem Maximum',
+    wache.beobachtung.lebenPuffer > 0)
+pruefe('Die Westengrenze liegt ueber hundert',
+    wache.beobachtung.maxWeste >= 100, wache.beobachtung.maxWeste)
+
+pruefe('Die Schadensgrenze liegt ueber jedem echten Treffer',
+    wache.schaden.maxSchaden >= 200, wache.schaden.maxSchaden)
+pruefe('Die Entfernungsgrenze laesst Scharfschuetzen durch',
+    wache.schaden.maxEntfernung >= 300.0, wache.schaden.maxEntfernung)
+
+pruefe('Es gibt Grenzen fuer die Bewegung',
+    wache.movement.maxSpeed > 0 and wache.movement.maxJump > 0)
+pruefe('Der Bewegungstakt ist nicht zu eng', wache.movement.interval >= 2)
+
+pruefe('Beweise werden eine Weile behalten', wache.beweise.behalten > 0)
+
+-- ===========================================================================
 -- Ratenbegrenzung
 -- ===========================================================================
 

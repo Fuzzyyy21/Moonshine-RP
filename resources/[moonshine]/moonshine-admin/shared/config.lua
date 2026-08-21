@@ -43,49 +43,11 @@ AdminConfig.Guard = {
     -- Ab diesem Adminlevel wird niemand mehr geprueft.
     exemptLevel = 3,
 
-    -- Leben und Weste: mehr als das ist nicht vorgesehen.
-    health = {
-        enabled = true,
-        -- Puffer ueber dem erlaubten Maximum (Klassenboni koennen es erhoehen).
-        tolerance = 60,
-        maxArmour = 105,
-        -- So oft darf es auffallen, bevor gehandelt wird.
-        strikes = 3,
-    },
+    -- So viele Strikes, bevor die Massnahme greift. Stand frueher fest im
+    -- Code, obwohl daneben eine Config lag.
+    schwelle = 6,
 
-    -- Ortswechsel: wer sich zu schnell bewegt, wird auffaellig.
-    movement = {
-        enabled = true,
-        -- Meter je Sekunde, ab denen es gemeldet wird (Flugzeuge sind schnell).
-        maxSpeed = 190.0,
-        -- Sprung ohne Fahrzeug in einem Intervall.
-        maxJump = 300.0,
-        strikes = 4,
-        -- Wie oft geprueft wird (Sekunden).
-        interval = 5,
-    },
-
-    -- Waffen, die niemand haben sollte.
-    weapons = {
-        enabled = true,
-        strikes = 2,
-        blacklist = {
-            'WEAPON_RAILGUN', 'WEAPON_MINIGUN', 'WEAPON_RPG',
-            'WEAPON_GRENADELAUNCHER', 'WEAPON_GRENADELAUNCHER_SMOKE',
-            'WEAPON_FIREWORK', 'WEAPON_HOMINGLAUNCHER',
-            'WEAPON_COMPACTLAUNCHER', 'WEAPON_RAYMINIGUN',
-            'WEAPON_RAYPISTOL', 'WEAPON_RAYCARBINE',
-        },
-    },
-
-    -- Ratenbegrenzung fuer Netzwerkereignisse.
-    -- Die Ratenbegrenzung steht jetzt im Core (Config.RateLimit). Sie lag
-    -- hier, aber moonshine-admin startet als letzte Resource - bis dahin
-    -- waren alle Limits aus. Was hier bleibt, ist die Meldung: der Core
-    -- ruft Admin.Flag, wenn jemand wiederholt darueber geht.
-
-    -- Was passiert, wenn das Strike-Limit erreicht ist.
-    -- 'log' | 'kick' | 'ban'
+    -- Was dann passiert: 'log' | 'kick' | 'ban'
     action = 'kick',
     banHours = 72,
 
@@ -94,6 +56,117 @@ AdminConfig.Guard = {
 
     -- Discord-Webhook fuer Meldungen (leer = nur Serverkonsole und ms_logs).
     webhook = '',
+
+    -- Schicht 1: Beobachtung ---------------------------------------------------
+    --- Der Server liest Leben, Weste und Waffe selbst vom Ped ab.
+    ---
+    --- Frueher meldete das der Client von sich aus. Das ist genau die
+    --- falsche Richtung: wer cheatet, meldet eben saubere Werte oder gar
+    --- nichts. Der Server kann all das selbst lesen.
+    beobachtung = {
+        enabled  = true,
+        interval = 6,           -- Sekunden zwischen zwei Durchgaengen
+
+        -- Leben und Weste: mehr als das ist nicht vorgesehen.
+        maxLeben   = 200,
+        lebenPuffer = 60,       -- Klassenboni koennen das Maximum heben
+        maxWeste   = 105,
+        gewicht    = 2,
+
+        -- Gesperrte Waffen werden sofort entfernt.
+        waffen = {
+            enabled = true,
+            gewicht = 3,
+            gesperrt = {
+                'WEAPON_RAILGUN', 'WEAPON_MINIGUN', 'WEAPON_RPG',
+                'WEAPON_GRENADELAUNCHER', 'WEAPON_GRENADELAUNCHER_SMOKE',
+                'WEAPON_FIREWORK', 'WEAPON_HOMINGLAUNCHER',
+                'WEAPON_COMPACTLAUNCHER', 'WEAPON_RAYMINIGUN',
+                'WEAPON_RAYPISTOL', 'WEAPON_RAYCARBINE',
+                'WEAPON_STINGER', 'WEAPON_PIPEBOMB', 'WEAPON_PROXMINE',
+            },
+        },
+    },
+
+    -- Schicht 2: Ortswechsel -------------------------------------------------------
+    movement = {
+        enabled = true,
+        maxSpeed = 190.0,       -- Meter je Sekunde im Fahrzeug
+        maxJump  = 300.0,       -- Sprung zu Fuss in einem Intervall
+        interval = 5,
+        gewicht  = 1,
+    },
+
+    -- Schicht 3: Spielereignisse -------------------------------------------------------
+    --- FiveM meldet dem Server, was Clients im Spiel ausloesen. Das laesst
+    --- sich nicht faelschen und nicht abschalten - es ist die verlaesslichste
+    --- Quelle, die es gibt.
+
+    --- Explosionen.
+    ---
+    --- Die Nummern sind die Explosionstypen aus GTA. Sie stehen hier
+    --- bewusst als Sperrliste und die Massnahme steht auf 'melden': eine
+    --- falsche Nummer wuerde sonst Spieler aus dem Spiel werfen, die nichts
+    --- getan haben. Vor dem Scharfstellen einmal im Log nachsehen, was
+    --- tatsaechlich auflaeuft.
+    explosionen = {
+        enabled = true,
+        aktion  = 'melden',     -- 'melden' | 'abbrechen'
+        gewicht = 4,
+
+        gesperrt = {
+            [36] = 'Railgun',
+            [41] = 'Valkyrie-Kanone',
+            [42] = 'Flugabwehr',
+            [59] = 'Orbitalkanone',
+            [70] = 'Raygun',
+        },
+    },
+
+    --- Waffenschaden. Der Server sieht jeden Treffer.
+    schaden = {
+        enabled = true,
+        gewicht = 3,
+
+        -- Mehr Schaden als das kann keine Waffe im Spiel anrichten.
+        maxSchaden = 250,
+
+        -- Treffer ueber diese Entfernung sind keine mehr (Meter).
+        maxEntfernung = 500.0,
+    },
+
+    --- Fahrzeuge und andere Objekte, die niemand erzeugen sollte.
+    entitaeten = {
+        enabled = true,
+        aktion  = 'abbrechen',  -- 'melden' | 'abbrechen'
+        gewicht = 4,
+
+        gesperrteModelle = {
+            'rhino', 'khanjali', 'chernobog', 'thruster', 'hydra',
+            'lazer', 'savage', 'valkyrie', 'akula', 'annihilator',
+            'oppressor', 'oppressor2', 'scramjet', 'deluxo',
+            'apc', 'insurgent3', 'halftrack', 'barrage', 'minitank',
+        },
+    },
+
+    --- Ereignisse, die auf ein Cheatmenue hindeuten.
+    ereignisse = {
+        enabled = true,
+        gewicht = 3,
+
+        -- Wer Waffen verteilt oder Aufgaben abbricht, tut das nicht selbst.
+        giveWeapon        = true,
+        removeAllWeapons  = true,
+        clearPedTasks     = true,
+    },
+
+    -- Schicht 4: Beweise -------------------------------------------------------------
+    --- Jede Meldung landet in ms_flags. Ein Admin sieht damit die
+    --- Vorgeschichte, statt einer einzelnen Zeile im Chat.
+    beweise = {
+        enabled  = true,
+        behalten = 30,          -- Tage, danach werden alte Zeilen geloescht
+    },
 }
 
 --- Wie viele Eintraege das Panel im Protokoll zeigt.
