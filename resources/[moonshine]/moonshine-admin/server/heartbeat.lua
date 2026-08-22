@@ -28,6 +28,7 @@ function Admin.Heartbeat.Start(source)
 
     Admin.Heartbeat[source] = {
         token = token,
+        vorher = nil,       -- der Wert davor bleibt eine Runde gueltig
         letzterSchlag = os.time(),
         ausstehend = 0,
         geladenAt = os.time(),
@@ -42,16 +43,26 @@ RegisterNetEvent('admin:server:heartbeat', function(token)
     local eintrag = Admin.Heartbeat[source]
     if not eintrag then return end
 
+    -- Der Wert davor bleibt eine Runde gueltig.
+    --
+    -- Sonst meldet die Pruefung ein Rennen als Cheat: der Server vergibt bei
+    -- jedem Schlag einen neuen Wert, und eine Antwort, die zu diesem
+    -- Zeitpunkt schon unterwegs war, kommt mit dem alten an. Bei 200 ms
+    -- Ping ist das selten - bei 400 ms und einem Laderuck nicht mehr.
+    if token == eintrag.vorher then return end
+
     -- Ein falscher Wert ist schlimmer als gar keiner: den kann nur schicken,
     -- wer die Antwort raet oder ein eigenes Skript untergeschoben hat.
     if token ~= eintrag.token then
         Admin.Flag(source, 'Herzschlag mit falschem Wert',
-            AdminConfig.Guard.herzschlag.gewicht, { erwartet = 'geheim' })
+            AdminConfig.Guard.herzschlag.gewicht, { erwartet = 'geheim' },
+            'herzschlag')
         return
     end
 
     eintrag.letzterSchlag = os.time()
     eintrag.ausstehend = 0
+    eintrag.vorher = eintrag.token
     eintrag.token = neuerToken()
 
     TriggerClientEvent('admin:client:heartbeat', source, eintrag.token,
@@ -87,7 +98,8 @@ CreateThread(function()
                             Admin.Flag(source,
                                 ('Kein Herzschlag seit %d Sekunden'):format(still),
                                 config.gewicht, { stillSeit = still,
-                                                  ausgefallen = eintrag.ausstehend })
+                                                  ausgefallen = eintrag.ausstehend },
+                                'herzschlag')
                         end
                     end
                 end
@@ -98,6 +110,23 @@ end)
 
 AddEventHandler('moonshine:server:playerLoaded', function(source)
     Admin.Heartbeat.Start(source)
+end)
+
+--- Nach einem Neustart dieser Resource laeuft der Herzschlag sonst nie
+--- wieder an: Start() haengt an playerLoaded, und das feuert fuer bereits
+--- verbundene Spieler nicht noch einmal. Die Pruefung waere still
+--- abgeschaltet - bis zum naechsten Relog aller Spieler.
+AddEventHandler('onResourceStart', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+
+    CreateThread(function()
+        -- Den Clients einen Moment geben, ihr Skript zu starten.
+        Wait(5000)
+
+        for _, player in pairs(MS.GetPlayers()) do
+            Admin.Heartbeat.Start(player.source)
+        end
+    end)
 end)
 
 AddEventHandler('playerDropped', function()

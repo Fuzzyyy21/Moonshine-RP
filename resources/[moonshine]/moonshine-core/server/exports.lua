@@ -147,7 +147,7 @@ function MS.RateLimit(source, key, max, windowSeconds)
         -- Der Wachhund darf fehlen; die Begrenzung greift trotzdem.
         pcall(function()
             exports['moonshine-admin']:Flag(source,
-                ('Zu viele Aufrufe von "%s"'):format(key), 2)
+                ('Zu viele Aufrufe von "%s"'):format(key), 2, 'rate')
         end)
     end
 

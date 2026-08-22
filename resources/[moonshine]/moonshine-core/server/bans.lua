@@ -80,10 +80,17 @@ end
 ---@param hours number|nil nil oder 0 = dauerhaft
 ---@param by string|nil wer den Bann gesetzt hat
 ---@return number wie viele Kennungen gesperrt wurden
-function MS.Bans.Ban(source, reason, hours, by)
+---@param ohneIp boolean|nil IP auslassen
+function MS.Bans.Ban(source, reason, hours, by, ohneIp)
     if not MS.Bans.Ready then return 0 end
 
     local kennungen = MS.Bans.Identifiers(source)
+
+    -- Hinter einer IP steckt ein Anschluss, keine Person: Wohngemeinschaft,
+    -- Studentenwohnheim, Mobilfunk mit wechselnder Adresse. Ein Admin darf
+    -- das von Hand tun. Der Wachhund bannt nie ueber die IP.
+    if ohneIp then kennungen.ip = nil end
+
     local player = MS.GetPlayer(source)
     local license = kennungen.license
     local expires = (hours and hours > 0) and (os.time() + hours * 3600) or 0

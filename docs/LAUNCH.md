@@ -199,6 +199,18 @@ Zwei Prüfungen der Schicht 3 stehen aus demselben Grund ab Werk aus:
 Wer sie einschaltet, lässt vorher `python3 tools/pruefen.py` laufen — der
 listet jede Stelle auf, die dagegen läuft.
 
+`/wachhund` (ab Level 3) zeigt jederzeit, was gerade gilt: Einstellungen,
+wer wie viele Strikes hat, was mit ihm passieren *würde*, und welche Kulanzen
+laufen. Das ist der schnellste Weg zu der Frage „warum meldet der nicht" bzw.
+„warum meldet der schon wieder".
+
+Vier Bremsen stehen vor jeder Maßnahme, jede verhindert sie für sich allein:
+dieselbe Art zählt nur alle 2 Minuten, es braucht zwei *verschiedene* Arten,
+zwischen erster und letzter Meldung müssen 60 Sekunden liegen, und nach einem
+Neustart gibt es 90 Sekunden Schonfrist. Ein Bann braucht zusätzlich die
+doppelte Schwelle und mindestens einen *sicheren* Fund — und geht nie über
+die IP. Details in [`ADMIN.md`](ADMIN.md#wann-es-knallt--und-die-vier-bremsen-davor).
+
 Was du im Probelauf durchsehen solltest — vor allem:
 
 * **Explosionen.** Die Typennummern in `AdminConfig.Guard.explosionen.gesperrt`

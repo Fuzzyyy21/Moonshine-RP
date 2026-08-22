@@ -58,14 +58,14 @@ local function durchgang()
                 if leben > erlaubt and not Admin.IsAllowed(source, 'leben') then
                     Admin.Flag(source, ('Zu viel Leben (%d von %d)'):format(
                         leben, erlaubt), config.gewicht,
-                        { leben = leben, erlaubt = erlaubt })
+                        { leben = leben, erlaubt = erlaubt }, 'leben')
                 end
 
                 -- Weste
                 local weste = GetPedArmour(ped)
                 if weste > config.maxWeste then
                     Admin.Flag(source, ('Zu viel Weste (%d)'):format(weste),
-                        config.gewicht, { weste = weste })
+                        config.gewicht, { weste = weste }, 'weste')
                 end
 
                 -- Unverwundbarkeit. Das ist der direkteste Godmode-Fund,
@@ -73,7 +73,7 @@ local function durchgang()
                 if config.godmode and GetPlayerInvincible(source)
                     and not Admin.IsAllowed(source, 'godmode') then
                     Admin.Flag(source, 'Unverwundbar', config.godmodeGewicht,
-                        { quelle = 'GetPlayerInvincible' })
+                        { quelle = 'GetPlayerInvincible' }, 'godmode')
                 end
 
                 -- Ped-Modell. Wer als Panzer oder Tier herumlaeuft, hat sich
@@ -84,7 +84,7 @@ local function durchgang()
                     if not Admin.ErlaubteModelle[modell]
                         and not Admin.IsAllowed(source, 'modell') then
                         Admin.Flag(source, 'Fremdes Spielermodell',
-                            config.modellGewicht, { modell = modell })
+                            config.modellGewicht, { modell = modell }, 'modell')
                     end
                 end
 
@@ -95,7 +95,7 @@ local function durchgang()
 
                     if name then
                         Admin.Flag(source, ('Gesperrte Waffe: %s'):format(name),
-                            config.waffen.gewicht, { waffe = name })
+                            config.waffen.gewicht, { waffe = name }, 'waffe')
 
                         TriggerClientEvent('admin:client:stripWeapon', source, name)
                     end

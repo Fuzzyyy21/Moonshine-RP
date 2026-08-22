@@ -80,13 +80,22 @@ Er steht auf sechs Schichten.
 
 ### Schicht 2 — Ortswechsel
 
-| Prüfung | Was auffällt | Gewicht |
-|---|---|---|
-| **Bewegung** | über 190 m/s im Fahrzeug bzw. 300 m Sprung zu Fuß | 1 |
+`server/guard.lua`, alle 5 Sekunden, serverseitig gemessen — der Client wird
+nicht gefragt. Drei Dinge haben hier vorher Unschuldige getroffen:
 
-Läuft ebenfalls serverseitig über `GetEntityCoords`. Nach einem
-Admin-Teleport wird die letzte Position verworfen, damit das keinen
-Fehlalarm auslöst.
+1. **Die erste Messung galt sofort als verlässlich.** Beim Verbinden steht
+   das Ped aber noch bei `(0,0,0)` — die nächste Messung war dann ein Sprung
+   über die halbe Karte. Ein Ped am Nullpunkt ist jetzt kein Ort, sondern ein
+   Ped das noch nicht da ist; damit wird nicht gerechnet.
+2. **Das Budget zu Fuß war fest** (300 m je Durchgang). Wer aus einem
+   Flugzeug springt, fällt rund 50 m in der Sekunde — hängt der Server einmal,
+   werden aus 5 Sekunden 8, und der Fallschirmspringer war ein Teleporter.
+   Jetzt gilt `max(maxJump, maxFall × Sekunden)`.
+3. **Ein einzelner Ausreißer reichte.** Aufzug, Innenraum, Nachladeruck.
+   Jetzt braucht es `inFolge = 2` Durchgänge hintereinander — ein
+   Teleport-Cheat springt nicht einmal.
+
+Im Fahrzeug gilt `maxSpeed = 190 m/s`, das lässt Flugzeuge durch.
 
 ### Schicht 3 — Was das Spiel dem Server meldet
 
@@ -155,6 +164,19 @@ Ein **falscher** Wert wiegt schwerer als gar keiner.
 Nach dem Verbinden gibt es 60 Sekunden Schonfrist, damit niemand auffällt,
 bevor sein Client überhaupt geladen hat.
 
+Zwei Fehlalarm-Quellen stecken hier, die beide behoben sind:
+
+* **Der Wert davor bleibt eine Runde gültig.** Sonst meldet die Prüfung ein
+  Rennen als Cheat: der Server vergibt bei jedem Schlag einen neuen Wert, und
+  eine Antwort die zu dem Zeitpunkt schon unterwegs war kommt mit dem alten
+  an. Bei 200 ms Ping ist das selten — bei 400 ms und einem Laderuck nicht
+  mehr.
+* **Nach einem Neustart der Resource lief der Herzschlag nie wieder an.**
+  `Start()` hängt an `playerLoaded`, und das feuert für bereits verbundene
+  Spieler nicht noch einmal — die Prüfung war still abgeschaltet, bis alle
+  Spieler einmal neu verbunden hatten. Jetzt zieht `onResourceStart` sie
+  wieder hoch.
+
 ### Schicht 6 — Bann über alle Kennungen
 
 `moonshine-core/server/bans.lua`, Tabelle `ms_bans`.
@@ -217,13 +239,76 @@ meldet alles, aber kickt und bannt niemanden. Das ist die einzig ehrliche
 Voreinstellung, solange nichts davon auf einem echten Server gelaufen ist.
 
 Ein paar Tage mitlesen, `/verdacht` und `ms_flags` durchsehen — und erst dann
-auf `false` stellen.
+auf `false` stellen. `/wachhund` (ab Level 3) zeigt jederzeit den aktuellen
+Stand: welche Einstellungen gelten, wer wie viele Strikes hat, was mit ihm
+passieren *würde*, und welche Kulanzen gerade laufen.
 
-### Wann es knallt
+### Wann es knallt — und die vier Bremsen davor
 
 Ab **6 Strikes** (`AdminConfig.Guard.schwelle`) greift die konfigurierte
-Maßnahme (`log`, `kick` oder `ban`) — sofern der Probelauf aus ist. Strikes
-verfallen nach 30 Minuten.
+Maßnahme. Davor stehen aber vier Bedingungen, und **jede einzelne verhindert
+die Maßnahme für sich allein**. Sie existieren, weil ein Fehlkick einen
+echten Spieler kostet und ein Fehlbann ihn ganz vertreibt.
+
+Die Entscheidung selbst steckt in `Admin.Massnahme` in `shared/config.lua` —
+eine reine Rechnung ohne Spielzustand, damit `tools/testen.lua` sie ohne
+FXServer vollständig durchspielen kann.
+
+**1. Dieselbe Art zählt nur einmal je zwei Minuten** (`meldeSperre`).
+
+Das war die gefährlichste Lücke. Die Beobachtung läuft im Sechssekundentakt.
+Bleibt ein Spieler durch einen Fehler in *irgendeinem* Skript unverwundbar,
+meldete das früher alle sechs Sekunden mit Gewicht 4 — nach **zwölf
+Sekunden** wäre er über der Schwelle geflogen, für etwas, das er nicht getan
+hat. Gesperrt wird dabei auf die *Art*, nicht auf den Text: „Ortswechsel
+412 m" und „Ortswechsel 500 m" sind zwei Texte, aber derselbe Verdacht.
+
+**2. Es braucht mindestens zwei verschiedene Arten** (`mindestGruende`).
+
+Ein einzelner falsch eingestellter Grenzwert kann damit niemanden mehr aus
+dem Spiel werfen. Wer nur in einer Art auffällt, wird trotzdem **gemeldet** —
+Konsole, `ms_flags`, alle Admins im Dienst. Nur die automatische Maßnahme
+bleibt aus, ein Mensch entscheidet. Sonst wäre der Preis zu hoch: wer
+ausschließlich teleportiert, fällt in genau eine Art und käme ewig durch.
+
+**3. Zwischen erster und letzter Meldung müssen 60 Sekunden liegen**
+(`mindestSpanne`). Ein Ausbruch innerhalb weniger Sekunden — Laderuck,
+Resource-Neustart, ein Skript das kurz Unsinn macht — ist nie eine Maßnahme,
+egal wie viele Strikes dabei zusammenkommen.
+
+**4. 90 Sekunden Schonfrist nach dem Start** (`startKarenz`). Nach einem
+Neustart weiß der Wachhund nichts von laufenden Editorsitzungen, Rasten oder
+Verwandlungen — sämtliche Kulanzen sind weg.
+
+Strikes verfallen mit **einem je 10 Minuten** ohne neue Meldung. Vorher fiel
+praktisch nichts weg: `lastAt` wurde bei jeder Meldung neu gesetzt und
+danach nur ein einziger Strike je Durchgang abgezogen — wer regelmäßig
+auflief, dessen Zähler kannte nur eine Richtung.
+
+### Der Bann ist eine eigene Entscheidung
+
+Ein Kick kostet einen Spieler eine Minute. Ein Bann kostet ihn den Server.
+Deshalb reicht `action = 'ban'` allein nicht:
+
+| Bedingung | Wert |
+|---|---|
+| Eigene, höhere Schwelle | `bannSchwelle = 12` statt 6 |
+| Mindestens ein **sicherer** Fund | `sichereArten` |
+| Nie über die IP | `bannOhneIp = true` |
+
+**Sicher** ist nur, was normales Spiel nie auslöst: Schaden den keine Waffe
+anrichtet (`schaden`), ein Panzer aus dem Nichts (`entitaet`), ein
+Cheatmenü-Ereignis (`ereignis`).
+
+Alles andere ist ein **Hinweis**. Ein Ortswechsel kann ein Aufzug sein, ein
+fehlender Herzschlag eine Leitung, zu viel Leben ein Bonus den der Wachhund
+nicht kennt, ein fremdes Modell eine Verwandlung. Solche Funde werfen jemanden
+raus — sperren dürfen sie ihn nicht. `tools/testen.lua` prüft jede einzelne
+Art dieser Liste einzeln nach.
+
+Die IP bleibt außen vor, weil dahinter ein *Anschluss* steckt und keine
+Person: Wohngemeinschaft, Studentenwohnheim, Mobilfunk mit wechselnder
+Adresse. Ein Admin darf das von Hand tun. Der Wachhund nicht.
 
 **Kein einzelnes Gewicht erreicht die Schwelle allein** — das ist der ganze
 Grund, warum es Strikes gibt und keinen Sofortkick. `tools/testen.lua`
@@ -275,7 +360,8 @@ Belohnungsabholung und Arbeitsstationen.
 | `/strikes [id]` | 2 | Strikes eines Spielers |
 | `/verdacht [id]` | 2 | Vorgeschichte aus `ms_flags` |
 | `/clearstrikes [id]` | 3 | Strikes zurücksetzen |
-| `/wachhund [an\|aus]` | 4 | Anticheat umschalten |
+| `/wachhund` | 3 | Stand: Einstellungen, Strikes, laufende Kulanzen |
+| `/wachhund an\|aus` | 4 | Anticheat umschalten |
 
 ## API
 
@@ -283,8 +369,11 @@ Belohnungsabholung und Arbeitsstationen.
 -- Ratenbegrenzung (ueber den Core, damit sie ohne diese Resource nicht bricht)
 MS.RateLimit(source, 'key', 10, 5)
 
--- Verdacht selbst melden
-exports['moonshine-admin']:Flag(source, 'Unmoegliche Distanz', 2)
+-- Verdacht selbst melden. Die Art ist wichtiger als sie aussieht: darauf
+-- laeuft die Sperrzeit gegen Dauerfeuer, und darauf zaehlt der Wachhund, ob
+-- genug *verschiedene* Verdachtsmomente zusammengekommen sind. Ohne Angabe
+-- landet alles im Topf 'sonstiges'.
+exports['moonshine-admin']:Flag(source, 'Unmoegliche Distanz', 2, 'ortswechsel')
 
 exports['moonshine-admin']:GetStrikes(source)
 exports['moonshine-admin']:ClearStrikes(source)
@@ -314,6 +403,7 @@ Der Unterschied ist keine Frage des Aufwands, sondern der Ebene:
 | **Screenshots** | eingebaut | nur wenn `screenshot-basic` läuft |
 | **Verhalten prüfen** | ja | **ja — hier ist er ebenbürtig** |
 | **Serverseitige Prüfung** | ja | **ja — hier ist er ebenbürtig** |
+| **Fehlalarme** | Signaturen, aber auch bekannte Fehlbanwellen | **Bremsen eingebaut, siehe unten** |
 
 Der Kern des Unterschieds: ein Cheatmenü läuft **über** der CitizenFX-Runtime
 und hat vollen Zugriff auf den Speicher des Spiels. Jedes Lua-Skript, das ich
@@ -335,6 +425,40 @@ Alles, was sich im Spiel **auswirkt**: Godmode, unmöglicher Schaden,
 gesperrte Waffen und Fahrzeuge, Teleports, Explosionen aus Waffen, die es
 nicht geben dürfte, die Standard-Ereignisse jedes Cheatmenüs — und den
 Versuch, den Anticheat selbst loszuwerden.
+
+### Fehlalarme — was tatsächlich schiefging
+
+Beim Durchgehen des eigenen Codes kam heraus: der Wachhund hätte am ersten
+Livetag reihenweise Unschuldige eingesammelt. Nicht theoretisch — die Fälle
+standen alle im Repo. Vollständige Liste, weil sie zeigt, wo solche Fehler
+herkommen:
+
+| Was der Server selbst tut | Was der Wachhund gesehen hätte | Behoben durch |
+|---|---|---|
+| Charaktereditor | unverwundbar + fremdes Modell | Kulanz |
+| Rast im Zufluchtsort | unverwundbar | Kulanz |
+| Werwolf-Verwandlung | fremdes Modell + 290 Leben | Kulanz |
+| Schattenschritt | Ortswechsel + zwei Explosionen | Kulanz |
+| Schattenschritt **bei Zuschauern** | jeder im Umkreis zündet die Explosion selbst | Kulanz für alle im Radius |
+| Respawn, `/bring`, `/tp` | Ortswechsel über die halbe Karte | Kulanz |
+| `ClearPedTasks` an 14 Stellen | Cheatmenü-Ereignis, **und abgebrochen** | Prüfung aus |
+| Endgegner bewaffnen | Cheatmenü-Ereignis, **und abgebrochen** | Prüfung aus |
+| Verbinden (Ped bei `0,0,0`) | Sprung über die halbe Karte | Nullpunkt ignorieren |
+| Fallschirmsprung mit Serverruck | Teleport | Fallbudget je Sekunde |
+| Sniper über 500 m | Treffer **abgebrochen** | Grenze auf 1200 m, kein Abbruch |
+| Herzschlag bei hohem Ping | „falscher Wert" | Vorgänger bleibt gültig |
+| Neustart der Resource | Herzschlag still abgeschaltet | `onResourceStart` |
+| Admin spawnt Panzer fürs Event | **abgebrochen** | Admins ausgenommen |
+| Irgendein hängender Zustand | 12 Sekunden bis zum Rauswurf | Sperrzeit, 2 Arten, Spanne |
+
+Der letzte Punkt war der gefährlichste, weil er unabhängig vom Auslöser
+gilt: *jeder* Zustand, der die Beobachtung dauerhaft anspringen lässt — auch
+einer, den es heute noch gar nicht gibt — hätte binnen zwölf Sekunden zum
+Rauswurf geführt.
+
+`tools/pruefen.py` prüft zwei dieser Klassen dauerhaft nach
+(`WACHHUND-SELBSTBESCHUSS`), `tools/testen.lua` die Entscheidungslogik mit
+über 60 Zusicherungen.
 
 ### Die zweite Hälfte steckt nicht hier
 

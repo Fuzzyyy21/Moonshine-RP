@@ -11,8 +11,15 @@ exports('RateLimit', function(source, key, max, windowSeconds)
 end)
 
 --- Verdacht melden.
-exports('Flag', function(source, reason, weight)
-    return Admin.Flag(source, tostring(reason or 'Unbekannt'), weight)
+---
+--- Die Art ist wichtiger als sie aussieht: darauf laeuft die Sperrzeit
+--- gegen Dauerfeuer, und darauf zaehlt der Wachhund, ob ueberhaupt genug
+--- *verschiedene* Verdachtsmomente zusammengekommen sind. Ohne Angabe
+--- landet alles im selben Topf 'sonstiges' - dann bremst sich eine Resource
+--- selbst aus.
+exports('Flag', function(source, reason, weight, art)
+    return Admin.Flag(source, tostring(reason or 'Unbekannt'), weight, nil,
+        art and tostring(art) or nil)
 end)
 
 exports('GetStrikes', function(source)
@@ -86,20 +93,7 @@ RegisterCommand('clearstrikes', function(source, args)
     end
 end, false)
 
-RegisterCommand('wachhund', function(source, args)
-    if levelOf(source) < 4 then return end
-
-    if args[1] == 'aus' then
-        AdminConfig.Guard.enabled = false
-    elseif args[1] == 'an' then
-        AdminConfig.Guard.enabled = true
-    end
-
-    local text = ('Wachhund ist %s.'):format(
-        AdminConfig.Guard.enabled and 'aktiv' or 'abgeschaltet')
-
-    if source == 0 then print(text)
-    else MS.GetPlayer(source):Notify(text, 'info') end
-end, false)
+-- /wachhund steht in server/guard.lua: der Befehl zeigt den Stand und
+-- schaltet um, und beides gehoert an die Stelle, die es weiss.
 
 print('^2[Admin]^7 Panel und Wachhund geladen.')

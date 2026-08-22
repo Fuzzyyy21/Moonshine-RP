@@ -38,7 +38,7 @@ RegisterNetEvent('moonshine:server:triggerCallback', function(name, requestId, .
         -- etwas. Das ist eine Meldung wert.
         pcall(function()
             exports['moonshine-admin']:Flag(source,
-                ('Unbekannter Callback "%s"'):format(name), 1)
+                ('Unbekannter Callback "%s"'):format(name), 1, 'callback')
         end)
 
         TriggerClientEvent('moonshine:client:callbackResponse', source, requestId)

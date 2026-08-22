@@ -47,6 +47,43 @@ AdminConfig.Guard = {
     -- Code, obwohl daneben eine Config lag.
     schwelle = 6,
 
+    -- Die drei Bremsen gegen Fehlkicks --------------------------------------
+    --
+    -- Ohne sie reicht *ein* haengender Zustand fuer einen Rauswurf. Die
+    -- Beobachtung laeuft alle 6 Sekunden; bleibt ein Spieler durch einen
+    -- Fehler in irgendeinem Skript unverwundbar, meldet sie das mit Gewicht
+    -- 4 im Sechssekundentakt. Nach zwoelf Sekunden waere er drueber - fuer
+    -- etwas, das er nicht getan hat.
+
+    -- 1. Dieselbe Meldung zaehlt nur einmal je Sperrzeit (Sekunden).
+    --    Ein haengender Zustand ist damit ein Strike alle zwei Minuten,
+    --    kein Dauerfeuer.
+    meldeSperre = 120,
+
+    -- 2. Es braucht mindestens so viele *verschiedene* Arten von Verdacht.
+    --    Ein einzelner falsch eingestellter Grenzwert kann damit niemanden
+    --    mehr aus dem Spiel werfen - dazu muesste ein zweiter, ganz anderer
+    --    Verdacht dazukommen.
+    --
+    --    Wer nur in einer Art auffaellt, wird trotzdem gemeldet: Konsole,
+    --    ms_flags und alle Admins im Dienst. Nur die Massnahme bleibt aus.
+    --    Sonst waere der Preis zu hoch - wer ausschliesslich teleportiert,
+    --    faellt in genau eine Art und kaeme ewig durch.
+    mindestGruende = 2,
+
+    -- 3. Zwischen der ersten und der letzten Meldung muessen so viele
+    --    Sekunden liegen. Ein Ausbruch innerhalb weniger Sekunden - Laderuck,
+    --    Resource-Neustart, ein Skript das kurz Unsinn macht - ist damit nie
+    --    eine Massnahme, egal wie viele Strikes dabei zusammenkommen.
+    mindestSpanne = 60,
+
+    -- Schonfrist nach dem Start dieser Resource (Sekunden).
+    --
+    -- Beim Neustart weiss der Wachhund nichts von laufenden Editorsitzungen,
+    -- Rasten oder Verwandlungen - alle Kulanzen sind weg. In dieser Zeit
+    -- meldet er, handelt aber nicht.
+    startKarenz = 90,
+
     -- Probelauf.
     --
     -- Steht das auf true, meldet der Wachhund alles, handelt aber nie. Kein
@@ -58,11 +95,47 @@ AdminConfig.Guard = {
     probelauf = true,
 
     -- Was dann passiert: 'log' | 'kick' | 'ban'
+    --
+    -- 'ban' ist bewusst schwerer zu erreichen als es aussieht. Ein Bann ist
+    -- die einzige Massnahme, die ein Spieler nicht einfach durch erneutes
+    -- Verbinden loswird - ein Fehlbann kostet einen echten Spieler. Deshalb
+    -- gelten dafuer zwei zusaetzliche Bedingungen (siehe bannSchwelle und
+    -- Admin.Massnahme): eine hoehere Schwelle, und mindestens ein Verdacht
+    -- aus der Kategorie "sicher".
     action = 'kick',
     banHours = 72,
 
+    -- Eigene, hoehere Schwelle fuer den Bann.
+    bannSchwelle = 12,
+
+    -- Welche Kategorien fuer einen Bann taugen.
+    --
+    -- Nur was normales Spiel nie ausloest: Schaden, den keine Waffe
+    -- anrichtet, ein Panzer aus dem Nichts, ein Cheatmenue-Ereignis.
+    --
+    -- Alles andere ist ein Hinweis. Ein Ortswechsel kann ein Aufzug sein,
+    -- ein fehlender Herzschlag eine Leitung, zu viel Leben ein Bonus, den
+    -- der Wachhund nicht kennt, ein fremdes Modell eine Verwandlung. Solche
+    -- Funde werfen jemanden raus - sperren duerfen sie ihn nicht.
+    sichereArten = {
+        schaden  = true,
+        entitaet = true,
+        ereignis = true,
+    },
+
+    -- Ein automatischer Bann geht nie ueber die IP.
+    --
+    -- Hinter einer IP steckt ein Anschluss, keine Person: Wohngemeinschaft,
+    -- Studentenwohnheim, Mobilfunk. Ein Admin darf das von Hand tun, wenn er
+    -- weiss was er tut. Der Wachhund nicht.
+    bannOhneIp = true,
+
     -- Strikes verfallen nach dieser Zeit (Minuten).
-    decay = 30,
+    --
+    -- Gemeint ist: je <decay> Minuten ohne neue Meldung faellt ein Strike
+    -- weg. Frueher fiel ueberhaupt nichts weg, solange ein Spieler
+    -- regelmaessig auflief - der Zaehler kannte nur eine Richtung.
+    decay = 10,
 
     -- Discord-Webhook fuer Meldungen (leer = nur Serverkonsole und ms_logs).
     webhook = '',
@@ -120,7 +193,16 @@ AdminConfig.Guard = {
     movement = {
         enabled = true,
         maxSpeed = 190.0,       -- Meter je Sekunde im Fahrzeug
-        maxJump  = 300.0,       -- Sprung zu Fuss in einem Intervall
+        maxJump  = 300.0,       -- Sprung zu Fuss in einem Durchgang
+        maxFall  = 75.0,        -- Meter je Sekunde im freien Fall
+
+        -- Wie oft ein Spieler in Folge auffallen muss.
+        --
+        -- Ein Fallschirmsprung, ein Aufzug, ein nachgeladener Innenraum:
+        -- das sind einzelne Ausreisser. Ein Teleport-Cheat ist es nicht -
+        -- der springt wieder und wieder.
+        inFolge  = 2,
+
         interval = 5,
         gewicht  = 1,
     },
@@ -156,11 +238,19 @@ AdminConfig.Guard = {
         enabled = true,
         gewicht = 3,
 
-        -- Mehr Schaden als das kann keine Waffe im Spiel anrichten.
+        -- Mehr Schaden als das kann keine Waffe im Spiel anrichten. Dieser
+        -- Fund ist eindeutig - er darf abbrechen und zaehlt als "sicher".
         maxSchaden = 250,
 
         -- Treffer ueber diese Entfernung sind keine mehr (Meter).
-        maxEntfernung = 500.0,
+        --
+        -- Vorher standen hier 500 und der Treffer wurde abgebrochen. Das
+        -- war zu eng: eine Heavy Sniper vom Mount Chiliad kommt weiter, und
+        -- der Abbruch haette dem Schuetzen den Treffer weggenommen. Jetzt
+        -- 1200 m und nur eine Meldung - Entfernung allein ist ein Hinweis,
+        -- kein Beweis.
+        maxEntfernung = 1200.0,
+        entfernungAbbrechen = false,
     },
 
     --- Fahrzeuge und andere Objekte, die niemand erzeugen sollte.
@@ -226,6 +316,154 @@ AdminConfig.Guard = {
 
 --- Wie viele Eintraege das Panel im Protokoll zeigt.
 AdminConfig.LogLimit = 60
+
+-- Die Entscheidung, ob jemand fliegt --------------------------------------------
+--
+-- Absichtlich hier und nicht im Server: das ist die Stelle, an der ein
+-- Fehler einen echten Spieler kostet. Reine Rechnung, kein Spielzustand -
+-- damit tools/testen.lua sie ohne FXServer durchspielen kann.
+
+--- Zaehlt diese Meldung, oder ist es dieselbe wie eben?
+---
+--- Ohne diese Bremse ist ein haengender Zustand ein Dauerfeuer: die
+--- Beobachtung laeuft im Sechssekundentakt und meldet denselben Fund immer
+--- wieder, bis der Spieler drueber ist.
+---@param letzteMeldung number|nil Zeitpunkt derselben Meldung, oder nil
+---@param jetzt number
+---@param sperre number Sekunden
+---@return boolean
+function Admin.MeldungZaehlt(letzteMeldung, jetzt, sperre)
+    if not letzteMeldung then return true end
+
+    return (jetzt - letzteMeldung) >= (sperre or 0)
+end
+
+--- Wie viele Strikes sind inzwischen verfallen?
+---
+--- Je <decay> Minuten ohne neue Meldung faellt einer weg. Frueher wurde
+--- lastAt bei jeder Meldung neu gesetzt und danach nur einmal je Durchgang
+--- ein einziger Strike abgezogen - wer regelmaessig auflief, dessen Zaehler
+--- kannte praktisch nur eine Richtung.
+---@param count number
+---@param lastAt number Zeitpunkt der letzten Meldung
+---@param jetzt number
+---@param decayMinuten number
+---@return number neuerStand
+function Admin.Verfall(count, lastAt, jetzt, decayMinuten)
+    local schritt = math.max(1, (decayMinuten or 10)) * 60
+    local weg = math.floor((jetzt - lastAt) / schritt)
+
+    if weg <= 0 then return count end
+
+    return math.max(0, count - weg)
+end
+
+--- Was darf jetzt passieren?
+---
+--- Gibt eine von fuenf Antworten zurueck:
+---   'nichts'    - noch keine Massnahme
+---   'probelauf' - waere eine gewesen, wird aber nur gemeldet
+---   'melden'    - action = 'log'
+---   'kick'      - rauswerfen
+---   'ban'       - sperren
+---
+---@param entry table { count, arten = {[art] = true}, ersteAt, lastAt }
+---@param jetzt number
+---@param config table AdminConfig.Guard
+---@param startAt number|nil Wann diese Resource gestartet ist
+---@return string massnahme
+---@return string|nil grund Warum nicht gehandelt wird
+function Admin.Massnahme(entry, jetzt, config, startAt)
+    if not config.enabled then return 'nichts', 'abgeschaltet' end
+    if not entry then return 'nichts', 'kein Eintrag' end
+
+    -- Schonfrist nach dem Start: der Wachhund weiss noch nichts von
+    -- laufenden Editorsitzungen, Rasten oder Verwandlungen.
+    if startAt and (jetzt - startAt) < (config.startKarenz or 0) then
+        return 'nichts', 'Schonfrist nach dem Start'
+    end
+
+    if (entry.count or 0) < (config.schwelle or 6) then
+        return 'nichts', 'unter der Schwelle'
+    end
+
+    -- Mindestens zwei verschiedene *Kategorien*. Ein einzelner falsch
+    -- eingestellter Grenzwert soll niemanden aus dem Spiel werfen koennen.
+    --
+    -- Auf die Kategorie und nicht auf den Meldetext, sonst waere die
+    -- Bedingung geschenkt: "Ortswechsel 412 m" und "Ortswechsel 500 m" sind
+    -- zwei verschiedene Texte, aber derselbe Verdacht.
+    local verschieden = 0
+    for _ in pairs(entry.arten or {}) do verschieden = verschieden + 1 end
+
+    if verschieden < (config.mindestGruende or 1) then
+        -- Nicht rauswerfen - aber auch nicht schweigen.
+        --
+        -- Der Preis dieser Bremse waere sonst zu hoch: wer *nur*
+        -- teleportiert, faellt in genau eine Art und kaeme damit ewig durch.
+        -- Also wird gemeldet: Konsole, ms_flags, und alle Admins im Dienst
+        -- bekommen es mit. Ein Mensch entscheidet, was daraus wird.
+        return 'melden', 'nur eine Art'
+    end
+
+    -- Ein Ausbruch innerhalb von Sekunden ist ein Fehler, kein Cheat.
+    local spanne = jetzt - (entry.ersteAt or jetzt)
+
+    if spanne < (config.mindestSpanne or 0) then
+        return 'nichts', 'zu kurze Spanne'
+    end
+
+    if config.probelauf then return 'probelauf', nil end
+    if config.action == 'log' then return 'melden', nil end
+
+    if config.action == 'ban' then
+        -- Ein Bann braucht mehr als Verdachtsmomente. "sicher" ist nur, was
+        -- kein normales Spiel je ausloest: Schaden, den keine Waffe
+        -- anrichtet, ein Panzer aus dem Nichts, ein Cheatmenue-Ereignis.
+        -- Ortswechsel, Herzschlag, Leben und Modelle sind Hinweise - fuer
+        -- einen Bann reichen sie nicht.
+        local sicher = false
+        for art in pairs(entry.arten or {}) do
+            if (config.sichereArten or {})[art] then sicher = true break end
+        end
+
+        if not sicher then return 'kick', 'kein sicherer Fund' end
+        if (entry.count or 0) < (config.bannSchwelle or 12) then
+            return 'kick', 'unter der Bannschwelle'
+        end
+
+        return 'ban', nil
+    end
+
+    return 'kick', nil
+end
+
+--- Ist dieser Ortswechsel auffaellig?
+---
+--- Zu Fuss gilt ein Budget je Durchgang. Das muss den freien Fall mit
+--- abdecken: wer aus einem Flugzeug springt, faellt rund 50 m in der
+--- Sekunde, und wenn der Server einmal haengt, sind aus 5 Sekunden schnell
+--- 8. Ein festes Budget haette daraus einen Teleport gemacht.
+---@param distance number Meter
+---@param elapsed number Sekunden
+---@param imFahrzeug boolean
+---@param config table AdminConfig.Guard.movement
+---@return boolean auffaellig
+---@return number grenze Meter, die erlaubt gewesen waeren
+function Admin.OrtswechselAuffaellig(distance, elapsed, imFahrzeug, config)
+    elapsed = math.max(1, elapsed or 1)
+
+    local grenze
+
+    if imFahrzeug then
+        grenze = (config.maxSpeed or 190.0) * elapsed
+    else
+        grenze = math.max(config.maxJump or 300.0,
+                          (config.maxFall or 75.0) * elapsed)
+    end
+
+    return distance > grenze, grenze
+end
 
 --- Darf dieses Level die Aktion?
 function Admin.Can(level, action)

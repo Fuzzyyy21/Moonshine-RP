@@ -202,6 +202,206 @@ pruefe('Der Bewegungstakt ist nicht zu eng', wache.movement.interval >= 2)
 
 pruefe('Beweise werden eine Weile behalten', wache.beweise.behalten > 0)
 
+-- Eigener Sichtbarkeitsbereich: Lua erlaubt nur 200 lokale Variablen je
+-- Funktion, und diese Datei ist eine.
+do
+
+gruppe('Wachhund: Massnahme entscheiden')
+
+-- Das hier ist die Stelle, an der ein Fehler einen echten Spieler kostet.
+-- Entsprechend ausfuehrlich.
+
+local G = { enabled = true, schwelle = 6, probelauf = false, action = 'kick',
+            mindestGruende = 2, mindestSpanne = 60, startKarenz = 0,
+            bannSchwelle = 12, sichereArten = { schaden = true } }
+
+--- Baut einen Strike-Eintrag.
+local function eintrag(count, arten, spanne)
+    local a = {}
+    for _, art in ipairs(arten) do a[art] = true end
+
+    return { count = count, arten = a, ersteAt = 1000, lastAt = 1000 + (spanne or 120) }
+end
+
+local jetzt = 1000 + 120
+
+pruefe('Unter der Schwelle passiert nichts',
+    Admin.Massnahme(eintrag(5, { 'godmode', 'leben' }), jetzt, G) == 'nichts')
+
+pruefe('Ueber der Schwelle wird gehandelt',
+    Admin.Massnahme(eintrag(6, { 'godmode', 'leben' }), jetzt, G) == 'kick')
+
+-- Die drei Bremsen. Jede einzeln muss allein ausreichen, um nichts zu tun.
+-- Eine einzelne Art wirft niemanden raus - aber sie wird gemeldet. Sonst
+-- kaeme durch, wer ausschliesslich teleportiert.
+pruefe('Eine einzelne Art wirft niemanden raus',
+    Admin.Massnahme(eintrag(99, { 'godmode' }), jetzt, G) ~= 'kick')
+pruefe('Eine einzelne Art wird trotzdem gemeldet',
+    Admin.Massnahme(eintrag(99, { 'godmode' }), jetzt, G) == 'melden')
+
+pruefe('Ein Ausbruch in Sekunden reicht nicht',
+    Admin.Massnahme(eintrag(99, { 'godmode', 'leben' }, 5), 1005, G) == 'nichts')
+
+pruefe('In der Schonfrist nach dem Start passiert nichts',
+    Admin.Massnahme(eintrag(99, { 'godmode', 'leben' }), jetzt,
+        { enabled = true, schwelle = 6, startKarenz = 300, action = 'kick',
+          mindestGruende = 2, mindestSpanne = 60 }, jetzt - 10) == 'nichts')
+
+pruefe('Ein abgeschalteter Wachhund tut nichts',
+    Admin.Massnahme(eintrag(99, { 'godmode', 'leben' }), jetzt,
+        { enabled = false }) == 'nichts')
+
+pruefe('Ohne Eintrag passiert nichts', Admin.Massnahme(nil, jetzt, G) == 'nichts')
+
+-- Probelauf schlaegt alles ausser den Bremsen.
+local P = { enabled = true, schwelle = 6, probelauf = true, action = 'ban',
+            mindestGruende = 2, mindestSpanne = 60, bannSchwelle = 12,
+            sichereArten = { schaden = true } }
+
+pruefe('Im Probelauf wird nur gemeldet',
+    Admin.Massnahme(eintrag(99, { 'schaden', 'leben' }), jetzt, P) == 'probelauf')
+
+pruefe('Der Probelauf haelt auch die Bremsen ein',
+    Admin.Massnahme(eintrag(99, { 'schaden', 'leben' }, 5), 1005, P) == 'nichts')
+
+-- Der Bann. Die gefaehrlichste Massnahme, also die strengsten Bedingungen.
+local B = { enabled = true, schwelle = 6, probelauf = false, action = 'ban',
+            mindestGruende = 2, mindestSpanne = 60, bannSchwelle = 12,
+            sichereArten = { schaden = true, entitaet = true, ereignis = true } }
+
+pruefe('Ohne sicheren Fund wird nie gebannt, nur rausgeworfen',
+    Admin.Massnahme(eintrag(99, { 'godmode', 'ortswechsel', 'herzschlag' }),
+        jetzt, B) == 'kick')
+
+pruefe('Ein sicherer Fund unter der Bannschwelle wirft nur raus',
+    Admin.Massnahme(eintrag(8, { 'schaden', 'leben' }), jetzt, B) == 'kick')
+
+pruefe('Ein sicherer Fund ueber der Bannschwelle bannt',
+    Admin.Massnahme(eintrag(12, { 'schaden', 'leben' }), jetzt, B) == 'ban')
+
+-- Auch ein sicherer Fund bannt nicht, solange er allein steht.
+pruefe('Eine einzelne Art bannt nie',
+    Admin.Massnahme(eintrag(200, { 'schaden' }), jetzt, B) == 'melden')
+
+-- Kein Verdacht aus reinen Hinweisen darf je zu einem Bann fuehren -
+-- egal wie viele Strikes zusammenkommen.
+local nurHinweise = { 'godmode', 'leben', 'weste', 'modell', 'ortswechsel',
+                      'herzschlag', 'waffe', 'explosion', 'treffweite',
+                      'rate', 'callback', 'sonstiges' }
+
+pruefe('Auch 200 Strikes aus Hinweisen bannen niemanden',
+    Admin.Massnahme(eintrag(200, nurHinweise), jetzt, B) == 'kick')
+
+-- 'log' handelt nie.
+pruefe('action = log meldet nur',
+    Admin.Massnahme(eintrag(99, { 'schaden', 'leben' }), jetzt,
+        { enabled = true, schwelle = 6, action = 'log', mindestGruende = 2,
+          mindestSpanne = 60 }) == 'melden')
+
+gruppe('Wachhund: Sperrzeit und Verfall')
+
+-- Ohne die Sperrzeit ist ein haengender Zustand ein Dauerfeuer: die
+-- Beobachtung laeuft alle 6 Sekunden, Gewicht 4, Schwelle 6 - nach zwoelf
+-- Sekunden waere ein Unschuldiger drueber.
+pruefe('Die erste Meldung zaehlt immer',
+    Admin.MeldungZaehlt(nil, 1000, 120) == true)
+pruefe('Dieselbe Art zaehlt kurz danach nicht',
+    Admin.MeldungZaehlt(1000, 1006, 120) == false)
+pruefe('Nach der Sperrzeit zaehlt sie wieder',
+    Admin.MeldungZaehlt(1000, 1120, 120) == true)
+
+-- Die Rechnung mit den echten Werten: wie lange braucht ein haengender
+-- Zustand bis zur Schwelle?
+local takt = wache.beobachtung.interval
+local proMeldung = wache.beobachtung.godmodeGewicht
+local noetig = math.ceil(wache.schwelle / proMeldung)
+local dauer = (noetig - 1) * wache.meldeSperre
+
+pruefe('Ein haengender Zustand braucht Minuten, nicht Sekunden',
+    dauer >= 120, ('%d Sekunden bei Takt %d'):format(dauer, takt))
+
+-- Aber selbst dann darf nichts passieren: es ist nur *eine* Art.
+pruefe('Ein haengender Zustand allein kann niemanden werfen',
+    wache.mindestGruende >= 2)
+
+-- Verfall: frueher wurde lastAt bei jeder Meldung neu gesetzt und dann nur
+-- ein einziger Strike je Durchgang abgezogen. Wer regelmaessig auflief,
+-- dessen Zaehler kannte praktisch nur eine Richtung.
+pruefe('Frisch gemeldet verfaellt nichts', Admin.Verfall(5, 1000, 1060, 10) == 5)
+pruefe('Nach der Verfallszeit faellt einer weg',
+    Admin.Verfall(5, 1000, 1000 + 600, 10) == 4)
+pruefe('Nach der dreifachen Zeit fallen drei weg',
+    Admin.Verfall(5, 1000, 1000 + 1800, 10) == 2)
+pruefe('Der Verfall geht nie unter null',
+    Admin.Verfall(2, 1000, 1000 + 999999, 10) == 0)
+
+gruppe('Wachhund: Ortswechsel')
+
+local M = wache.movement
+
+-- Der freie Fall war der Klassiker: rund 50 m in der Sekunde, und wenn der
+-- Server einmal haengt, werden aus 5 Sekunden 8.
+local auffaellig = Admin.OrtswechselAuffaellig(400, 8, false, M)
+pruefe('Ein Fallschirmsprung mit Serverruck ist kein Teleport',
+    auffaellig == false, '400 m in 8 s zu Fuss')
+
+pruefe('Ein Sprung ueber die halbe Karte faellt auf',
+    Admin.OrtswechselAuffaellig(1500, 5, false, M) == true)
+
+pruefe('Ein Flugzeug faellt nicht auf',
+    Admin.OrtswechselAuffaellig(400, 5, true, M) == false)
+
+pruefe('Ein Teleport im Fahrzeug faellt auf',
+    Admin.OrtswechselAuffaellig(3000, 5, true, M) == true)
+
+-- Das Budget zu Fuss darf nie unter den Grundwert fallen, sonst waere ein
+-- kurzer Durchgang strenger als ein langer.
+local _, grenzeKurz = Admin.OrtswechselAuffaellig(0, 1, false, M)
+pruefe('Auch bei einer Sekunde gilt das volle Grundbudget',
+    grenzeKurz >= M.maxJump, grenzeKurz)
+
+local _, grenzeLang = Admin.OrtswechselAuffaellig(0, 20, false, M)
+pruefe('Ein langer Durchgang bekommt mehr Budget',
+    grenzeLang > grenzeKurz, ('%d gegen %d'):format(grenzeLang, grenzeKurz))
+
+pruefe('Ein einzelner Ausreisser meldet noch nicht', M.inFolge >= 2)
+
+gruppe('Wachhund: Bannschwellen')
+
+-- Die Zahlen selbst, nicht nur die Logik.
+pruefe('Die Bannschwelle liegt ueber der normalen Schwelle',
+    wache.bannSchwelle > wache.schwelle,
+    ('%d gegen %d'):format(wache.bannSchwelle, wache.schwelle))
+
+pruefe('Der automatische Bann laesst die IP aus', wache.bannOhneIp == true)
+
+pruefe('Es gibt sichere Arten', next(wache.sichereArten) ~= nil)
+
+-- Kein Hinweis darf als sicher gelten. Das ist die Liste, die darueber
+-- entscheidet, ob ein Fehlalarm nur rauswirft oder sperrt.
+for _, art in ipairs(nurHinweise) do
+    pruefe(('%s gilt nicht als sicherer Fund'):format(art),
+        wache.sichereArten[art] ~= true)
+end
+
+pruefe('Die Sperrzeit deckt mehrere Beobachtungsdurchgaenge',
+    wache.meldeSperre > wache.beobachtung.interval * 4,
+    ('%d gegen %d'):format(wache.meldeSperre, wache.beobachtung.interval))
+
+pruefe('Die Mindestspanne deckt mehrere Durchgaenge',
+    wache.mindestSpanne > wache.beobachtung.interval * 4)
+
+pruefe('Die Schonfrist nach dem Start ist laenger als ein Durchgang',
+    wache.startKarenz > wache.beobachtung.interval)
+
+pruefe('Treffer auf Entfernung werden nicht abgebrochen',
+    wache.schaden.entfernungAbbrechen == false)
+
+pruefe('Die Entfernungsgrenze laesst eine Heavy Sniper durch',
+    wache.schaden.maxEntfernung >= 1000.0, wache.schaden.maxEntfernung)
+
+end
+
 gruppe('Wachhund: Kulanz')
 
 -- Die Kulanz ist die Stelle, an der der Wachhund erfaehrt, was der Server

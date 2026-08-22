@@ -44,7 +44,7 @@ AddEventHandler('explosionEvent', function(sender, ev)
         typ = ev.explosionType,
         art = art,
         abgebrochen = config.aktion == 'abbrechen',
-    })
+    }, 'explosion')
 end)
 
 -- Waffenschaden -------------------------------------------------------------------
@@ -61,8 +61,12 @@ AddEventHandler('weaponDamageEvent', function(sender, data)
 
     if schaden > config.maxSchaden then
         CancelEvent()
+
+        -- Eindeutig: keine Waffe im Spiel richtet so viel an. Das ist einer
+        -- der wenigen Funde, die fuer einen Bann taugen.
         Admin.Flag(source, ('Unmoeglicher Schaden (%d)'):format(schaden),
-            config.gewicht, { schaden = schaden, grenze = config.maxSchaden })
+            config.gewicht, { schaden = schaden, grenze = config.maxSchaden },
+            'schaden')
         return
     end
 
@@ -77,9 +81,16 @@ AddEventHandler('weaponDamageEvent', function(sender, data)
             local weite = #(GetEntityCoords(taeter) - GetEntityCoords(opfer))
 
             if weite > config.maxEntfernung then
-                CancelEvent()
+                -- Nur ein Hinweis, kein Beweis: eine Heavy Sniper vom Mount
+                -- Chiliad kommt weit, und ein Abbruch haette dem Schuetzen
+                -- den Treffer weggenommen. Der Abbruch ist deshalb abstellbar
+                -- und ab Werk aus.
+                if config.entfernungAbbrechen then CancelEvent() end
+
                 Admin.Flag(source, ('Treffer ueber %d Meter'):format(math.floor(weite)),
-                    config.gewicht, { entfernung = math.floor(weite) })
+                    config.gewicht, { entfernung = math.floor(weite),
+                                      grenze = config.maxEntfernung },
+                    'treffweite')
             end
         end
     end
@@ -95,21 +106,27 @@ AddEventHandler('entityCreating', function(entity)
     local name = gesperrteModelle[GetEntityModel(entity)]
     if not name then return end
 
-    if config.aktion == 'abbrechen' then CancelEvent() end
-
     -- Wer das Objekt erzeugt hat, weiss nur das Netzwerk - und auch das
-    -- nicht sicher: der Besitz eines Fahrzeugs wandert. Ein Unbeteiligter
-    -- soll dafuer keine Strikes bekommen.
-    --
-    -- Deshalb: abgebrochen wird immer, gemeldet nur, wenn der Besitzer auch
-    -- wirklich verbunden ist. Alles andere geht in die Konsole.
+    -- nicht sicher. Fuer die Frage "darf das hier stehen" reicht es aber:
+    -- ein Admin, der fuer ein Event einen Panzer setzt, soll ihn behalten.
     local owner = NetworkGetEntityOwner(entity)
     local source = (owner and owner > 0 and GetPlayerName(owner)) and owner or nil
 
-    if source and not Admin.IsAllowed(source, 'modell') then
+    if source and (Admin.Exempt(MS.GetPlayer(source))
+        or Admin.IsAllowed(source, 'modell')) then
+        return
+    end
+
+    if config.aktion == 'abbrechen' then CancelEvent() end
+
+    -- Gemeldet wird nur, wenn der Besitzer auch wirklich verbunden ist.
+    -- Der Besitz eines Fahrzeugs wandert - ein Unbeteiligter soll dafuer
+    -- keine Strikes bekommen. Alles andere geht in die Konsole.
+    if source then
         Admin.Flag(source, ('Gesperrtes Modell: %s'):format(name), config.gewicht,
             { modell = name, abgebrochen = config.aktion == 'abbrechen',
-              hinweis = 'Besitzer laut Netzwerk, nicht zwingend der Erzeuger' })
+              hinweis = 'Besitzer laut Netzwerk, nicht zwingend der Erzeuger' },
+            'entitaet')
     else
         print(('^3[Wachhund]^7 Gesperrtes Modell %s erzeugt, Besitzer unklar.')
             :format(name))
@@ -120,8 +137,10 @@ end)
 
 --- Diese drei loest ein Spieler im normalen Spiel nie selbst aus. Sie
 --- stehen in jedem Cheatmenue an erster Stelle.
+--- Diese Ereignisse loest kein normales Spiel aus - sie taugen als Beweis.
 local function melde(source, was)
-    Admin.Flag(source, was, AdminConfig.Guard.ereignisse.gewicht, { ereignis = was })
+    Admin.Flag(source, was, AdminConfig.Guard.ereignisse.gewicht,
+        { ereignis = was }, 'ereignis')
 end
 
 AddEventHandler('giveWeaponEvent', function(sender)
