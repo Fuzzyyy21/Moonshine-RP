@@ -664,6 +664,44 @@ def check_ratelimits():
                 index += 1
 
 
+# Welche Wachhund-Pruefung geht gegen welchen Native los?
+#
+# Diese drei Ereignisse feuert FiveM, sobald *irgendein* Client den Native
+# aufruft - auch der eigene. Steht die Pruefung scharf und ruft der Server
+# den Native trotzdem auf, bricht der Wachhund die eigene Funktion ab und
+# verteilt dafuer Strafpunkte an unbeteiligte Spieler.
+SELBSTBESCHUSS = {
+    'clearPedTasks':    r'\bClearPedTasks(?:Immediately)?\s*\(',
+    'giveWeapon':       r'\bGiveWeaponToPed\s*\(',
+    'removeAllWeapons': r'\bRemoveAllPedWeapons\s*\(',
+}
+
+
+def check_selfshot():
+    config = read(os.path.join(ROOT, 'moonshine-admin', 'shared', 'config.lua'))
+
+    for schalter, muster in SELBSTBESCHUSS.items():
+        aktiv = re.search(rf'{schalter}\s*=\s*true', config)
+        if not aktiv:
+            continue
+
+        regex = re.compile(muster)
+
+        for res in resources():
+            if res == 'moonshine-admin':
+                continue
+
+            for path in _side_files(res, 'client') + _side_files(res, 'server'):
+                for number, line in enumerate(read(path).split('\n'), 1):
+                    if line.lstrip().startswith('--'):
+                        continue
+
+                    if regex.search(line):
+                        note('WACHHUND-SELBSTBESCHUSS', f"{path}:{number}",
+                             f"{schalter} steht scharf, hier laeuft der "
+                             f"passende Aufruf - der Wachhund bricht ihn ab")
+
+
 def main():
     only_syntax = '--nur-syntax' in sys.argv
 
@@ -682,6 +720,7 @@ def main():
         check_config_access()
         check_foreign_globals()
         check_ratelimits()
+        check_selfshot()
 
     if not findings:
         print('Alles sauber.')

@@ -100,12 +100,24 @@ Stelle, an der der alte Wachhund nichts gesehen hat.
 | `explosionEvent` | Railgun, Orbitalkanone, Flugabwehr, Valkyrie, Raygun | 4 | melden |
 | `weaponDamageEvent` | über 250 Schaden, oder Treffer über 500 m | 3 | abbrechen |
 | `entityCreating` | Panzer, Kampfjets, Oppressor, Deluxo, APC … | 4 | abbrechen |
-| `giveWeaponEvent` | Waffe per Ereignis gegeben | 3 | abbrechen |
+| `giveWeaponEvent` | Waffe per Ereignis gegeben | 3 | **aus** |
 | `removeAllWeaponsEvent` | alle Waffen per Ereignis entfernt | 3 | abbrechen |
-| `clearPedTasksEvent` | Aufgaben per Ereignis abgebrochen | 3 | abbrechen |
+| `clearPedTasksEvent` | Aufgaben per Ereignis abgebrochen | 3 | **aus** |
 
 Die letzten drei löst ein Spieler im normalen Spiel nie selbst aus — sie
 stehen in jedem Cheatmenü an erster Stelle.
+
+> **Zwei davon stehen trotzdem auf `false`.**
+> Diese Ereignisse feuert FiveM, sobald *irgendein* Client den passenden
+> Native aufruft — auch unser eigener Code. `ClearPedTasks` steht bei uns an
+> vierzehn Stellen (Tod, Wiederbelebung, Ritual, Tanken, Reparieren,
+> Charaktereditor), `GiveWeaponToPed` gibt dem Endgegner in `moonshine-boss`
+> seine Waffe. Scharf gestellt bricht der Wachhund genau diese Aufrufe ab
+> und verteilt dafür Strafpunkte an Spieler, die nichts getan haben.
+>
+> `tools/pruefen.py` prüft das dauerhaft: wer einen der Schalter auf `true`
+> setzt, bekommt jede Stelle im Code aufgelistet, die dagegen läuft
+> (`WACHHUND-SELBSTBESCHUSS`).
 
 > **Die Explosionsnummern stehen auf „melden", nicht auf „abbrechen".**
 > Sie sind die Typennummern aus GTA und in diesem Repo **nicht im Spiel
@@ -160,10 +172,58 @@ dieser Lizenz auf einmal auf.
 > Die **IP** ist mit Absicht abschaltbar (`Config.Bans.useIp`) — hinter einer
 > IP können Mitbewohner sitzen.
 
+### Kulanz — was der Server selbst erlaubt hat
+
+`server/allow.lua`. Ein Wachhund, der die eigenen Spieler kickt, ist
+schlimmer als keiner — und genau das würde ohne diese Schicht passieren:
+
+| Was der Server tut | Was der Wachhund sähe |
+|---|---|
+| Charaktereditor | unverwundbar + fremdes Ped-Modell |
+| Rast im Zufluchtsort | unverwundbar |
+| Verwandlung (Werwolf) | fremdes Ped-Modell + 290 Leben |
+| Schattenschritt | Ortswechsel + zwei Explosionen |
+| Respawn, `/bring`, `/tp` | Ortswechsel über die halbe Karte |
+
+Deshalb sagt der **Server** dem Wachhund vorher Bescheid. Nicht der Client —
+der dürfte sich sonst selbst freischalten. Jede Ausnahme kommt von der
+Stelle, die die Handlung ohnehin schon geprüft hat:
+
+```lua
+exports['moonshine-admin']:Allow(source, 'godmode', 900)   -- Editor auf
+exports['moonshine-admin']:Deny(source, 'godmode')         -- Editor zu
+exports['moonshine-admin']:IsAllowed(source, 'godmode')    -- gilt gerade?
+```
+
+Arten: `godmode`, `teleport`, `explosion`, `modell`, `leben`.
+
+Drei Eigenschaften, auf denen `tools/testen.lua` besteht:
+
+- **Ab Werk gilt nichts.** Eine Kulanz, die von selbst greift, wäre ein Loch
+  statt einer Ausnahme.
+- **Sie läuft ab.** Ohne Zeitangabe nach 15 Sekunden.
+- **Sie wird nie verkürzt.** Rast und Schattenschritt dürfen sich die
+  Ausnahme nicht gegenseitig wegnehmen — die längere gewinnt.
+
+Ein Sonderfall steckt in `moonshine-mystic`: die Sicht-Effekte einer
+Fähigkeit zünden ihre Explosion auf dem Rechner **jedes Zuschauers**. Für den
+Server ist damit der Zuschauer der Verursacher. Ohne die Kulanz sammelt jeder
+Umstehende die Strafpunkte für einen fremden Zauber ein.
+
+### Probelauf
+
+`AdminConfig.Guard.probelauf` steht ab Werk auf **`true`**: der Wachhund
+meldet alles, aber kickt und bannt niemanden. Das ist die einzig ehrliche
+Voreinstellung, solange nichts davon auf einem echten Server gelaufen ist.
+
+Ein paar Tage mitlesen, `/verdacht` und `ms_flags` durchsehen — und erst dann
+auf `false` stellen.
+
 ### Wann es knallt
 
 Ab **6 Strikes** (`AdminConfig.Guard.schwelle`) greift die konfigurierte
-Maßnahme (`log`, `kick` oder `ban`). Strikes verfallen nach 30 Minuten.
+Maßnahme (`log`, `kick` oder `ban`) — sofern der Probelauf aus ist. Strikes
+verfallen nach 30 Minuten.
 
 **Kein einzelnes Gewicht erreicht die Schwelle allein** — das ist der ganze
 Grund, warum es Strikes gibt und keinen Sofortkick. `tools/testen.lua`

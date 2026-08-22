@@ -35,6 +35,9 @@ AddEventHandler('explosionEvent', function(sender, ev)
     local art = config.gesperrt[tonumber(ev and ev.explosionType) or -1]
     if not art then return end
 
+    -- Klassenfaehigkeiten zuenden Explosionen. Der Server hat sie erlaubt.
+    if Admin.IsAllowed(source, 'explosion') then return end
+
     if config.aktion == 'abbrechen' then CancelEvent() end
 
     Admin.Flag(source, ('Explosion: %s'):format(art), config.gewicht, {
@@ -94,15 +97,21 @@ AddEventHandler('entityCreating', function(entity)
 
     if config.aktion == 'abbrechen' then CancelEvent() end
 
-    -- Wer das Objekt erzeugt hat, weiss nur das Netzwerk.
+    -- Wer das Objekt erzeugt hat, weiss nur das Netzwerk - und auch das
+    -- nicht sicher: der Besitz eines Fahrzeugs wandert. Ein Unbeteiligter
+    -- soll dafuer keine Strikes bekommen.
+    --
+    -- Deshalb: abgebrochen wird immer, gemeldet nur, wenn der Besitzer auch
+    -- wirklich verbunden ist. Alles andere geht in die Konsole.
     local owner = NetworkGetEntityOwner(entity)
-    local source = owner and owner > 0 and owner or nil
+    local source = (owner and owner > 0 and GetPlayerName(owner)) and owner or nil
 
-    if source then
+    if source and not Admin.IsAllowed(source, 'modell') then
         Admin.Flag(source, ('Gesperrtes Modell: %s'):format(name), config.gewicht,
-            { modell = name, abgebrochen = config.aktion == 'abbrechen' })
+            { modell = name, abgebrochen = config.aktion == 'abbrechen',
+              hinweis = 'Besitzer laut Netzwerk, nicht zwingend der Erzeuger' })
     else
-        print(('^3[Wachhund]^7 Gesperrtes Modell %s erzeugt, Besitzer unbekannt.')
+        print(('^3[Wachhund]^7 Gesperrtes Modell %s erzeugt, Besitzer unklar.')
             :format(name))
     end
 end)

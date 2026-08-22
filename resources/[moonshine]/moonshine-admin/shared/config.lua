@@ -47,6 +47,16 @@ AdminConfig.Guard = {
     -- Code, obwohl daneben eine Config lag.
     schwelle = 6,
 
+    -- Probelauf.
+    --
+    -- Steht das auf true, meldet der Wachhund alles, handelt aber nie. Kein
+    -- Kick, kein Bann - nur Konsole, ms_logs und ms_flags.
+    --
+    -- Ab Werk an, und das mit Absicht: keine dieser Pruefungen lief je auf
+    -- einem echten Server. Erst ein paar Tage mitlesen, dann abschalten.
+    -- Ein Wachhund, der die eigenen Spieler kickt, ist schlimmer als keiner.
+    probelauf = true,
+
     -- Was dann passiert: 'log' | 'kick' | 'ban'
     action = 'kick',
     banHours = 72,
@@ -168,14 +178,27 @@ AdminConfig.Guard = {
     },
 
     --- Ereignisse, die auf ein Cheatmenue hindeuten.
+    --- Achtung: zwei dieser drei Ereignisse loest auch der eigene Server aus.
+    ---
+    --- clearPedTasks feuert bei jedem ClearPedTasks() - und das steht bei
+    --- uns an vierzehn Stellen: Tod, Wiederbelebung, Ritual, Tanken,
+    --- Reparieren, Charaktereditor. Scharf gestellt bricht die Pruefung
+    --- genau diese Aufrufe ab und verteilt dafuer Strafpunkte.
+    ---
+    --- giveWeapon feuert, wenn moonshine-boss dem Endgegner seine Waffe
+    --- gibt. Das laeuft ueber den Client, der den Gegner besitzt - also
+    --- ueber einen ganz normalen Spieler.
+    ---
+    --- Beide stehen deshalb auf false. Wer sie einschaltet, muss vorher die
+    --- eigenen Aufrufe kennen. removeAllWeapons ruft bei uns niemand auf -
+    --- das bleibt an.
     ereignisse = {
         enabled = true,
         gewicht = 3,
 
-        -- Wer Waffen verteilt oder Aufgaben abbricht, tut das nicht selbst.
-        giveWeapon        = true,
+        giveWeapon        = false,
         removeAllWeapons  = true,
-        clearPedTasks     = true,
+        clearPedTasks     = false,
     },
 
     -- Schicht 5: Herzschlag -------------------------------------------------------

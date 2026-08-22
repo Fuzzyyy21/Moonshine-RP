@@ -206,6 +206,15 @@ registerCommand('heal', 'Heilt einen Spieler vollstaendig', {
     target:SetStatus('thirst', 100.0)
 end)
 
+--- Setzt einen Spieler an einen Ort - und sagt dem Wachhund Bescheid.
+---
+--- Bei /bring ist das Ziel ein ganz normaler Spieler. Ohne diese Zeile
+--- sammelt er fuer den Teleport seines Admins Strafpunkte ein.
+local function teleport(target, x, y, z)
+    pcall(function() exports['moonshine-admin']:Allow(target, 'teleport', 20) end)
+    TriggerClientEvent('moonshine:client:teleport', target, x + 0.0, y + 0.0, z + 0.0)
+end
+
 registerCommand('goto', 'Teleportiert dich zu einem Spieler', {
     { name = 'id', help = 'Spieler-ID' },
 }, function(source, args)
@@ -214,7 +223,7 @@ registerCommand('goto', 'Teleportiert dich zu einem Spieler', {
     if not player or not target then return end
 
     local coords = GetEntityCoords(GetPlayerPed(target.source))
-    TriggerClientEvent('moonshine:client:teleport', player.source, coords.x, coords.y, coords.z)
+    teleport(player.source, coords.x, coords.y, coords.z)
 end)
 
 registerCommand('bring', 'Teleportiert einen Spieler zu dir', {
@@ -225,7 +234,7 @@ registerCommand('bring', 'Teleportiert einen Spieler zu dir', {
     if not player or not target then return end
 
     local coords = GetEntityCoords(GetPlayerPed(player.source))
-    TriggerClientEvent('moonshine:client:teleport', target.source, coords.x, coords.y, coords.z)
+    teleport(target.source, coords.x, coords.y, coords.z)
 end)
 
 registerCommand('tp', 'Teleportiert dich zu Koordinaten', {
@@ -241,7 +250,7 @@ registerCommand('tp', 'Teleportiert dich zu Koordinaten', {
         reply(source, 'Verwendung: /tp [x] [y] [z]', 'error')
         return
     end
-    TriggerClientEvent('moonshine:client:teleport', source, x, y, z)
+    teleport(source, x, y, z)
 end)
 
 registerCommand('kick', 'Kickt einen Spieler', {

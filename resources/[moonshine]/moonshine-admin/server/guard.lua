@@ -87,6 +87,19 @@ function Admin.Enforce(source, entry)
     -- Stand frueher als 6 fest im Code, obwohl daneben eine Config lag.
     if entry.count < (config.schwelle or 6) then return end
 
+    -- Im Probelauf wird gemeldet, aber nicht gehandelt.
+    if config.probelauf then
+        local player = MS.GetPlayer(source)
+
+        print(('^3[Wachhund]^7 PROBELAUF: %s haette jetzt %s bekommen (%d Strikes).')
+            :format(player and player.fullname or source, config.action, entry.count))
+
+        -- Zaehler zuruecksetzen, sonst meldet er das bei jedem weiteren
+        -- Verdacht erneut.
+        entry.count = 0
+        return
+    end
+
     local reason = ('Wachhund: %s'):format(entry.reasons[#entry.reasons] or 'Auffaellig')
 
     if config.action == 'kick' then
@@ -176,7 +189,8 @@ CreateThread(function()
 
                             -- Tote und frisch geladene Spieler nicht melden.
                             if speed > limit and not IsEntityDead(ped)
-                                and last.settled then
+                                and last.settled
+                                and not Admin.IsAllowed(source, 'teleport') then
                                 Admin.Flag(source, ('Ortswechsel %d m in %d s'):format(
                                     math.floor(distance), elapsed),
                                     AdminConfig.Guard.movement.gewicht,

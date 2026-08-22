@@ -49,6 +49,13 @@ RegisterNetEvent('refuge:server:rest', function()
     entry.lastRest = os.time()
     Refuge.DB.Touch(placeId, 'last_rest', entry.lastRest)
 
+    -- Waehrend der Rast ist der Spieler unverwundbar - so ist die Rast
+    -- gebaut. Der Wachhund bekommt die Dauer plus etwas Nachlauf.
+    pcall(function()
+        exports['moonshine-admin']:Allow(source, 'godmode',
+            RefugeConfig.Rest.duration + 15)
+    end)
+
     TriggerClientEvent('refuge:client:rest', source, {
         dauer = RefugeConfig.Rest.duration,
         text  = kind.ruhe,

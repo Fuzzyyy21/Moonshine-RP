@@ -254,6 +254,39 @@ local function applySkillEffects(profile, effect, casterCoords, targetSource)
     return hits
 end
 
+--- Welche Wirkung loest beim Wachhund welchen Alarm aus?
+---
+--- Ohne das hier meldet Schicht 1 jeden verwandelten Werwolf als "Fremdes
+--- Spielermodell" und Schicht 3 jeden Schattenschritt als Explosionsspam.
+--- Die Ausnahme kommt vom Server, nie vom Client - der duerfte sich sonst
+--- selbst freischalten.
+local MIT_EXPLOSION = {
+    blink = true, aoe_damage = true, poison = true, projectile = true,
+}
+
+--- Meldet dem Wachhund, was diese Faehigkeit gleich anrichten wird.
+---@param source number
+---@param effect table
+local function kulanz(source, effect)
+    local kind = effect and effect.kind
+    if not kind then return end
+
+    pcall(function()
+        local admin = exports['moonshine-admin']
+
+        if MIT_EXPLOSION[kind] then admin:Allow(source, 'explosion', 10) end
+        if kind == 'blink' or kind == 'leap' then admin:Allow(source, 'teleport', 10) end
+
+        if kind == 'transform' then
+            -- Gestaltwandel: fremdes Ped-Modell und mehr Leben. Beides ist
+            -- der Sinn der Faehigkeit, nicht ihr Missbrauch.
+            local dauer = (tonumber(effect.duration) or 60) + 20
+            admin:Allow(source, 'modell', dauer)
+            admin:Allow(source, 'leben', dauer)
+        end
+    end)
+end
+
 RegisterNetEvent('mystic:server:useSkill', function(skillId, targetServerId)
     local source = source
     local profile = Mystic.Profiles[source]
@@ -303,6 +336,9 @@ RegisterNetEvent('mystic:server:useSkill', function(skillId, targetServerId)
     end
 
     local effect = Mystic.ResolveEffect(skill, rank)
+
+    kulanz(source, effect)
+
     local hits = applySkillEffects(profile, effect, casterCoords, targetSource)
 
     -- Wirkung beim Verursacher: der Client bekommt die aufgeloesten Werte mit.
@@ -314,6 +350,15 @@ RegisterNetEvent('mystic:server:useSkill', function(skillId, targetServerId)
     })
 
     for _, nearby in ipairs(playersInRadius(casterCoords, 100.0, source)) do
+        -- Der Sicht-Effekt zuendet die Explosion auf dem Rechner des
+        -- Zuschauers. Fuer den Server ist damit *er* der Verursacher - und
+        -- ohne diese Zeile sammelt jeder Umstehende die Strafpunkte ein.
+        if MIT_EXPLOSION[effect.kind] then
+            pcall(function()
+                exports['moonshine-admin']:Allow(nearby.source, 'explosion', 10)
+            end)
+        end
+
         TriggerClientEvent('mystic:client:skillVisual', nearby.source, source, skillId, effect)
     end
 

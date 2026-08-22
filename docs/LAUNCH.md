@@ -189,9 +189,17 @@ Bei vielen Spielern relevant:
 
 ## 7. Den Wachhund einstellen
 
-Er läuft ab Werk auf `kick` bei 6 Strikes. Für die ersten Tage besser auf
-`log` stellen (`AdminConfig.Guard.action`) und mitlesen, was tatsächlich
-aufläuft — vor allem:
+Er läuft ab Werk im **Probelauf** (`AdminConfig.Guard.probelauf = true`): er
+meldet alles, kickt und bannt aber niemanden. Das bleibt so, bis du ein paar
+Tage mitgelesen hast — dann auf `false`.
+
+Zwei Prüfungen der Schicht 3 stehen aus demselben Grund ab Werk aus:
+`clearPedTasks` und `giveWeapon` würden gegen den eigenen Code laufen
+(Details in [`ADMIN.md`](ADMIN.md#schicht-3--was-das-spiel-dem-server-meldet)).
+Wer sie einschaltet, lässt vorher `python3 tools/pruefen.py` laufen — der
+listet jede Stelle auf, die dagegen läuft.
+
+Was du im Probelauf durchsehen solltest — vor allem:
 
 * **Explosionen.** Die Typennummern in `AdminConfig.Guard.explosionen.gesperrt`
   sind nicht im Spiel gegengeprüft. Sie stehen deshalb auf `'melden'`. Erst
@@ -202,9 +210,16 @@ aufläuft — vor allem:
 * **Bewegung.** 190 m/s im Fahrzeug lässt Flugzeuge durch. Wer Bahnen oder
   schnelle Addon-Fahrzeuge einbaut, prüft das nach.
 
-* **Spielermodelle.** Nur die beiden Freemode-Peds sind erlaubt. Wer eigene
-  Modelle einbaut, trägt sie in `erlaubteModelle` nach — sonst läuft der
-  Wachhund gegen die eigenen Leute.
+* **Spielermodelle.** Nur die beiden Freemode-Peds sind erlaubt. Die
+  Verwandlung der Werwölfe läuft über die Kulanz (`Allow(source, 'modell')`)
+  und braucht keinen Eintrag. Wer *eigene* Modelle einbaut — Job-Uniformen
+  als eigenes Ped etwa —, trägt sie in `erlaubteModelle` nach, sonst läuft
+  der Wachhund gegen die eigenen Leute.
+* **Kulanz.** Editor, Rast, Verwandlung, Schattenschritt und jeder Respawn
+  melden sich beim Wachhund an. Wenn im Log trotzdem „Unverwundbar" oder
+  „Fremdes Spielermodell" für harmlose Spieler auftaucht, fehlt an einer
+  Stelle das `Allow` — nicht die Prüfung abschalten, sondern die Stelle
+  nachtragen.
 * **Herzschlag.** 60 Sekunden Schonfrist nach dem Verbinden. Auf einem
   Server mit langen Ladezeiten eher erhöhen als abschalten.
 

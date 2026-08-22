@@ -55,7 +55,7 @@ local function durchgang()
                 local leben = GetEntityHealth(ped)
                 local erlaubt = erlaubtesLeben(source)
 
-                if leben > erlaubt then
+                if leben > erlaubt and not Admin.IsAllowed(source, 'leben') then
                     Admin.Flag(source, ('Zu viel Leben (%d von %d)'):format(
                         leben, erlaubt), config.gewicht,
                         { leben = leben, erlaubt = erlaubt })
@@ -70,7 +70,8 @@ local function durchgang()
 
                 -- Unverwundbarkeit. Das ist der direkteste Godmode-Fund,
                 -- den es gibt: der Server fragt das Flag selbst ab.
-                if config.godmode and GetPlayerInvincible(source) then
+                if config.godmode and GetPlayerInvincible(source)
+                    and not Admin.IsAllowed(source, 'godmode') then
                     Admin.Flag(source, 'Unverwundbar', config.godmodeGewicht,
                         { quelle = 'GetPlayerInvincible' })
                 end
@@ -80,7 +81,8 @@ local function durchgang()
                 if config.modelle then
                     local modell = GetEntityModel(ped)
 
-                    if not Admin.ErlaubteModelle[modell] then
+                    if not Admin.ErlaubteModelle[modell]
+                        and not Admin.IsAllowed(source, 'modell') then
                         Admin.Flag(source, 'Fremdes Spielermodell',
                             config.modellGewicht, { modell = modell })
                     end

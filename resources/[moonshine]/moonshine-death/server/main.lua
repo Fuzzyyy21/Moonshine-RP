@@ -239,6 +239,10 @@ local function respawn(source, paid, zuflucht)
     local player = MS.GetPlayer(source)
     if not player then return end
 
+    -- Ein Respawn ist ein Ortswechsel quer ueber die Karte. Der Wachhund
+    -- soll ihn nicht fuer einen Teleporthack halten.
+    pcall(function() exports['moonshine-admin']:Allow(source, 'teleport', 30) end)
+
     -- Nach Hause statt ins Krankenhaus.
     if zuflucht then
         downed[source] = nil

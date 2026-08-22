@@ -149,6 +149,24 @@ local function store(source, appearance)
     return true
 end
 
+--- Beendet eine Editor-Sitzung und zieht die Kulanz zurueck.
+---
+--- Nicht sofort ganz: der Client braucht einen Moment, bis Kamera, Modell
+--- und Unverwundbarkeit wieder auf normal stehen. Zehn Sekunden Nachlauf
+--- sind genug und trotzdem kein Freifahrtschein.
+local function endSession(source)
+    sessions[source] = nil
+
+    pcall(function()
+        local admin = exports['moonshine-admin']
+
+        admin:Deny(source, 'godmode')
+        admin:Deny(source, 'modell')
+        admin:Allow(source, 'godmode', 10)
+        admin:Allow(source, 'modell', 10)
+    end)
+end
+
 RegisterNetEvent('appearance:server:save', function(appearance)
     local source = source
     if not MS.RateLimit(source, 'appearance:save', 10, 10) then return end
@@ -166,7 +184,7 @@ RegisterNetEvent('appearance:server:save', function(appearance)
 
     if not store(source, appearance) then return end
 
-    sessions[source] = nil
+    endSession(source)
     player:Notify('Aussehen gespeichert.', 'success')
 
     TriggerEvent('appearance:server:changed', source)
@@ -174,7 +192,7 @@ end)
 
 --- Der Editor wird abgebrochen: nichts speichern.
 RegisterNetEvent('appearance:server:cancel', function()
-    sessions[source] = nil
+    endSession(source)
 end)
 
 --- Zaehlt, was sich zwischen zwei Aussehen unterscheidet.
@@ -276,6 +294,11 @@ local function openEditor(source, kind, id)
         outfits[#outfits + 1] = { id = row.id, label = row.label }
     end
 
+    -- Der Editor macht den Spieler unverwundbar und tauscht sein Modell -
+    -- beides ist erlaubt, der Wachhund muss es nur wissen.
+    pcall(function() exports['moonshine-admin']:Allow(source, 'godmode', 900) end)
+    pcall(function() exports['moonshine-admin']:Allow(source, 'modell', 900) end)
+
     TriggerClientEvent('appearance:client:open', source, {
         kind       = kind,
         label      = label,
@@ -350,7 +373,7 @@ RegisterNetEvent('appearance:server:buy', function(appearance)
     player.appearance = clean
     player:Save()
 
-    sessions[source] = nil
+    endSession(source)
 
     player:Notify(total > 0
         and ('%d Teile fuer %s gekauft.'):format(kleidung + accessoires,
@@ -552,6 +575,9 @@ RegisterCommand('editor', function(source)
     if not player or (player.adminLevel or 0) < 3 then return end
 
     sessions[source] = { kind = 'wardrobe' }
+
+    pcall(function() exports['moonshine-admin']:Allow(source, 'godmode', 900) end)
+    pcall(function() exports['moonshine-admin']:Allow(source, 'modell', 900) end)
 
     TriggerClientEvent('appearance:client:open', source, {
         kind       = 'wardrobe',

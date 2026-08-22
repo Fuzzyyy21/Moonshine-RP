@@ -202,6 +202,84 @@ pruefe('Der Bewegungstakt ist nicht zu eng', wache.movement.interval >= 2)
 
 pruefe('Beweise werden eine Weile behalten', wache.beweise.behalten > 0)
 
+gruppe('Wachhund: Kulanz')
+
+-- Die Kulanz ist die Stelle, an der der Wachhund erfaehrt, was der Server
+-- selbst erlaubt hat. Ohne sie kickt er den ersten Werwolf, der sich
+-- verwandelt, und jeden Spieler, der im Charaktereditor steht.
+laden('moonshine-admin/server/allow.lua')
+
+pruefe('Es gibt eine Kulanz', type(Admin.Allow) == 'function'
+    and type(Admin.IsAllowed) == 'function' and type(Admin.Deny) == 'function')
+
+-- Ab Werk ist nichts erlaubt. Das ist die wichtigste Eigenschaft: eine
+-- Kulanz, die von selbst gilt, waere ein Loch statt einer Ausnahme.
+pruefe('Ohne Kulanz ist nichts erlaubt', Admin.IsAllowed(1, 'godmode') == false)
+
+Admin.Allow(1, 'godmode', 60)
+pruefe('Eine erteilte Kulanz gilt', Admin.IsAllowed(1, 'godmode') == true)
+
+-- Die Kulanz gilt eng: eine Art, ein Spieler.
+pruefe('Die Kulanz gilt nur fuer diese Art',
+    Admin.IsAllowed(1, 'teleport') == false)
+pruefe('Die Kulanz gilt nur fuer diesen Spieler',
+    Admin.IsAllowed(2, 'godmode') == false)
+
+-- Zwei Systeme duerfen sich die Ausnahme nicht gegenseitig wegnehmen: die
+-- Rast dauert laenger als der Schattenschritt, also gewinnt die Rast.
+Admin.Allow(1, 'godmode', 5)
+pruefe('Eine laufende Kulanz wird nicht verkuerzt',
+    Admin.Allowed[1].godmode > os.time() + 30,
+    Admin.Allowed[1].godmode - os.time())
+
+Admin.Allow(1, 'godmode', 600)
+pruefe('Eine laengere Kulanz verlaengert',
+    Admin.Allowed[1].godmode > os.time() + 300)
+
+-- Abgelaufen ist abgelaufen. Ohne diese Pruefung waere jede Kulanz ewig.
+Admin.Allowed[1].godmode = os.time() - 1
+pruefe('Eine abgelaufene Kulanz gilt nicht mehr',
+    Admin.IsAllowed(1, 'godmode') == false)
+pruefe('Der abgelaufene Eintrag wird aufgeraeumt',
+    Admin.Allowed[1].godmode == nil)
+
+-- Der Editor gibt seine Kulanz beim Schliessen zurueck.
+Admin.Allow(3, 'modell', 900)
+Admin.Deny(3, 'modell')
+pruefe('Deny nimmt die Kulanz sofort zurueck',
+    Admin.IsAllowed(3, 'modell') == false)
+pruefe('Deny auf einen unbekannten Spieler bricht nicht ab',
+    pcall(Admin.Deny, 99, 'modell'))
+
+pruefe('Eine Art ohne Namen wird abgelehnt', Admin.Allow(4, 42, 60) == false)
+pruefe('Eine abgelehnte Kulanz gilt auch nicht',
+    Admin.IsAllowed(4, 42) == false)
+
+-- Ohne Zeitangabe gilt eine kurze Voreinstellung, kein Freifahrtschein.
+Admin.Allow(5, 'explosion')
+pruefe('Ohne Zeitangabe gilt eine kurze Kulanz',
+    Admin.Allowed[5].explosion <= os.time() + 60,
+    Admin.Allowed[5].explosion - os.time())
+
+gruppe('Wachhund: eigene Aufrufe')
+
+-- Diese beiden Pruefungen wuerden auf den eigenen Server losgehen:
+-- ClearPedTasks steht bei uns an vierzehn Stellen, GiveWeaponToPed gibt dem
+-- Endgegner in moonshine-boss seine Waffe. Wer sie scharf stellt, muss das
+-- bewusst tun.
+pruefe('clearPedTasks ist ab Werk aus',
+    wache.ereignisse.clearPedTasks == false)
+pruefe('giveWeapon ist ab Werk aus',
+    wache.ereignisse.giveWeapon == false)
+
+-- removeAllWeapons ruft bei uns niemand auf - das darf an bleiben.
+pruefe('removeAllWeapons bleibt an',
+    wache.ereignisse.removeAllWeapons == true)
+
+-- Der Probelauf meldet, ohne zu kicken. Solange nichts auf einem echten
+-- Server gelaufen ist, ist das die einzig ehrliche Voreinstellung.
+pruefe('Der Probelauf ist ab Werk an', wache.probelauf == true)
+
 -- ===========================================================================
 -- Ratenbegrenzung
 -- ===========================================================================
