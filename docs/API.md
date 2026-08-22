@@ -279,4 +279,52 @@ Wer die Grenze dreimal reisst, sammelt Strikes beim Wachhund. Laeuft
 `moonshine-admin` nicht, greift die Begrenzung trotzdem — nur die Meldung
 faellt aus. Einstellbar ist alles in `Config.RateLimit`.
 
+## Warten und Wertbewegung
+
+Eine Ratenbegrenzung reiht Aufrufe **nicht** hintereinander auf. Sie
+begrenzt nur, wie viele es sein duerfen — zehn gleichzeitige Aufrufe bleiben
+zehn gleichzeitige Aufrufe.
+
+Das ist wichtig, weil jeder Datenbankzugriff mit `.await` den Handler
+**unterbricht**. Waehrend er wartet, laeuft der naechste Aufruf durch
+dieselbe Pruefung:
+
+```lua
+-- FALSCH: verdoppelt Geld.
+local row = DB.GetMail(id)          -- wartet
+if not row then return end
+player:AddMoney(row.amount)         -- der Zweite ist inzwischen auch hier
+DB.RemoveMail(id)
+```
+
+Zwei gleichzeitige Aufrufe lesen beide dieselbe Zeile, beide zahlen aus,
+und geloescht wird sie erst danach. Das ist keine Theorie — genau so lagen
+im Auktionshaus und bei den Fahrzeugen fuenf Dupe-Luecken.
+
+Die Loesung ist immer dieselbe: **erst beanspruchen, dann geben.** Die
+Datenbank kann das allein entscheiden, wenn die Bedingung mit im `WHERE`
+steht:
+
+```lua
+-- RICHTIG: wer 0 Zeilen trifft, war zu spaet.
+if (DB.RemoveMail(id) or 0) < 1 then return end
+player:AddMoney(row.amount)
+```
+
+```lua
+-- Dasselbe fuer Zustaende:
+-- UPDATE ... SET state = 'draussen' WHERE id = ? AND state = 'garage'
+if not Vehicles.DB.ClaimState(id, 'garage', 'draussen') then return end
+```
+
+Wo das nicht geht, gilt die Regel: **alles, was im Speicher rechnet, vor das
+erste Warten ziehen.** `AddMoney`, `RemoveMoney`, `AddItem` und
+`RemoveItem` unterbrechen nicht — der Zustand darf also gesetzt werden,
+bevor irgendetwas auf die Datenbank wartet.
+
+`tools/pruefen.py` sucht diese Form dauerhaft (`WERTBEWEGUNG-NACH-WARTEN`)
+und verfolgt das Warten dabei ueber mehrere Wrapper-Ebenen — es steckt fast
+immer hinter einem Namen, der synchron aussieht. Ein gepruefter Fall wird in
+der Funktion selbst mit `@rennen <Begruendung>` markiert.
+
 Details in [`ADMIN.md`](ADMIN.md).

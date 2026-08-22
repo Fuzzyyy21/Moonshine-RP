@@ -136,6 +136,8 @@ function Auction.DB.GetMail(mailId, characterId)
     ]], { mailId, characterId })
 end
 
+--- Loescht ein Fach.
+---@return number Wie viele Zeilen betroffen waren - 0 heisst: war schon weg.
 function Auction.DB.RemoveMail(mailId)
-    return MySQL.update.await('DELETE FROM ms_auction_mail WHERE id = ?', { mailId })
+    return MySQL.update.await('DELETE FROM ms_auction_mail WHERE id = ?', { mailId }) or 0
 end

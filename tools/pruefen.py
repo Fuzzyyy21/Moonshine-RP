@@ -702,6 +702,140 @@ def check_selfshot():
                              f"passende Aufruf - der Wachhund bricht ihn ab")
 
 
+# --- 16. Wertbewegung nach einem Warten -------------------------------------
+#
+# Die gefaehrlichste Fehlerklasse in diesem Framework, und die am
+# schwersten zu sehende: zwischen einer Pruefung und der Auszahlung liegt ein
+# Warten auf die Datenbank. Waehrend dieser Zeit laeuft der naechste Aufruf
+# durch dieselbe Pruefung - beide bestehen sie, beide zahlen aus.
+#
+# Schwer zu sehen ist sie, weil das Warten hinter einem Namen steckt, der
+# synchron aussieht: Vehicles.DB.GetById() wartet, Auction.DB.AddMail()
+# wartet. Deshalb baut diese Pruefung erst die Menge aller wartenden
+# Funktionen auf - auch ueber mehrere Ebenen -, und sucht dann nach
+# Wertbewegungen dahinter.
+#
+# Sie kann nicht erkennen, ob ein Fall abgesichert ist. Deshalb wird jeder
+# gepruefte Fall in der Funktion selbst mit "@rennen <Begruendung>"
+# markiert - dann bleibt die Liste endlich und jeder neue Fall faellt auf.
+
+DEF_LUA = re.compile(r'^\s*(?:local\s+)?function\s+([\w.:]+)\s*\(')
+AWAIT_LUA = re.compile(r'\.await\s*\(')
+CALL_LUA = re.compile(r'([\w.]+[.:]\w+|\b[a-z]\w+)\s*\(')
+WERT_LUA = re.compile(r'[:.](AddItem|AddMoney|RemoveItem|RemoveMoney)\s*\(')
+
+
+def _lua_functions():
+    """name -> (pfad, startzeile, zeilen, vorspann)"""
+    out = {}
+
+    for res in resources():
+        for path in _side_files(res, 'server'):
+            lines = read(path).split('\n')
+            index = 0
+
+            while index < len(lines):
+                match = DEF_LUA.match(lines[index])
+
+                if not match:
+                    index += 1
+                    continue
+
+                start = index
+
+                # Einzeiler schliessen sich selbst. Ohne diesen Fall
+                # verschluckt die Suche alles bis zum naechsten 'end' in
+                # Spalte 0 - und meldet den falschen Namen.
+                if re.search(r'\bend\s*$', lines[index]):
+                    index += 1
+                else:
+                    index += 1
+
+                    while index < len(lines) \
+                            and not re.match(r'^end\b', lines[index]):
+                        index += 1
+
+                    index += 1
+
+                vorspann = '\n'.join(lines[max(0, start - 8):start])
+                out[match.group(1)] = (path, start + 1, lines[start:index],
+                                       vorspann)
+
+    return out
+
+
+def _aufgerufene(zeile, funcs, kurznamen):
+    """Welche bekannten Funktionen ruft diese Zeile auf?"""
+    for name in CALL_LUA.findall(zeile):
+        if name in funcs:
+            yield name
+            continue
+
+        for voll in kurznamen.get(name.split('.')[-1].split(':')[-1], ()):
+            yield voll
+
+
+def check_awaitraces():
+    funcs = _lua_functions()
+
+    kurznamen = defaultdict(set)
+    for name in funcs:
+        kurznamen[name.split('.')[-1].split(':')[-1]].add(name)
+
+    # Welche Funktionen warten? Erst die direkten, dann bis zum Fixpunkt.
+    wartend = {name for name, (_, _, body, _) in funcs.items()
+               if any(AWAIT_LUA.search(line) for line in body
+                      if not line.lstrip().startswith('--'))}
+
+    while True:
+        neu = set()
+
+        for name, (_, _, body, _) in funcs.items():
+            if name in wartend:
+                continue
+
+            for line in body:
+                if line.lstrip().startswith('--'):
+                    continue
+                if any(ziel in wartend
+                       for ziel in _aufgerufene(line, funcs, kurznamen)):
+                    neu.add(name)
+                    break
+
+        if not neu:
+            break
+
+        wartend |= neu
+
+    for name, (path, start, body, vorspann) in funcs.items():
+        if '@rennen' in vorspann or any('@rennen' in line for line in body):
+            continue
+
+        erstesWarten = None
+        letzteBewegung = None
+
+        for offset, line in enumerate(body):
+            if line.lstrip().startswith('--'):
+                continue
+
+            if erstesWarten is None:
+                for ziel in _aufgerufene(line, funcs, kurznamen):
+                    if ziel in wartend and ziel != name:
+                        erstesWarten = (offset, ziel)
+                        break
+
+            if WERT_LUA.search(line):
+                letzteBewegung = offset
+
+        if erstesWarten and letzteBewegung is not None \
+                and letzteBewegung > erstesWarten[0]:
+            note('WERTBEWEGUNG-NACH-WARTEN',
+                 f"{path}:{start + letzteBewegung}",
+                 f"{name} wartet in Zeile {start + erstesWarten[0]} auf "
+                 f"{erstesWarten[1]} und bewegt danach Werte. Absichern und "
+                 f"mit \"@rennen <Begruendung>\" markieren.")
+
+
 def main():
     only_syntax = '--nur-syntax' in sys.argv
 
@@ -721,6 +855,7 @@ def main():
         check_foreign_globals()
         check_ratelimits()
         check_selfshot()
+        check_awaitraces()
 
     if not findings:
         print('Alles sauber.')

@@ -93,3 +93,21 @@ Ereignisse: `auction:server:created`, `auction:server:bid`,
 
 `ms_auctions` und `ms_auction_mail`. Abgeschlossene Auktionen werden nach
 14 Tagen aufgeräumt.
+
+## Gleichzeitige Gebote
+
+Bieten, Sofortkauf und das Abholfach sind gegen zeitgleiche Aufrufe
+abgesichert — das war es lange nicht. Drei Luecken steckten darin:
+
+* **Doppelte Erstattung.** Die Erstattung an den ueberbotenen Bieter
+  schreibt ins Abholfach und wartet dabei auf die Datenbank. In dieser Zeit
+  stand die Auktion noch auf dem alten Bieter, ein zweites Gebot sah ihn
+  weiter als Hoechstbietenden und erstattete ihm ein zweites Mal.
+* **Doppelter Sofortkauf.** Zwei Kaeufer im selben Moment: beide zahlten,
+  die Abrechnung lief zweimal, die Ware ging zweimal raus.
+* **Doppeltes Abholen.** Derselbe Eintrag liess sich mehrfach abholen,
+  solange das Lesen aus der Datenbank noch lief.
+
+Alle drei sind nach demselben Muster behoben: **erst beanspruchen, dann
+geben.** Wer den Zustand nicht mehr im erwarteten Zustand antrifft, bekommt
+nichts. Hintergrund in [`API.md`](API.md#warten-und-wertbewegung).

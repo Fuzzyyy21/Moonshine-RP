@@ -164,3 +164,29 @@ brauchen keinen Schlüssel – dort entscheidet der Rang.
 `ms_vehicles`. Fahrzeuge, die beim Serverstart noch als „draußen“ eingetragen
 sind, werden automatisch eingeparkt – sonst wären sie nach einem Absturz
 unauffindbar.
+
+## Gleichzeitige Zugriffe
+
+Jeder Zustandswechsel eines Fahrzeugs laeuft ueber eine Bedingung in der
+Datenbank statt ueber einen vorher gelesenen Wert:
+
+```sql
+UPDATE ms_vehicles SET state = 'draussen'
+WHERE id = ? AND state = 'garage'
+```
+
+Wer dabei keine Zeile trifft, war zu spaet und bekommt nichts. Das schliesst
+drei Luecken:
+
+* **Ausparken.** Zwischen "steht das Auto in der Garage?" und "hol es raus"
+  liegt ein Warten auf die Datenbank. Zwei Klicks oder zwei Schluessel-
+  besitzer bekamen zwei Fahrzeuge mit demselben Kennzeichen.
+* **Verkaufen.** Zwei gleichzeitige Verkaufe desselben Fahrzeugs zahlten
+  beide aus. Jetzt zahlt nur, wessen Loeschung wirklich gegriffen hat.
+* **Ausloesen aus der Verwahrstelle.** Die Gebuehr wurde doppelt abgebucht.
+  Wer zu spaet kommt, bekommt sie zurueck.
+
+Beim Kauf zaehlt der Server nach dem Einfuegen noch einmal nach: wer dabei
+ueber der Grenze landet, bekommt sein Geld zurueck.
+
+Hintergrund in [`API.md`](API.md#warten-und-wertbewegung).

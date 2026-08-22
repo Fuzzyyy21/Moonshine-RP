@@ -96,6 +96,29 @@ function Vehicles.DB.Insert(payload)
     })
 end
 
+--- Wechselt den Zustand nur, wenn er noch der erwartete ist.
+---
+--- Das ist die Antwort auf ein Rennen, das ein Fahrzeug verdoppelt hat:
+--- Zwischen "steht das Auto in der Garage?" und "hol es raus" liegt ein
+--- Warten auf die Datenbank. Kamen zwei Anfragen gleichzeitig - zwei
+--- Klicks, zwei Schluesselbesitzer -, lasen beide denselben Zustand,
+--- beide sahen "garage", und beide bekamen ein Auto. Zwei Fahrzeuge mit
+--- demselben Kennzeichen.
+---
+--- Die Datenbank kann das allein entscheiden: wer die Zeile im erwarteten
+--- Zustand antrifft, aendert sie; alle anderen aendern nichts und bekommen
+--- 0 zurueck.
+---@return boolean Ob dieser Aufruf den Wechsel vollzogen hat
+function Vehicles.DB.ClaimState(vehicleId, von, nach, garage, position)
+    local betroffen = MySQL.update.await([[
+        UPDATE ms_vehicles SET state = ?, garage = ?, position = ?
+        WHERE id = ? AND state = ?
+    ]], { nach, garage, position and json.encode(position) or nil,
+          vehicleId, von }) or 0
+
+    return betroffen > 0
+end
+
 function Vehicles.DB.SetState(vehicleId, state, garage, position)
     return MySQL.update.await([[
         UPDATE ms_vehicles SET state = ?, garage = ?, position = ? WHERE id = ?
@@ -124,8 +147,34 @@ function Vehicles.DB.SetOwner(vehicleId, characterId)
         { characterId, vehicleId })
 end
 
+--- Uebertraegt nur, wenn das Fahrzeug noch diesem Besitzer gehoert und in
+--- der Garage steht. Sonst hat es in der Zwischenzeit jemand verkauft oder
+--- selbst ueberschrieben.
+---@return boolean
+function Vehicles.DB.ClaimOwner(vehicleId, vonCharakter, nachCharakter)
+    local betroffen = MySQL.update.await([[
+        UPDATE ms_vehicles SET owner_id = ?, `keys` = '[]'
+        WHERE id = ? AND owner_id = ? AND state = 'garage'
+    ]], { nachCharakter, vehicleId, vonCharakter }) or 0
+
+    return betroffen > 0
+end
+
 function Vehicles.DB.Delete(vehicleId)
     return MySQL.update.await('DELETE FROM ms_vehicles WHERE id = ?', { vehicleId })
+end
+
+--- Loescht nur, wenn das Fahrzeug noch diesem Besitzer gehoert und in der
+--- Garage steht. Wer 0 zurueckbekommt, war zu spaet - und darf nicht
+--- ausgezahlt werden.
+---@return boolean
+function Vehicles.DB.ClaimDelete(vehicleId, characterId)
+    local betroffen = MySQL.update.await([[
+        DELETE FROM ms_vehicles
+        WHERE id = ? AND owner_id = ? AND state = 'garage'
+    ]], { vehicleId, characterId }) or 0
+
+    return betroffen > 0
 end
 
 --- Alle Fahrzeuge eines Charakters einparken (beim Ausloggen).

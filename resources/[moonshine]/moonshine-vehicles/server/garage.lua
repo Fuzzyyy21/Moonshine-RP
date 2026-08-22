@@ -75,7 +75,16 @@ RegisterNetEvent('vehicles:server:take', function(vehicleId)
         return
     end
 
-    Vehicles.DB.SetState(row.id, 'draussen', row.garage, nil)
+    -- Ab hier entscheidet die Datenbank, nicht der oben gelesene Zustand.
+    --
+    -- Zwischen dem Lesen und hier liegt ein Warten. Zwei gleichzeitige
+    -- Anfragen - zwei Klicks, oder zwei Leute mit einem Schluessel - lasen
+    -- beide "garage" und bekamen beide ein Auto. Zwei Fahrzeuge mit
+    -- demselben Kennzeichen.
+    if not Vehicles.DB.ClaimState(row.id, 'garage', 'draussen', row.garage, nil) then
+        player:Notify('Das Fahrzeug steht bereits draussen.', 'error')
+        return
+    end
 
     Vehicles.Spawned[Vehicles.CleanPlate(row.plate)] = {
         id = row.id, owner = row.owner_id, source = source,
@@ -148,6 +157,9 @@ function Vehicles.Impound(vehicleId, reason)
     local row = Vehicles.DB.GetById(vehicleId)
     if not row then return false end
 
+    -- Verwahren geht aus jedem Zustand ausser "schon verwahrt".
+    if row.state == 'verwahrt' then return false end
+
     Vehicles.DB.SetState(row.id, 'verwahrt', row.garage, nil)
     Vehicles.Spawned[Vehicles.CleanPlate(row.plate)] = nil
 
@@ -186,7 +198,15 @@ RegisterNetEvent('vehicles:server:release', function(vehicleId)
     end
 
     local garage = Vehicles.GetGarage(row.garage) or VehicleConfig.Garages[1]
-    Vehicles.DB.SetState(row.id, 'garage', garage and garage.id or nil, nil)
+
+    -- Wer zu spaet kommt, bekommt sein Geld zurueck. Sonst zahlen zwei
+    -- gleichzeitige Anfragen die Gebuehr doppelt und loesen einmal aus.
+    if not Vehicles.DB.ClaimState(row.id, 'verwahrt', 'garage',
+        garage and garage.id or nil, nil) then
+        player:AddMoney(config.fee, config.account, 'verwahrstelle-rueckerstattung')
+        player:Notify('Das Fahrzeug ist nicht mehr verwahrt.', 'error')
+        return
+    end
 
     player:Notify(('%s wurde ausgeloest und steht in %s.'):format(
         row.label, garage and garage.label or 'deiner Garage'), 'success', 9000)

@@ -112,6 +112,9 @@ end)
 
 --- Fuehrt eine Aktion aus.
 ---@return boolean ok, string message
+--- @rennen Unbedenklich: das Warten (SetBan) und die Wertbewegung
+--- (giveitem) liegen in zwei Zweigen derselben if/elseif-Kette. Es kann nie
+--- beides im selben Aufruf laufen.
 function Admin.Perform(source, action, targetId, value, extra)
     if not may(source, action) then return false, 'Dafuer fehlt dir das Recht.' end
 

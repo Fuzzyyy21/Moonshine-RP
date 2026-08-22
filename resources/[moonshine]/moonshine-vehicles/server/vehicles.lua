@@ -60,6 +60,9 @@ end
 
 --- Kauft ein Fahrzeug.
 ---@return boolean ok, string message, table|nil vehicle
+--- @rennen Abgesichert: die Wertbewegungen dahinter sind Ruecknahmen. Die
+--- Zaehlung wird nach dem Einfuegen wiederholt - wer dabei ueber der Grenze
+--- landet, bekommt sein Geld zurueck und das Fahrzeug wird geloescht.
 function Vehicles.Buy(source, model, dealerId)
     local player = MS.GetPlayer(source)
     if not player then return false, '' end
@@ -103,6 +106,18 @@ function Vehicles.Buy(source, model, dealerId)
         return false, 'Der Kauf ist fehlgeschlagen.'
     end
 
+    -- Die Zaehlung oben liegt vor einem Warten auf die Datenbank. Zwei
+    -- gleichzeitige Kaeufe sahen deshalb beide denselben Stand und kamen
+    -- beide durch - der Spieler stand danach ueber der Grenze. Jetzt zaehlt
+    -- der Server nach, wenn das Fahrzeug schon steht.
+    if Vehicles.DB.CountOwned(player.charId) > VehicleConfig.Ownership.maxVehicles then
+        Vehicles.DB.Delete(id)
+        player:AddMoney(entry.price, account, 'fahrzeugkauf-rueckerstattung')
+
+        return false, ('Du besitzt bereits %d Fahrzeuge.')
+            :format(VehicleConfig.Ownership.maxVehicles)
+    end
+
     MS.Logger.Log('character', ('%s %s kauft %s (%s) fuer %s.'):format(
         player.firstname, player.lastname, entry.label, plate,
         MS.Utils.FormatMoney(entry.price)), player.license)
@@ -117,6 +132,9 @@ end
 -- Verkaufen ------------------------------------------------------------------------
 
 --- Verkauft ein Fahrzeug ans Autohaus.
+--- @rennen Abgesichert: ausgezahlt wird nur, wenn ClaimDelete das Fahrzeug
+--- wirklich geloescht hat. Zwei gleichzeitige Verkaeufe zahlen daher nur
+--- einmal.
 function Vehicles.Sell(source, vehicleId)
     local player = MS.GetPlayer(source)
     if not player then return false, '' end
@@ -132,7 +150,14 @@ function Vehicles.Sell(source, vehicleId)
 
     local refund = math.floor((tonumber(row.price) or 0) * VehicleConfig.Ownership.resale)
 
-    Vehicles.DB.Delete(row.id)
+    -- Bezahlt wird nur, wenn dieser Aufruf das Fahrzeug wirklich geloescht
+    -- hat. Vorher konnten zwei gleichzeitige Verkaeufe desselben Fahrzeugs
+    -- beide durch die Pruefung laufen und beide auszahlen - Geld aus dem
+    -- Nichts.
+    if not Vehicles.DB.ClaimDelete(row.id, player.charId) then
+        return false, 'Das Fahrzeug ist nicht mehr da.'
+    end
+
     player:AddMoney(refund, VehicleConfig.Ownership.account, 'fahrzeugverkauf')
 
     MS.Logger.Log('character', ('%s %s verkauft %s (%s) fuer %s.'):format(
@@ -168,7 +193,10 @@ function Vehicles.Transfer(source, vehicleId, targetId)
         return false, 'Der Empfaenger hat keinen Platz mehr.'
     end
 
-    Vehicles.DB.SetOwner(row.id, target.charId)
+    if not Vehicles.DB.ClaimOwner(row.id, player.charId, target.charId) then
+        return false, 'Das Fahrzeug gehoert dir nicht mehr.'
+    end
+
     TriggerClientEvent('vehicles:client:forgetKeys', -1)
 
     target:Notify(('Du besitzt jetzt %s (%s).'):format(row.label, row.plate),

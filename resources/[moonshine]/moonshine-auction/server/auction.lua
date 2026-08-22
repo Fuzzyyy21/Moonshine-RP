@@ -155,6 +155,11 @@ Auction.Viewers = {}
 
 --- Legt eine Auktion an.
 ---@return boolean ok, string message
+--- @rennen Geprueft. Die Wertbewegung dahinter ist eine Ruecknahme: schlaegt
+--- das Anlegen fehl, kommen Ware und Gebuehr zurueck. Verdoppeln laesst sich
+--- damit nichts - RemoveItem davor entscheidet, und das wartet nicht. Das
+--- Rennen um CountOpenOf kann hoechstens eine Auktion ueber dem Limit
+--- erlauben; das kostet niemanden etwas.
 function Auction.Create(source, slot, count, startPrice, buyout, hours)
     local player = MS.GetPlayer(source)
     if not player then return false, '' end
@@ -274,34 +279,23 @@ function Auction.Bid(source, auctionId, amount)
 
     if amount > AuctionConfig.Limits.maxPrice then return false, 'Das Gebot ist zu hoch.' end
 
-    if auction.bidderId == player.charId then
-        -- Eigenes Gebot erhoehen: nur die Differenz abbuchen.
-        local difference = amount - auction.bid
+    -- Ab hier gilt: erst den Zustand setzen, dann erstatten.
+    --
+    -- Die Erstattung schreibt ins Abholfach und wartet dabei auf die
+    -- Datenbank - das unterbricht. Stand die Auktion in diesem Moment noch
+    -- auf dem alten Bieter, sah ein zweites, gleichzeitiges Gebot ihn immer
+    -- noch als Hoechstbietenden und erstattete ihm sein Geld ein zweites
+    -- Mal. Aus dem Nichts.
+    local vorherBieter = auction.bidderId
+    local vorherGebot  = auction.bid
+    local selbst       = vorherBieter == player.charId
 
-        if not player:RemoveMoney(difference, AuctionConfig.Account, 'auktion-gebot') then
-            return false, ('Dir fehlen %s.'):format(MS.Utils.FormatMoney(
-                difference - player:GetMoney(AuctionConfig.Account)))
-        end
-    else
-        if not player:RemoveMoney(amount, AuctionConfig.Account, 'auktion-gebot') then
-            return false, ('Dir fehlen %s.'):format(MS.Utils.FormatMoney(
-                amount - player:GetMoney(AuctionConfig.Account)))
-        end
+    -- Geld einziehen. RemoveMoney rechnet im Speicher und unterbricht nicht.
+    local abbuchen = selbst and (amount - vorherGebot) or amount
 
-        -- Der bisherige Hoechstbietende bekommt sein Geld zurueck.
-        if auction.bidderId and auction.bid > 0 then
-            Auction.Deliver(auction.bidderId, {
-                kind = 'money', amount = auction.bid,
-                reason = ('Ueberboten: %dx %s'):format(auction.count, auction.label),
-            })
-
-            local previous = Auction.GetSourceOf(auction.bidderId)
-            if previous then
-                exports['moonshine-core']:Notify(previous,
-                    ('Du wurdest bei %dx %s ueberboten.'):format(
-                        auction.count, auction.label), 'warning', 8000)
-            end
-        end
+    if not player:RemoveMoney(abbuchen, AuctionConfig.Account, 'auktion-gebot') then
+        return false, ('Dir fehlen %s.'):format(MS.Utils.FormatMoney(
+            abbuchen - player:GetMoney(AuctionConfig.Account)))
     end
 
     auction.bid = amount
@@ -312,6 +306,21 @@ function Auction.Bid(source, auctionId, amount)
     local snipe = AuctionConfig.AntiSnipe
     if snipe.enabled and auction.endsAt - os.time() <= snipe.within then
         auction.endsAt = auction.endsAt + snipe.extend
+    end
+
+    -- Erst jetzt, wo die Auktion niemandem mehr gehoert, wird erstattet.
+    if not selbst and vorherBieter and vorherGebot > 0 then
+        Auction.Deliver(vorherBieter, {
+            kind = 'money', amount = vorherGebot,
+            reason = ('Ueberboten: %dx %s'):format(auction.count, auction.label),
+        })
+
+        local previous = Auction.GetSourceOf(vorherBieter)
+        if previous then
+            exports['moonshine-core']:Notify(previous,
+                ('Du wurdest bei %dx %s ueberboten.'):format(
+                    auction.count, auction.label), 'warning', 8000)
+        end
     end
 
     Auction.DB.SaveBid(auction.id, auction.bid, auction.bidderId,
@@ -343,26 +352,42 @@ function Auction.Buyout(source, auctionId)
 
     if auction.endsAt <= os.time() then return false, 'Diese Auktion ist vorbei.' end
 
+    if auction.abgerechnet then return false, 'Diese Auktion laeuft nicht mehr.' end
+
     -- Wer schon Hoechstbietender ist, zahlt nur die Differenz.
+    local vorherBieter = auction.bidderId
+    local vorherGebot  = auction.bid
+
     local due = auction.buyout
-    if auction.bidderId == player.charId then due = math.max(0, auction.buyout - auction.bid) end
+    if vorherBieter == player.charId then due = math.max(0, auction.buyout - vorherGebot) end
 
     if due > 0 and not player:RemoveMoney(due, AuctionConfig.Account, 'auktion-sofortkauf') then
         return false, ('Dir fehlen %s.'):format(MS.Utils.FormatMoney(
             due - player:GetMoney(AuctionConfig.Account)))
     end
 
-    -- Ein fremdes Gebot wird erstattet.
-    if auction.bidderId and auction.bidderId ~= player.charId and auction.bid > 0 then
-        Auction.Deliver(auction.bidderId, {
-            kind = 'money', amount = auction.bid,
-            reason = ('Sofortkauf: %dx %s'):format(auction.count, auction.label),
-        })
-    end
+    -- Die Auktion gehoert ab hier diesem Kaeufer. Das muss vor dem ersten
+    -- Warten auf die Datenbank passieren.
+    --
+    -- Vorher stand hier zuerst die Erstattung an den alten Bieter, und die
+    -- schreibt ins Abholfach. Waehrend sie wartete, konnte ein Zweiter
+    -- dieselbe Auktion kaufen: beide zahlten, beide erstatteten demselben
+    -- Bieter, und Auction.Settle lief zweimal - die Ware wurde ausgeliefert,
+    -- der Verkaeufer zweimal bezahlt.
+    auction.abgerechnet = true
+    Auction.List[auction.id] = nil
 
     auction.bid = auction.buyout
     auction.bidderId = player.charId
     auction.bidderName = nameOf(player)
+
+    -- Ein fremdes Gebot wird erstattet.
+    if vorherBieter and vorherBieter ~= player.charId and vorherGebot > 0 then
+        Auction.Deliver(vorherBieter, {
+            kind = 'money', amount = vorherGebot,
+            reason = ('Sofortkauf: %dx %s'):format(auction.count, auction.label),
+        })
+    end
 
     Auction.Settle(auction, 'verkauft')
 
@@ -373,6 +398,15 @@ end
 
 --- Schliesst eine Auktion ab und verteilt Ware und Geld.
 function Auction.Settle(auction, status)
+    -- Abgerechnet wird genau einmal.
+    --
+    -- Die Marke sitzt auf der Auktion selbst und nicht in Auction.List:
+    -- wer die Auktion vor einem Warten in eine lokale Variable geholt hat,
+    -- haelt sie auch dann noch, wenn sie aus der Liste verschwunden ist.
+    if auction.abgerechnetFertig then return false end
+    auction.abgerechnetFertig = true
+    auction.abgerechnet = true
+
     Auction.List[auction.id] = nil
     Auction.DB.SetStatus(auction.id, status)
 
@@ -428,6 +462,7 @@ function Auction.Settle(auction, status)
     end
 
     Auction.SyncViewers()
+    return true
 end
 
 --- Der Verkaeufer bricht ab - geht nur ohne Gebot.
@@ -451,20 +486,28 @@ end
 
 -- Abholen -------------------------------------------------------------------------------
 
----@return boolean ok, string message
-function Auction.ClaimMail(source, mailId)
-    local player = MS.GetPlayer(source)
-    if not player then return false, '' end
-
-    local row = Auction.DB.GetMail(math.floor(tonumber(mailId) or 0), player.charId)
+--- Gibt ein Fach aus. Nur ueber Auction.ClaimMail aufrufen - die Sperre
+--- gegen doppeltes Abholen sitzt dort.
+--- @rennen Abgesichert: geloescht wird vor dem Auszahlen, und ausgezahlt
+--- nur, wenn das Loeschen wirklich eine Zeile getroffen hat. Dazu haelt
+--- Auction.ClaimMail eine Sperre auf der Fachnummer.
+local function vergeben(player, source, id)
+    local row = Auction.DB.GetMail(id, player.charId)
     if not row then return false, 'Da wartet nichts auf dich.' end
 
     if row.kind == 'money' then
-        player:AddMoney(tonumber(row.amount) or 0, AuctionConfig.Account, 'auktion-auszahlung')
-        Auction.DB.RemoveMail(row.id)
+        local betrag = tonumber(row.amount) or 0
+
+        -- Erst loeschen, dann auszahlen: bleibt das Loeschen ohne Wirkung,
+        -- war ein anderer schneller und es gibt nichts mehr auszuzahlen.
+        if (Auction.DB.RemoveMail(row.id) or 0) < 1 then
+            return false, 'Da wartet nichts auf dich.'
+        end
+
+        player:AddMoney(betrag, AuctionConfig.Account, 'auktion-auszahlung')
         Auction.SyncMail(source)
 
-        return true, ('%s erhalten.'):format(MS.Utils.FormatMoney(tonumber(row.amount) or 0))
+        return true, ('%s erhalten.'):format(MS.Utils.FormatMoney(betrag))
     end
 
     local count = tonumber(row.count) or 0
@@ -477,14 +520,56 @@ function Auction.ClaimMail(source, mailId)
         return false, 'So viel kannst du gerade nicht tragen.'
     end
 
+    if (Auction.DB.RemoveMail(row.id) or 0) < 1 then
+        return false, 'Da wartet nichts auf dich.'
+    end
+
+    -- AddItem rechnet im Speicher und kann nach der bestandenen
+    -- Traglastpruefung nicht mehr scheitern. Falls doch, kommt der Eintrag
+    -- zurueck ins Fach - verloren geht nichts.
     if not player:AddItem(row.item, count, decode(row.metadata)) then
+        Auction.DB.AddMail(player.charId, {
+            kind = 'item', item = row.item, label = row.label, count = count,
+            metadata = decode(row.metadata), reason = row.reason,
+        })
+
         return false, 'Das passt nicht in dein Inventar.'
     end
 
-    Auction.DB.RemoveMail(row.id)
     Auction.SyncMail(source)
 
     return true, ('%dx %s erhalten.'):format(count, row.label or row.item)
+end
+
+--- Welche Faecher gerade ausgegeben werden.
+---
+--- Ohne diese Sperre laesst sich derselbe Eintrag mehrfach abholen: das
+--- Lesen aus der Datenbank wartet, und in dieser Zeit kommt der zweite
+--- Aufruf durch dieselbe Pruefung. Beide zahlen aus, geloescht wird
+--- hinterher - einmal Geld oder Ware aus dem Nichts.
+Auction.Claiming = {}
+
+---@return boolean ok, string message
+function Auction.ClaimMail(source, mailId)
+    local player = MS.GetPlayer(source)
+    if not player then return false, '' end
+
+    local id = math.floor(tonumber(mailId) or 0)
+    if id < 1 then return false, 'Da wartet nichts auf dich.' end
+
+    if Auction.Claiming[id] then return false, 'Das wird gerade schon abgeholt.' end
+    Auction.Claiming[id] = true
+
+    local ok, a, b = pcall(vergeben, player, source, id)
+
+    Auction.Claiming[id] = nil
+
+    if not ok then
+        print(('^1[Auktion]^7 Abholen fehlgeschlagen: %s'):format(tostring(a)))
+        return false, 'Das hat nicht geklappt.'
+    end
+
+    return a, b
 end
 
 --- Holt alles ab, was moeglich ist.
@@ -514,12 +599,25 @@ CreateThread(function()
 
         local now = os.time()
 
+        -- Erst sammeln, dann abrechnen.
+        --
+        -- Auction.Settle wartet auf die Datenbank, und waehrenddessen kann
+        -- sich Auction.List aendern - ein Sofortkauf entfernt einen
+        -- Eintrag, ein neues Angebot legt einen an. Ueber eine Tabelle zu
+        -- laufen, die sich unter einem veraendert, ist in Lua nicht
+        -- definiert.
+        local faellig = {}
+
         for _, auction in pairs(Auction.List) do
-            if auction.endsAt <= now then
-                local ok, err = pcall(Auction.Settle, auction, 'beendet')
-                if not ok then
-                    print(('^1[Auktion]^7 Abrechnung fehlgeschlagen: %s'):format(tostring(err)))
-                end
+            if auction.endsAt <= now and not auction.abgerechnet then
+                faellig[#faellig + 1] = auction
+            end
+        end
+
+        for _, auction in ipairs(faellig) do
+            local ok, err = pcall(Auction.Settle, auction, 'beendet')
+            if not ok then
+                print(('^1[Auktion]^7 Abrechnung fehlgeschlagen: %s'):format(tostring(err)))
             end
         end
     end
