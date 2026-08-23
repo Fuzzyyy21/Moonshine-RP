@@ -929,13 +929,14 @@ function renderTreeScreen() {
     $('stone-count-2').textContent = number(data.stone && data.stone.count);
 
 
-    // Erfahrung gehoert allein zum persoenlichen Baum.
-    $('personal-level').textContent = data.personalLevel || 1;
-    $('xp-into').textContent = number(data.xpIntoLevel);
-    $('xp-next').textContent = number(data.xpForNext);
-    $('xp-fill').style.width = data.xpForNext > 0
-        ? Math.min(100, (data.xpIntoLevel / data.xpForNext) * 100) + '%'
-        : '100%';
+    // Erfahrung gehoert allein zum persoenlichen Baum - renderPersonal()
+    // weiter unten zeichnet sie. Hier standen dieselben vier Zuweisungen
+    // noch einmal, aber auf die alten Element-Namen von vor dem Umbau. Die
+    // gibt es nicht mehr: $('personal-level') war null, und die Zuweisung
+    // darauf hat renderTreeScreen mitten drin abgebrochen. Alles danach -
+    // Klassen, Baum, Detail, Leiste, Steine, Rituale - lief nie, und die
+    // letzte Zeile der Funktion macht den Bildschirm sichtbar. Der Skilltree
+    // ging also ueberhaupt nicht auf.
     $('xp-balance-2').textContent = number(data.skillPoints);
 
     renderClasses();

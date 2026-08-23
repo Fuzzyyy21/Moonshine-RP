@@ -3,6 +3,7 @@
    gefuettert mit genau den Nachrichten, die client/main.lua schickt. */
 
 const { chromium } = require('playwright');
+const browserPfad = require('./browser');
 const path = require('path');
 const fs = require('fs');
 
@@ -71,9 +72,8 @@ async function schuss(seite, datei, nachrichten, breite, hoehe) {
     fs.mkdirSync(AUSGABE, { recursive: true });
 
     const browser = await chromium.launch({
-        // Playwright findet den Browser ueber PLAYWRIGHT_BROWSERS_PATH selbst.
-        // Nur wenn das fehlschlaegt, hilft ein Pfad in CHROMIUM_PFAD.
-        executablePath: process.env.CHROMIUM_PFAD || undefined,
+        // browser.js sucht ihn; CHROMIUM_PFAD sticht.
+        executablePath: browserPfad.finden(),
     });
 
     const seite = await browser.newPage({ viewport: { width: 1600, height: 900 } });

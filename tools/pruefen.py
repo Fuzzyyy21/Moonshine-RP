@@ -836,6 +836,82 @@ def check_awaitraces():
                  f"mit \"@rennen <Begruendung>\" markieren.")
 
 
+# --- 17. Element-Namen im NUI ------------------------------------------------
+#
+# Sucht das JavaScript ein Element, das es im HTML nicht gibt, liefert
+# document.getElementById null zurueck - und die naechste Zuweissung darauf
+# wirft. In einer Zeichenfunktion bricht damit alles ab, was danach kommt.
+#
+# Genau das ist im Skilltree passiert: vier Zuweisungen auf Namen von vor
+# einem Umbau standen mitten in renderTreeScreen. Die Funktion brach dort ab
+# - und ihre letzte Zeile war die, die den Bildschirm sichtbar macht. Der
+# Baum ging ueberhaupt nicht auf.
+#
+# Das JavaScript holt Elemente ueber $(...), getElementById(...) oder
+# querySelector('#...'). Erzeugte Namen zaehlen mit: steht id="x" irgendwo im
+# JavaScript (Vorlagen, Zeichenketten), gilt x als vorhanden.
+
+ID_IM_HTML = re.compile(r'\bid\s*=\s*["\']([\w-]+)["\']')
+ID_DOLLAR = re.compile(r"\$\(\s*['\"`]([\w-]+)['\"`]\s*\)")
+ID_GETELEM = re.compile(r"getElementById\(\s*['\"`]([\w-]+)['\"`]\s*\)")
+ID_QUERY = re.compile(r"querySelector(?:All)?\(\s*['\"`]#([\w-]+)")
+
+DOLLAR_HELFER = 'const $ = (id) => document.getElementById(id)'
+
+
+def _ohne_kommentare(text):
+    """Kommentare raus, damit erklaerender Text nicht als Zugriff zaehlt.
+
+    Grob, aber in die sichere Richtung: ein // in einer Zeichenkette
+    schneidet den Rest der Zeile weg. Das kann einen Zugriff uebersehen,
+    aber nie einen erfinden.
+    """
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+    return re.sub(r'//[^\n]*', '', text)
+
+
+def check_nui_ids():
+    for res in resources():
+        nui = os.path.join(ROOT, res, 'nui')
+        if not os.path.isdir(nui):
+            continue
+
+        html, js = '', ''
+        quelle = {}
+
+        for root, _, files in os.walk(nui):
+            for name in sorted(files):
+                path = os.path.join(root, name)
+
+                if name.endswith('.html'):
+                    html += read(path)
+                elif name.endswith('.js'):
+                    text = _ohne_kommentare(read(path))
+                    js += '\n' + text
+
+                    for treffer in (set(ID_GETELEM.findall(text))
+                                    | set(ID_QUERY.findall(text))
+                                    | set(ID_DOLLAR.findall(text))):
+                        quelle.setdefault(treffer, path)
+
+        if not js:
+            continue
+
+        # Namen, die das JavaScript selbst erzeugt, gelten als vorhanden.
+        vorhanden = set(ID_IM_HTML.findall(html)) | set(ID_IM_HTML.findall(js))
+
+        gesucht = set(ID_GETELEM.findall(js)) | set(ID_QUERY.findall(js))
+
+        # $(...) nur, wo es wirklich getElementById ist.
+        if DOLLAR_HELFER in js:
+            gesucht |= set(ID_DOLLAR.findall(js))
+
+        for name in sorted(gesucht - vorhanden):
+            note('NUI-ELEMENT-FEHLT', quelle.get(name, nui),
+                 f"#{name} wird geholt, steht aber in keinem HTML - "
+                 f"der Zugriff darauf wirft und bricht die Funktion ab")
+
+
 def main():
     only_syntax = '--nur-syntax' in sys.argv
 
@@ -856,6 +932,7 @@ def main():
         check_ratelimits()
         check_selfshot()
         check_awaitraces()
+        check_nui_ids()
 
     if not findings:
         print('Alles sauber.')

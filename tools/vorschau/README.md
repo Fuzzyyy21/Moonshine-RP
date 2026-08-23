@@ -13,18 +13,29 @@ Tachorings).
 
 ```bash
 npm install playwright              # einmalig, Chromium liegt schon bereit
+
+node tools/vorschau/laden.js        # laedt alle 16 Oberflaechen, prueft auf Fehler
 lua5.4 tools/vorschau/ziehen.lua    # Config -> daten/*.json
 node tools/vorschau/hud.js          # Bilder -> tools/vorschau/bilder/
 ```
 
 Ein anderer Zielordner geht als Argument: `node tools/vorschau/hud.js /tmp/x`.
+Den Browser sucht `browser.js` selbst; `CHROMIUM_PFAD` sticht, falls nicht.
 
-Findet Playwright den Browser nicht von selbst, hilft `CHROMIUM_PFAD`:
+## laden.js — laedt jede Oberflaeche
 
-```bash
-CHROMIUM_PFAD=/opt/pw-browsers/chromium-1194/chrome-linux/chrome \
-    node tools/vorschau/hud.js
-```
+Prueft ohne Daten, was beim Laden selbst passiert. Das ist mehr als es
+klingt: die meisten dieser Dateien haengen schon auf oberster Ebene
+Klick-Handler an Elemente (`$('btn-close').onclick = ...`). Fehlt so ein
+Element, wirft die Zeile — und alles danach in der Datei laeuft nie.
+
+Geprueft wird ausserdem, dass keine Oberflaeche quer scrollt.
+
+Die verwandte Pruefung `NUI-ELEMENT-FEHLT` in `tools/pruefen.py` findet
+dasselbe statisch und braucht keinen Browser. Sie kam von einem echten Fund:
+im Skilltree standen vier Zuweisungen auf Element-Namen von vor einem Umbau
+mitten in der Zeichenfunktion. Die brach dort ab — und ihre letzte Zeile war
+die, die den Bildschirm sichtbar macht. Der Baum ging ueberhaupt nicht auf.
 
 ## Wie es zusammenhängt
 

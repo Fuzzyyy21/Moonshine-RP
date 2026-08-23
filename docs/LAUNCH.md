@@ -7,16 +7,24 @@ Liste ist der Weg von „fertig geschrieben" zu „läuft".
 ## 0. Vorher: die statische Prüfung
 
 ```bash
-python3 tools/pruefen.py    # Syntax und Verdrahtung
-lua5.4 tools/testen.lua     # Rechenlogik, rund 3.030 Zusicherungen
+python3 tools/pruefen.py       # Syntax und Verdrahtung, 17 Prüfungen
+lua5.4 tools/testen.lua        # Rechenlogik, rund 3.100 Zusicherungen
+node tools/vorschau/laden.js   # lädt alle 16 Oberflächen im Browser
 ```
 
-Findet Syntaxfehler, kaputte Exporte, fehlende Event-Gegenstellen, falsche
-Seitenzuordnung, Command-Kollisionen, Schema-Drift, Globals aus einer
-Resource, die gar nicht mitgeladen wird, und Netz-Events, die Geld oder
-Items ungebremst bewegen — bevor der Server
-überhaupt startet. Der zweite Befehl führt die Rechenlogik der `shared`-Dateien
-tatsächlich aus. Beides läuft bei jedem Push ohnehin.
+Der erste Befehl findet Syntaxfehler, kaputte Exporte, fehlende
+Event-Gegenstellen, falsche Seitenzuordnung, Command-Kollisionen,
+Schema-Drift, Globals aus einer Resource die gar nicht mitgeladen wird,
+Netz-Events die Geld oder Items ungebremst bewegen, Anticheat-Prüfungen die
+gegen den eigenen Code laufen, Wertbewegungen hinter einem Warten auf die
+Datenbank, und Element-Namen die das JavaScript sucht ohne dass es sie gibt
+— alles bevor der Server überhaupt startet.
+
+Der zweite führt die Rechenlogik der `shared`-Dateien tatsächlich aus. Der
+dritte lädt jede Oberfläche in einem echten Browser und horcht auf Fehler
+(braucht `npm install playwright`, der Browser liegt schon bereit).
+
+Alle drei laufen bei jedem Push ohnehin.
 
 Was sie **nicht** können: Koordinaten prüfen, Spielmechanik testen, Balancing
 beurteilen. Dafür ist der Rest dieser Liste da.
