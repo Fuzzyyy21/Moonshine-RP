@@ -11,6 +11,17 @@ let resetSeconds = 0;
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall:
+ * keine Auktionen, keine Auftraege, kein Fahrzeug.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, data) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -52,7 +63,7 @@ function formatCountdown(seconds) {
 function rewardPills(reward) {
     const wrap = el('div', 'reward-list');
 
-    (reward || []).forEach((part) => {
+    liste(reward).forEach((part) => {
         const pill = el('div', 'reward-pill');
         pill.appendChild(el('span', null, part.icon || '◆'));
         pill.appendChild(el('span', null, part.text));
@@ -95,7 +106,7 @@ function renderPlaytime(data) {
     $('playtime-total').textContent = `${Math.floor(data.total / 60)} Std.`;
     $('head-playtime').textContent = formatMinutes(data.minutes);
 
-    const entries = data.entries || [];
+    const entries = liste(data.entries);
     const last = entries.length ? entries[entries.length - 1].minutes : 1;
 
     $('timeline-fill').style.width = `${Math.min(100, (data.minutes / last) * 100)}%`;
@@ -190,8 +201,8 @@ function missionCard(mission) {
 }
 
 function renderMissions(data) {
-    const daily = data.daily || [];
-    const weekly = data.weekly || [];
+    const daily = liste(data.daily);
+    const weekly = liste(data.weekly);
 
     const dailyList = $('daily-list');
     const weeklyList = $('weekly-list');
@@ -231,7 +242,7 @@ function tierSlot(tier, track) {
         `${claimed ? ' claimed' : ''}${claimable ? ' claimable' : ''}`);
 
     const list = el('div', 'tier-rewards');
-    (rewards || []).forEach((part) => {
+    liste(rewards).forEach((part) => {
         const row = el('div', 'tier-reward');
         row.appendChild(el('span', null, part.icon || '◆'));
         row.appendChild(el('span', null, part.text));
@@ -278,7 +289,7 @@ function renderBattlePass(data) {
     const rail = $('pass-rail');
     clear(rail);
 
-    (data.tiers || []).forEach((tier) => {
+    liste(data.tiers).forEach((tier) => {
         const column = el('div', `tier${tier.unlocked ? ' unlocked' : ''}${tier.highlight ? ' highlight' : ''}`);
 
         const head = el('div', 'tier-head', `Stufe ${tier.level}`);
@@ -290,7 +301,7 @@ function renderBattlePass(data) {
     });
 
     let open = 0;
-    (data.tiers || []).forEach((tier) => {
+    liste(data.tiers).forEach((tier) => {
         if (!tier.unlocked) return;
         if (!tier.freeClaimed) open += 1;
         if (data.premium && !tier.premiumClaimed) open += 1;
@@ -318,9 +329,9 @@ function renderCaseDetail(entry) {
     const list = el('div');
     list.style.marginTop = '14px';
 
-    const best = entry.loot.reduce((max, loot) => Math.max(max, loot.chance), 0) || 1;
+    const best = liste(entry.loot).reduce((max, loot) => Math.max(max, loot.chance), 0) || 1;
 
-    entry.loot.forEach((loot) => {
+    liste(entry.loot).forEach((loot) => {
         const row = el('div', 'chance-row');
         row.appendChild(el('span', null, loot.label));
 
@@ -411,7 +422,7 @@ function playCase(data) {
         `radial-gradient(circle, ${data.color}88, transparent 68%)`;
 
     // Eine Rolle aus zufaelligen Losen, das Gewinnerlos sitzt fest.
-    const pool = (state && state.cases || [])
+    const pool = liste(state && state.cases)
         .find((entry) => entry.name === data.case);
     const labels = pool ? pool.loot.map((loot) => loot.label) : [data.result];
 
@@ -459,7 +470,7 @@ function render(data) {
     renderPlaytime(data.playtime || { minutes: 0, total: 0, entries: [] });
     renderMissions(data.missions || { daily: [], weekly: [] });
     renderBattlePass(data.battlepass || { tiers: [], level: 1, xp: 0, xpNeeded: 0, premiumPrice: 0 });
-    renderCases(data.cases || []);
+    renderCases(liste(data.cases));
 }
 
 /* ------------------------------------------------------------------ Aktionen */

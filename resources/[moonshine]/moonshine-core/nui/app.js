@@ -14,6 +14,18 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall:
+ * keine Auktionen, keine Auftraege, und beim allerersten Spieler nicht
+ * einmal ein Charakter.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 /** Ruft einen NUI-Callback der Resource auf. */
 function post(name, data = {}) {
     return fetch(`https://${RESOURCE}/${name}`, {
@@ -32,7 +44,7 @@ function renderCharacters() {
     const list = $('character-list');
     list.innerHTML = '';
 
-    state.characters.forEach((character) => {
+    liste(state.characters).forEach((character) => {
         const card = document.createElement('div');
         card.className = 'character-card';
         card.innerHTML = `
@@ -184,7 +196,7 @@ function renderInventory() {
 }
 
 function selectedItem() {
-    return state.inventory.items.find((item) => item.slot === state.selectedSlot) || null;
+    return liste(state.inventory.items).find((item) => item.slot === state.selectedSlot) || null;
 }
 
 function actionCount() {

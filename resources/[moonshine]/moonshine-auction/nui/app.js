@@ -13,6 +13,17 @@ let selected = null;
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall:
+ * keine Auktionen, keine Auftraege, kein Fahrzeug.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, data) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -175,7 +186,7 @@ function renderCategories() {
     const box = $('category-row');
     clear(box);
 
-    (state.categories || []).forEach((entry) => {
+    liste(state.categories).forEach((entry) => {
         const chip = el('div', `category${category === entry.id ? ' active' : ''}`);
         chip.appendChild(el('span', null, entry.icon));
         chip.appendChild(el('span', null, entry.label));
@@ -213,7 +224,7 @@ function renderMarket() {
 
     const needle = $('search').value.trim().toLowerCase();
 
-    let list = state.auctions.filter((auction) => {
+    let list = liste(state.auctions).filter((auction) => {
         if (category !== 'alle' && auction.category !== category) return false;
         if (!needle) return true;
 
@@ -235,7 +246,7 @@ function renderOwn() {
     const box = $('own-list');
     clear(box);
 
-    const list = state.auctions.filter((auction) => auction.isOwn);
+    const list = liste(state.auctions).filter((auction) => auction.isOwn);
 
     const badge = $('badge-own');
     badge.textContent = String(list.length);
@@ -253,7 +264,7 @@ function renderBids() {
     const box = $('bid-list');
     clear(box);
 
-    const list = state.auctions.filter((auction) => auction.isBidder);
+    const list = liste(state.auctions).filter((auction) => auction.isBidder);
 
     const badge = $('badge-bids');
     badge.textContent = String(list.length);
@@ -415,7 +426,7 @@ function render() {
     // Laufzeiten nur einmal fuellen.
     const hours = $('sell-hours');
     if (!hours.options.length) {
-        state.durations.forEach((entry) => {
+        liste(state.durations).forEach((entry) => {
             const option = document.createElement('option');
             option.value = String(entry);
             option.textContent = entry === 1 ? '1 Stunde' : `${entry} Stunden`;
@@ -483,7 +494,7 @@ setInterval(() => {
     if (!state || $('screen').classList.contains('hidden')) return;
 
     const byId = {};
-    state.auctions.forEach((auction) => {
+    liste(state.auctions).forEach((auction) => {
         if (auction.remaining > 0) auction.remaining -= 1;
         byId[auction.id] = auction;
     });

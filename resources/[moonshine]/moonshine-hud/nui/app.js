@@ -454,10 +454,10 @@ function auswahlZeile(name, feld, aktiv) {
     const zeile = el('div', 'zeile');
     zeile.appendChild(el('span', 'zeile-name', name));
 
-    const liste = (setup.auswahl || {})[feld] || [];
-    const box = el('div', `auswahl${liste.length >= 4 ? ' vier' : ''}`);
+    const eintraege = liste((setup.auswahl || {})[feld]);
+    const box = el('div', `auswahl${eintraege.length >= 4 ? ' vier' : ''}`);
 
-    liste.forEach((eintrag) => {
+    eintraege.forEach((eintrag) => {
         const knopf = el('button', eintrag.value === aktiv ? 'aktiv' : null, eintrag.label);
         knopf.addEventListener('click', () => {
             setzen(feld, eintrag.value);
@@ -506,7 +506,7 @@ function farbZeile() {
 
     const box = el('div', 'farben');
 
-    ((setup.auswahl || {}).akzent || []).forEach((eintrag) => {
+    liste((setup.auswahl || {}).akzent).forEach((eintrag) => {
         const punkt = el('div', `farbe${eintrag.value === settings.akzent ? ' aktiv' : ''}`);
         punkt.style.background = eintrag.value;
         punkt.title = eintrag.label;
@@ -556,10 +556,10 @@ function menueZeichnen() {
     const box = $('m-elemente');
     clear(box);
 
-    (setup.gruppen || []).forEach((gruppe) => {
+    liste(setup.gruppen).forEach((gruppe) => {
         box.appendChild(el('div', 'gruppe-titel', gruppe));
 
-        (setup.elemente || [])
+        liste(setup.elemente)
             .filter((element) => element.gruppe === gruppe)
             .forEach((element) => {
                 box.appendChild(schalterZeile(element.label,

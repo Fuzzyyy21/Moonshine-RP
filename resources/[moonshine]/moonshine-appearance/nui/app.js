@@ -205,7 +205,7 @@ function swatches(label, count, current, colourFor, onPick) {
 
 /** Alle Gruppen, die dieser Ort erlaubt. */
 function buildGroups() {
-    const allowed = config.categories || [];
+    const allowed = liste(config.categories);
     const groups = [];
 
     if (allowed.includes('kopf')) {
@@ -257,7 +257,7 @@ function buildGroups() {
                     icon: entry.icon, section: 'Accessoires', priced: 'accessoires' });
             });
 
-        config.data.props.forEach((entry) => {
+        liste(config.data.props).forEach((entry) => {
             groups.push({ id: `prop:${entry.id}`, label: entry.label,
                 icon: entry.icon, section: 'Accessoires', priced: 'accessoires' });
         });
@@ -325,7 +325,7 @@ function countChanges() {
     const differs = (a, b) => (a || {}).drawable !== (b || {}).drawable
         || (a || {}).texture !== (b || {}).texture;
 
-    config.data.components.forEach((entry) => {
+    liste(config.data.components).forEach((entry) => {
         const key = String(entry.id);
 
         if (differs((before.components || {})[key], (state.components || {})[key])) {
@@ -334,7 +334,7 @@ function countChanges() {
         }
     });
 
-    config.data.props.forEach((entry) => {
+    liste(config.data.props).forEach((entry) => {
         const key = String(entry.id);
         const old = (before.props || {})[key] || { drawable: -1, texture: 0 };
         const now = (state.props || {})[key] || { drawable: -1, texture: 0 };
@@ -459,7 +459,7 @@ async function renderControls(group) {
 
     /* --- Gesichtsauflage -------------------------------------------------- */
     if (kind === 'overlay') {
-        const definition = config.data.overlays.find((entry) => entry.id === id);
+        const definition = liste(config.data.overlays).find((entry) => entry.id === id);
         if (!state.overlays[String(id)]) {
             state.overlays[String(id)] = {
                 index: 255, opacity: 1.0, colour: 0, secondColour: 0,
@@ -627,7 +627,7 @@ async function renderControls(group) {
         features.style.marginBottom = '10px';
         box.appendChild(features);
 
-        config.data.features.forEach((feature) => {
+        liste(config.data.features).forEach((feature) => {
             const key = String(feature.id);
             const value = state.features[key] || 0;
 
@@ -748,8 +748,8 @@ function tattooZonenZeichnen() {
     const nav = $('tattoo-zones');
     clear(nav);
 
-    (tattooData.zonen || []).forEach((zone) => {
-        const motive = (tattooData.motive || []).filter((m) => m.zone === zone.key);
+    liste(tattooData.zonen).forEach((zone) => {
+        const motive = liste(tattooData.motive).filter((m) => m.zone === zone.key);
         const getragen = motive.filter((m) => m.getragen).length;
 
         const row = el('div', `group${zone.key === tattooZone ? ' active' : ''}`);
@@ -772,14 +772,14 @@ function tattooZonenZeichnen() {
 function tattooZeichnen() {
     if (!tattooData) return;
 
-    const zone = (tattooData.zonen || []).find((z) => z.key === tattooZone)
-        || (tattooData.zonen || [])[0];
+    const zone = liste(tattooData.zonen).find((z) => z.key === tattooZone)
+        || liste(tattooData.zonen)[0];
 
     if (zone) tattooZone = zone.key;
 
     $('tattoo-title').textContent = tattooData.label || 'Tätowierer';
     $('tattoo-balance').textContent = money(tattooData.balance);
-    $('tattoo-count').textContent = String((tattooData.getragen || []).length);
+    $('tattoo-count').textContent = String(liste(tattooData.getragen).length);
     $('tattoo-zone-title').textContent = zone ? zone.label : '—';
 
     tattooZonenZeichnen();
@@ -787,7 +787,7 @@ function tattooZeichnen() {
     const liste = $('tattoo-list');
     clear(liste);
 
-    const motive = (tattooData.motive || []).filter((m) => m.zone === tattooZone);
+    const motive = liste(tattooData.motive).filter((m) => m.zone === tattooZone);
 
     if (!motive.length) {
         liste.appendChild(el('p', 'muted', 'Für diese Stelle gibt es hier nichts.'));
@@ -867,7 +867,7 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'appearance:outfits':
-            outfits = (message.data || []).map((entry) => ({
+            outfits = liste(message.data).map((entry) => ({
                 id: entry.id, label: entry.label,
             }));
             renderOutfits();
@@ -880,7 +880,7 @@ window.addEventListener('message', (event) => {
         case 'tattoo:open':
             tattooData = message.data || null;
             if (tattooData && !tattooZone) {
-                tattooZone = (tattooData.zonen || [])[0]
+                tattooZone = liste(tattooData.zonen)[0]
                     ? tattooData.zonen[0].key : null;
             }
             $('tattoo').classList.remove('hidden');

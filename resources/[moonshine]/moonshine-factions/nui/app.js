@@ -21,6 +21,17 @@ let SYMBOLS = [];
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall:
+ * keine Auktionen, keine Auftraege, kein Fahrzeug.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, data) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -350,7 +361,7 @@ function renderMembers() {
     const list = $('member-list');
     clear(list);
 
-    state.members.forEach((member) => {
+    liste(state.members).forEach((member) => {
         const row = el('div', `member${member.online ? '' : ' offline'}`);
 
         row.appendChild(el('div', 'member-icon', member.rankIcon));
@@ -367,7 +378,7 @@ function renderMembers() {
 
         // Rangauswahl
         const select = document.createElement('select');
-        state.ranks.forEach((rank, index) => {
+        liste(state.ranks).forEach((rank, index) => {
             const option = document.createElement('option');
             option.value = String(index);
             option.textContent = `${rank.icon} ${rank.label}`;
@@ -446,7 +457,7 @@ function renderRanks() {
 
         // Icons
         const picker = el('div', 'icon-picker');
-        (state.rankIcons || []).forEach((icon) => {
+        liste(state.rankIcons).forEach((icon) => {
             const option = el('div', `icon-option${rank.icon === icon ? ' active' : ''}`, icon);
             if (editable) {
                 option.addEventListener('click', () => {
@@ -462,7 +473,7 @@ function renderRanks() {
         const grid = el('div', 'permission-grid');
         const owned = Array.isArray(rank.permissions) ? rank.permissions : [];
 
-        state.permissionList.forEach((entry) => {
+        liste(state.permissionList).forEach((entry) => {
             const on = top || owned.includes(entry.id);
             const cell = el('div',
                 `permission${on ? ' on' : ''}${(!editable || top) ? ' locked' : ''}`);
@@ -510,7 +521,7 @@ $('btn-rank-save').addEventListener('click', () => {
 function drawSkillTree() {
     if (!state) return;
 
-    const nodes = state.skillTree || [];
+    const nodes = liste(state.skillTree);
     const canvas = $('skill-canvas');
     const links = $('skill-links');
     const box = $('skill-nodes');
@@ -539,7 +550,7 @@ function drawSkillTree() {
 
     // Verbindungen
     nodes.forEach((node) => {
-        (node.requires || []).forEach((requiredId) => {
+        liste(node.requires).forEach((requiredId) => {
             const parent = byId[requiredId];
             if (!parent) return;
 
@@ -749,7 +760,7 @@ function renderMissions() {
     const box = $('faction-mission-list');
     clear(box);
 
-    const missions = state.missions || [];
+    const missions = liste(state.missions);
     if (!missions.length) {
         box.appendChild(el('p', 'muted', 'Aktuell laufen keine Missionen.'));
         return;
@@ -945,7 +956,7 @@ function renderGarage() {
     const previous = select.value;
     clear(select);
 
-    (garage.points || []).forEach((point) => {
+    liste(garage.points).forEach((point) => {
         const option = document.createElement('option');
         option.value = String(point.index);
         option.textContent = point.label;
@@ -961,7 +972,7 @@ function renderGarage() {
         own.appendChild(el('p', 'muted', 'Noch keine Fahrzeuge gekauft.'));
     }
 
-    garage.vehicles.forEach((vehicle) => {
+    liste(garage.vehicles).forEach((vehicle) => {
         const row = el('div', 'vehicle');
 
         const body = el('div');
@@ -974,7 +985,7 @@ function renderGarage() {
         const actions = el('div', 'vehicle-actions');
 
         const grade = document.createElement('select');
-        state.ranks.forEach((rank, index) => {
+        liste(state.ranks).forEach((rank, index) => {
             const option = document.createElement('option');
             option.value = String(index);
             option.textContent = rank.icon;
@@ -1012,7 +1023,7 @@ function renderGarage() {
     const catalogue = $('catalogue-list');
     clear(catalogue);
 
-    garage.catalogue.forEach((entry) => {
+    liste(garage.catalogue).forEach((entry) => {
         const row = el('div', 'vehicle');
 
         const body = el('div');
@@ -1306,7 +1317,7 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'factions:log':
-            renderLog(message.data || []);
+            renderLog(liste(message.data));
             break;
 
         case 'factions:territories':

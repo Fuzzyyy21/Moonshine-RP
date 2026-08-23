@@ -290,11 +290,11 @@ function renderMarket() {
 
     const sells = $('market-sells');
     clear(sells);
-    (data.sells || []).forEach((entry) => sells.appendChild(tradeRow(entry, 'buy')));
+    liste(data.sells).forEach((entry) => sells.appendChild(tradeRow(entry, 'buy')));
 
     const buys = $('market-buys');
     clear(buys);
-    (data.buys || []).forEach((entry) => buys.appendChild(tradeRow(entry, 'sell')));
+    liste(data.buys).forEach((entry) => buys.appendChild(tradeRow(entry, 'sell')));
 
     const laundry = $('laundry-card');
     laundry.classList.toggle('hidden', !data.laundering);
@@ -430,7 +430,7 @@ function lackZeile(titel, feld) {
     const reihe = el('div', 'lacke');
     const aktiv = wunsch[feld] !== undefined ? wunsch[feld] : data.mods[feld];
 
-    data.katalog.lacke.forEach((farbe) => {
+    liste(data.katalog.lacke).forEach((farbe) => {
         const punkt = el('div', `lack${farbe.id === aktiv ? ' gewaehlt' : ''}`);
         punkt.style.background = farbe.hex;
         punkt.title = farbe.label;
@@ -505,7 +505,7 @@ function zeichneTuningListe() {
     const katalog = data.katalog || {};
 
     if (reiter === 'leistung') {
-        (katalog.leistung || []).forEach((entry) => {
+        liste(katalog.leistung).forEach((entry) => {
             const anzahl = verfuegbar[entry.id] || 0;
             if (anzahl > 0) {
                 liste.appendChild(teilZeile(entry, anzahl,
@@ -529,7 +529,7 @@ function zeichneTuningListe() {
                 'An diesem Fahrzeug lässt sich an der Leistung nichts machen.'));
         }
     } else if (reiter === 'optik') {
-        (katalog.optik || []).forEach((entry) => {
+        liste(katalog.optik).forEach((entry) => {
             const anzahl = verfuegbar[entry.id] || 0;
             if (anzahl > 0) liste.appendChild(teilZeile(entry, anzahl, money(entry.preis)));
         });
@@ -569,7 +569,7 @@ function zeichneTuningListe() {
         folienBox.appendChild(folienKopf);
 
         const folienReihe = el('div', 'stufen');
-        (katalog.folien || []).forEach((eintrag) => {
+        liste(katalog.folien).forEach((eintrag) => {
             const knopf = el('button',
                 `stufe${eintrag.id === folie ? ' gewaehlt' : ''}`,
                 `${eintrag.label}${eintrag.preis > 0 ? ` · ${money(eintrag.preis)}` : ''}`);

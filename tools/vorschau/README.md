@@ -24,12 +24,39 @@ Den Browser sucht `browser.js` selbst; `CHROMIUM_PFAD` sticht, falls nicht.
 
 ## laden.js — laedt jede Oberflaeche
 
-Prueft ohne Daten, was beim Laden selbst passiert. Das ist mehr als es
-klingt: die meisten dieser Dateien haengen schon auf oberster Ebene
-Klick-Handler an Elemente (`$('btn-close').onclick = ...`). Fehlt so ein
-Element, wirft die Zeile — und alles danach in der Datei laeuft nie.
+Drei Durchgaenge je Oberflaeche:
+
+1. **Leer laden.** Die meisten dieser Dateien haengen schon auf oberster
+   Ebene Klick-Handler an Elemente (`$('btn-close').onclick = ...`). Fehlt
+   so ein Element, wirft die Zeile — und alles danach in der Datei laeuft nie.
+2. **Mit Daten.** Gibt es `daten/<resource>.json`, werden genau die
+   Nachrichten geschickt, die der Client schickt. Erst dann laufen die
+   Zeichenfunktionen — und genau darin steckten die Fehler.
+3. **Mit leeren Listen.** Derselbe Aufbau, aber jede Liste leer. Das ist der
+   Zustand eines frischen Servers: keine Auktionen, keine Auftraege, und
+   beim allerersten Spieler nicht einmal ein Charakter.
 
 Geprueft wird ausserdem, dass keine Oberflaeche quer scrollt.
+
+## payloads.lua — die Nutzlasten
+
+Nicht abgeschrieben. Geladen wird der echte Client-Code einer Resource (bei
+Bedarf auch der Server-Code), dann wird das echte Ereignis ausgeloest, und
+was dabei an `SendNUIMessage` ginge, faellt hinten heraus.
+
+Bei `moonshine-progress` geht es noch weiter: das Profil kommt aus dem
+echten Konstruktor, nur die Datenbankzeile ist erfunden — die Aufbau-
+funktionen rechnen also wirklich.
+
+`attrappe-client.lua` macht das moeglich. Zwei Entscheidungen darin sind
+wichtiger als sie aussehen:
+
+* `CreateThread` laeuft **wirklich**, bis zum ersten `Wait`. Als Nichts waere
+  es zu wenig — viele Resourcen bauen ihre Nachschlagetabellen in einem
+  Thread auf, und ohne den bleiben sie leer. Als echte Schleife waere es zu
+  viel. Diese Fassung fuehrt genau den Teil aus, der einmal am Anfang steht.
+* Backticks (`` `modell` ``, CfxLuas Kurzform fuer `GetHashKey`) werden beim
+  Laden durch eine Zahl ersetzt. Lua 5.4 kennt sie nicht.
 
 Die verwandte Pruefung `NUI-ELEMENT-FEHLT` in `tools/pruefen.py` findet
 dasselbe statisch und braucht keinen Browser. Sie kam von einem echten Fund:

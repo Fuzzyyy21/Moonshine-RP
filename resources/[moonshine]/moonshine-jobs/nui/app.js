@@ -9,6 +9,17 @@ let boardJob = null;
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall:
+ * keine Auktionen, keine Auftraege, kein Fahrzeug.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, payload) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -181,7 +192,7 @@ function renderContracts() {
     const grid = $('contract-grid');
     clear(grid);
 
-    (center.contracts || []).forEach((entry) => grid.appendChild(contractCard(entry)));
+    liste(center.contracts).forEach((entry) => grid.appendChild(contractCard(entry)));
 }
 
 /* -------------------------------------------------------------- Anstellung */
@@ -190,7 +201,7 @@ function renderJobs() {
     const list = $('job-list');
     clear(list);
 
-    (center.jobs || []).forEach((job) => {
+    liste(center.jobs).forEach((job) => {
         const current = center.job.name === job.name;
         const row = el('div', `job-row${current ? ' current' : ''}`);
 
@@ -226,7 +237,7 @@ function renderBoardTabs() {
     const box = $('board-tabs');
     clear(box);
 
-    const entries = center.contracts || [];
+    const entries = liste(center.contracts);
     if (!boardJob && entries.length) boardJob = entries[0].id;
 
     entries.forEach((entry) => {

@@ -9,6 +9,17 @@ let logKind = 'alle';
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall:
+ * keine Auktionen, keine Auftraege, kein Fahrzeug.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, payload) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -89,7 +100,7 @@ function renderPlayers() {
 
     const needle = $('search').value.trim().toLowerCase();
 
-    const list = data.players.filter((player) => {
+    const list = liste(data.players).filter((player) => {
         if (!needle) return true;
         return player.name.toLowerCase().includes(needle)
             || String(player.source).includes(needle);
@@ -170,7 +181,7 @@ function renderDetail() {
     }
 
     // Immer den frischen Datensatz nehmen.
-    const player = data.players.find((entry) => entry.source === selected.source);
+    const player = liste(data.players).find((entry) => entry.source === selected.source);
     if (!player) {
         selected = null;
         box.appendChild(el('div', 'detail-empty', 'Der Spieler ist offline.'));
@@ -219,7 +230,7 @@ function renderDetail() {
         const row = el('div', 'form-row');
 
         const account = document.createElement('select');
-        (data.accounts || []).forEach((name) => {
+        liste(data.accounts).forEach((name) => {
             const option = document.createElement('option');
             option.value = name;
             option.textContent = name;
@@ -252,7 +263,7 @@ function renderDetail() {
         const row = el('div', 'form-row');
 
         const item = document.createElement('select');
-        (data.items || []).forEach((entry) => {
+        liste(data.items).forEach((entry) => {
             const option = document.createElement('option');
             option.value = entry.name;
             option.textContent = entry.label;
@@ -282,7 +293,7 @@ function renderDetail() {
         const row = el('div', 'form-row');
 
         const job = document.createElement('select');
-        (data.jobs || []).forEach((entry) => {
+        liste(data.jobs).forEach((entry) => {
             const option = document.createElement('option');
             option.value = entry.name;
             option.textContent = entry.label;
@@ -419,7 +430,7 @@ function renderWatchList() {
     const box = $('watch-list');
     clear(box);
 
-    const flagged = (data.players || []).filter((player) => player.strikes > 0);
+    const flagged = liste(data.players).filter((player) => player.strikes > 0);
 
     if (!flagged.length) {
         box.appendChild(el('div', 'muted', 'Gerade ist niemand auffaellig.'));

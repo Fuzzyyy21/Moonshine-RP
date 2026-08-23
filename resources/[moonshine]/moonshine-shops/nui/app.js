@@ -1,6 +1,17 @@
 const RESOURCE = 'moonshine-shops';
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall:
+ * keine Auktionen, keine Auftraege, kein Fahrzeug.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, data = {}) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -56,7 +67,7 @@ window.addEventListener('message', (event) => {
     const { action, data } = event.data || {};
 
     if (action === 'openShop') {
-        renderItems(data.items || []);
+        renderItems(liste(data.items));
         $('money').textContent = formatMoney(data.money);
         $('shop').classList.remove('hidden');
     } else if (action === 'closeShop') {

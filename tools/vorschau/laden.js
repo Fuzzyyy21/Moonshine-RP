@@ -28,6 +28,7 @@ const BASIS = path.join(WURZEL, 'resources', '[moonshine]');
     });
 
     let fehler = 0;
+    let mit = 0;
 
     for (const resource of resourcen) {
         const seite = await browser.newPage({ viewport: { width: 1600, height: 900 } });
@@ -46,6 +47,53 @@ const BASIS = path.join(WURZEL, 'resources', '[moonshine]');
 
         await seite.goto('file://' + path.join(BASIS, resource, 'nui', 'index.html'));
         await seite.waitForTimeout(250);
+
+        // Wenn es Nutzlasten gibt, dieselben Nachrichten schicken, die der
+        // Client schickt. Ohne Daten laeuft keine Zeichenfunktion - und
+        // genau darin steckten die Fehler.
+        const daten = path.join(__dirname, 'daten', resource + '.json');
+
+        if (fs.existsSync(daten)) {
+            const nachrichten = JSON.parse(fs.readFileSync(daten, 'utf8'));
+
+            for (const nachricht of nachrichten) {
+                await seite.evaluate((inhalt) => {
+                    window.dispatchEvent(new MessageEvent('message', { data: inhalt }));
+                }, nachricht);
+            }
+
+            await seite.waitForTimeout(250);
+            mit += 1;
+
+            // Zweiter Durchgang: derselbe Aufbau, aber alle Listen leer.
+            //
+            // Das ist der Zustand eines frischen Servers - keine Auktionen,
+            // keine Auftraege, kein Fahrzeug. Und es ist die Stelle, an der
+            // FiveM eine Falle stellt: Lua kennt keinen Unterschied zwischen
+            // leerer Liste und leerer Tabelle, also kommt beides als {} im
+            // NUI an. Der uebliche Schutz "x || []" greift dagegen nicht -
+            // {} ist wahr -, und {}.forEach wirft.
+            for (const nachricht of nachrichten) {
+                await seite.evaluate((inhalt) => {
+                    const leeren = (wert) => {
+                        if (Array.isArray(wert)) return {};
+                        if (wert && typeof wert === 'object') {
+                            const raus = {};
+                            for (const name of Object.keys(wert)) {
+                                raus[name] = leeren(wert[name]);
+                            }
+                            return raus;
+                        }
+                        return wert;
+                    };
+
+                    window.dispatchEvent(new MessageEvent('message',
+                        { data: leeren(inhalt) }));
+                }, nachricht);
+            }
+
+            await seite.waitForTimeout(250);
+        }
 
         // Quer scrollen darf keine Oberflaeche.
         const quer = await seite.evaluate(() =>
@@ -67,8 +115,9 @@ const BASIS = path.join(WURZEL, 'resources', '[moonshine]');
     await browser.close();
 
     console.log(fehler === 0
-        ? `\n${resourcen.length} Oberflaechen laden sauber.`
-        : `\n${fehler} Fehler in ${resourcen.length} Oberflaechen.`);
+        ? `\n${resourcen.length} Oberflaechen laden sauber, ${mit} davon mit Daten.`
+        : `\n${fehler} Fehler in ${resourcen.length} Oberflaechen `
+          + `(${mit} mit Daten geprueft).`);
 
     process.exit(fehler === 0 ? 0 : 1);
 })();

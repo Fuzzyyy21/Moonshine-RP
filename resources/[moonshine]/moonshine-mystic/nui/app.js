@@ -3,6 +3,17 @@
 const RESOURCE = 'moonshine-mystic';
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall:
+ * keine Auktionen, keine Auftraege, kein Fahrzeug.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 /* Rasterabstaende des Baums in Pixeln */
 const GRID = { colWidth: 150, rowHeight: 132, paddingX: 90, paddingY: 40 };
 
@@ -41,7 +52,7 @@ function renderBar() {
     const container = $('bar-slots');
     container.innerHTML = '';
 
-    (data.slots || []).forEach((slot) => {
+    liste(data.slots).forEach((slot) => {
         const element = document.createElement('div');
         element.className = 'bar-slot' + (slot.id ? ' filled' : '');
         element.innerHTML = `
@@ -143,7 +154,7 @@ function renderClasses() {
 
     $('classes-caption').textContent = data.canSwitchClass ? 'Klasse waehlen' : 'Deine Klasse';
 
-    (data.classes || []).forEach((race) => {
+    liste(data.classes).forEach((race) => {
         const entry = document.createElement('div');
         entry.className = 'class-entry' + (race.current ? ' current' : '');
         if (!data.atRitual && !race.current) entry.classList.add('disabled');
@@ -208,7 +219,7 @@ function renderTree() {
     let maxX = 0;
     let maxY = 0;
 
-    data.nodes.forEach((node) => {
+    liste(data.nodes).forEach((node) => {
         const position = nodePosition(node);
         positions[node.id] = position;
         maxX = Math.max(maxX, position.x + GRID.paddingX);
@@ -221,10 +232,10 @@ function renderTree() {
     svg.setAttribute('width', maxX);
     svg.setAttribute('height', maxY);
 
-    const byId = new Map(data.nodes.map((node) => [node.id, node]));
+    const byId = new Map(liste(data.nodes).map((node) => [node.id, node]));
 
     // Verbindungen zuerst, damit sie hinter den Knoten liegen.
-    (data.links || []).forEach((link) => {
+    liste(data.links).forEach((link) => {
         const from = positions[link.from];
         const to = positions[link.to];
         if (!from || !to) return;
@@ -245,7 +256,7 @@ function renderTree() {
         svg.appendChild(path);
     });
 
-    data.nodes.forEach((node) => {
+    liste(data.nodes).forEach((node) => {
         const position = positions[node.id];
         const element = document.createElement('div');
         element.className = 'node ' + nodeStateClass(node);
@@ -283,7 +294,7 @@ function renderTree() {
 function renderDetail() {
     const data = state.tree;
     const detail = $('detail');
-    const node = (data.nodes || []).find((entry) => entry.id === state.selected);
+    const node = liste(data.nodes).find((entry) => entry.id === state.selected);
 
     if (!node) {
         detail.innerHTML = '<div class="detail-empty">Waehle einen Knoten im Baum.</div>';
@@ -389,7 +400,7 @@ function addSlotButtons(container, node) {
     row.style.flexWrap = 'wrap';
     row.style.gap = '6px';
 
-    (state.tree.bar || []).forEach((slot) => {
+    liste(state.tree.bar).forEach((slot) => {
         const button = document.createElement('button');
         button.className = 'btn' + (slot.id === node.id ? ' primary' : '');
         button.style.padding = '6px 11px';
@@ -421,8 +432,8 @@ function setCategoryColor(hex) {
 
 function currentCategory() {
     const data = state.tree;
-    return (data.categories || []).find((entry) => entry.id === state.category)
-        || (data.categories || [])[0];
+    return liste(data.categories).find((entry) => entry.id === state.category)
+        || liste(data.categories)[0];
 }
 
 function renderCategories() {
@@ -430,7 +441,7 @@ function renderCategories() {
     const list = $('category-list');
     list.innerHTML = '';
 
-    (data.categories || []).forEach((category) => {
+    liste(data.categories).forEach((category) => {
         const entry = document.createElement('div');
         entry.className = 'category-entry' + (category.id === state.category ? ' active' : '');
         entry.style.setProperty('--cat', category.color);
@@ -477,8 +488,8 @@ function renderPersonalTree() {
     svg.innerHTML = '';
     if (!category) return;
 
-    const nodes = (data.personalNodes && data.personalNodes.nodes[category.id]) || [];
-    const links = (data.personalNodes && data.personalNodes.links[category.id]) || [];
+    const nodes = liste((data.personalNodes && data.personalNodes.nodes[category.id]));
+    const links = liste((data.personalNodes && data.personalNodes.links[category.id]));
 
     const positions = {};
     let maxX = 0;
@@ -559,7 +570,7 @@ function renderPersonalDetail() {
     const data = state.tree;
     const detail = $('detail');
     const category = currentCategory();
-    const nodes = (data.personalNodes && category && data.personalNodes.nodes[category.id]) || [];
+    const nodes = liste((data.personalNodes && category && data.personalNodes.nodes[category.id]));
     const node = nodes.find((entry) => entry.id === state.personalSelected);
 
     if (!node) {
@@ -643,7 +654,7 @@ function renderStatistics() {
     const container = $('stat-rows');
     container.innerHTML = '';
 
-    (data.statistics || []).forEach((row) => {
+    liste(data.statistics).forEach((row) => {
         const element = document.createElement('div');
         element.className = 'stat-row';
         element.innerHTML = '<span class="icon"></span><span class="label"></span><span class="value"></span>';
@@ -653,7 +664,7 @@ function renderStatistics() {
         container.appendChild(element);
     });
 
-    if ((data.statistics || []).length === 0) {
+    if (liste(data.statistics).length === 0) {
         container.innerHTML = '<div class="muted">Noch keine Boni geskillt.</div>';
     }
 
@@ -692,9 +703,9 @@ function renderBarEditor() {
     const container = $('bar-edit-slots');
     container.innerHTML = '';
 
-    const active = (data.nodes || []).filter((node) => node.rank > 0 && !node.passive);
+    const active = liste(data.nodes).filter((node) => node.rank > 0 && !node.passive);
 
-    (data.bar || []).forEach((slot) => {
+    liste(data.bar).forEach((slot) => {
         const row = document.createElement('div');
         row.className = 'bar-edit-row';
         row.innerHTML = '<span class="slot-key"></span><select></select>';
@@ -728,7 +739,7 @@ function renderStones() {
     const grid = $('stone-grid');
     grid.innerHTML = '';
 
-    data.stones.forEach((stone) => {
+    liste(data.stones).forEach((stone) => {
         const element = document.createElement('div');
         element.className = 'stone' + (stone.isClass ? ' is-class' : '');
         element.innerHTML = '<span></span><span class="count"></span>';
@@ -790,7 +801,7 @@ function renderRitualTab() {
     const grid = $('blessing-grid');
     grid.innerHTML = '';
 
-    (data.blessings || []).forEach((blessing) => {
+    liste(data.blessings).forEach((blessing) => {
         const card = document.createElement('div');
         card.className = 'blessing';
         card.innerHTML = `
@@ -822,7 +833,7 @@ function renderRecipe() {
     const list = $('recipe');
     list.innerHTML = '';
 
-    recipe.ingredients.forEach((ingredient) => {
+    liste(recipe.ingredients).forEach((ingredient) => {
         const row = document.createElement('div');
         row.className = 'recipe-row ' + (ingredient.have >= ingredient.need ? 'ok' : 'miss');
         row.innerHTML = '<span></span><span></span>';
@@ -991,7 +1002,7 @@ window.addEventListener('message', (event) => {
 
         case 'mysticTree':
             state.tree = data;
-            if (state.selected && !(data.nodes || []).some((node) => node.id === state.selected)) {
+            if (state.selected && !liste(data.nodes).some((node) => node.id === state.selected)) {
                 state.selected = null;
             }
             renderTreeScreen();
