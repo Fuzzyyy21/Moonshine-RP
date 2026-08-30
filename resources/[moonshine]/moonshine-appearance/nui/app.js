@@ -12,6 +12,16 @@ let touched = {};           // welche Teile angefasst wurden
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, payload) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -658,7 +668,7 @@ function renderOutfits() {
         list.appendChild(el('div', 'muted', 'Noch keine Outfits gesichert.'));
     }
 
-    outfits.forEach((entry) => {
+    liste(outfits).forEach((entry) => {
         const row = el('div', 'outfit');
         row.appendChild(el('span', null, entry.label));
 
@@ -784,13 +794,13 @@ function tattooZeichnen() {
 
     tattooZonenZeichnen();
 
-    const liste = $('tattoo-list');
-    clear(liste);
+    const tattooListe = $('tattoo-list');
+    clear(tattooListe);
 
-    const motive = liste(tattooData.motive).filter((m) => m.zone === tattooZone);
+    const motive = tattooListe(tattooData.motive).filter((m) => m.zone === tattooZone);
 
     if (!motive.length) {
-        liste.appendChild(el('p', 'muted', 'Für diese Stelle gibt es hier nichts.'));
+        tattooListe.appendChild(el('p', 'muted', 'Für diese Stelle gibt es hier nichts.'));
         $('tattoo-zone-hint').textContent = '';
         return;
     }
@@ -843,7 +853,7 @@ function tattooZeichnen() {
             tattooZeichnen();
         });
 
-        liste.appendChild(row);
+        tattooListe.appendChild(row);
     });
 }
 
@@ -856,7 +866,14 @@ window.addEventListener('message', (event) => {
         case 'appearance:open':
             config = message.data || null;
             state = JSON.parse(JSON.stringify(config.appearance || {}));
-            outfits = config.outfits || [];
+
+            // Der Server schickt ein vollstaendiges Aussehen (Appearance.Of).
+            // Falls doch etwas fehlt, hier keine Zugriffe auf undefined -
+            // sonst bricht die erste Zeichenfunktion ab.
+            for (const feld of ['components', 'props', 'overlays', 'features']) {
+                if (!state[feld] || typeof state[feld] !== 'object') state[feld] = {};
+            }
+            outfits = liste(config.outfits);
 
             $('screen').classList.remove('hidden');
             render();

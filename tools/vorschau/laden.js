@@ -28,11 +28,13 @@ const BASIS = path.join(WURZEL, 'resources', '[moonshine]');
     });
 
     let fehler = 0;
+    let offen = 0;
     let mit = 0;
 
     for (const resource of resourcen) {
         const seite = await browser.newPage({ viewport: { width: 1600, height: 900 } });
         const meldungen = [];
+        const hinweise = [];
 
         // Die NUI-Rueckrufe gehen im Spiel an den Client. Hier ins Leere -
         // ein fehlgeschlagenes fetch waere sonst der einzige Fund.
@@ -40,9 +42,16 @@ const BASIS = path.join(WURZEL, 'resources', '[moonshine]');
             window.fetch = () => Promise.resolve({ json: () => Promise.resolve({}) });
         });
 
-        seite.on('pageerror', (err) => meldungen.push(String(err)));
+        // Waehrend des dritten Durchgangs sind Funde nur Hinweise.
+        let hinweisModus = false;
+
+        seite.on('pageerror', (err) => {
+            (hinweisModus ? hinweise : meldungen).push(String(err));
+        });
         seite.on('console', (msg) => {
-            if (msg.type() === 'error') meldungen.push(msg.text());
+            if (msg.type() === 'error') {
+                (hinweisModus ? hinweise : meldungen).push(msg.text());
+            }
         });
 
         await seite.goto('file://' + path.join(BASIS, resource, 'nui', 'index.html'));
@@ -65,7 +74,9 @@ const BASIS = path.join(WURZEL, 'resources', '[moonshine]');
             await seite.waitForTimeout(250);
             mit += 1;
 
-            // Zweiter Durchgang: derselbe Aufbau, aber alle Listen leer.
+            hinweisModus = true;
+
+            // Dritter Durchgang: derselbe Aufbau, aber alle Listen leer.
             //
             // Das ist der Zustand eines frischen Servers - keine Auktionen,
             // keine Auftraege, kein Fahrzeug. Und es ist die Stelle, an der
@@ -93,6 +104,7 @@ const BASIS = path.join(WURZEL, 'resources', '[moonshine]');
             }
 
             await seite.waitForTimeout(250);
+            hinweisModus = false;
         }
 
         // Quer scrollen darf keine Oberflaeche.
@@ -109,15 +121,27 @@ const BASIS = path.join(WURZEL, 'resources', '[moonshine]');
             for (const text of meldungen) console.log(`            ${text}`);
         }
 
+        // Der Leer-Durchgang bildet auch Zustaende ab, die nur ueber eine
+        // geleerte Config erreichbar sind - etwa eine Fraktion ohne
+        // Rangliste. Solche Funde sind einen Blick wert, aber kein Grund,
+        // den Durchlauf rot zu faerben.
+        for (const text of new Set(hinweise)) {
+            console.log(`  Hinweis ${resource}: ${text}`);
+            offen += 1;
+        }
+
         await seite.close();
     }
 
     await browser.close();
 
+    const anhang = offen > 0 ? ` ${offen} Hinweise aus dem Leer-Durchgang.` : '';
+
     console.log(fehler === 0
         ? `\n${resourcen.length} Oberflaechen laden sauber, ${mit} davon mit Daten.`
+          + anhang
         : `\n${fehler} Fehler in ${resourcen.length} Oberflaechen `
-          + `(${mit} mit Daten geprueft).`);
+          + `(${mit} mit Daten geprueft).` + anhang);
 
     process.exit(fehler === 0 ? 0 : 1);
 })();

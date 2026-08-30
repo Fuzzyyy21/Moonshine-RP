@@ -11,6 +11,9 @@ let selected = null;
 
 const $ = (id) => document.getElementById(id);
 
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, data) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -163,14 +166,14 @@ function renderGarage() {
     $('money').textContent = money(owned.money);
     $('slots').textContent = `${owned.vehicles.length} / ${owned.maxVehicles}`;
 
-    const impounded = owned.vehicles.filter((entry) => entry.state === 'verwahrt').length;
+    const impounded = liste(owned.vehicles).filter((entry) => entry.state === 'verwahrt').length;
     const badge = $('badge-impound');
     badge.textContent = String(impounded);
     badge.classList.toggle('hidden', impounded === 0);
 
     const list = filter === 'alle'
         ? owned.vehicles
-        : owned.vehicles.filter((entry) => entry.state === filter);
+        : liste(owned.vehicles).filter((entry) => entry.state === filter);
 
     const hint = $('garage-hint');
     if (filter === 'verwahrt') {
@@ -204,11 +207,11 @@ function renderCategories() {
     clear(box);
 
     const counts = {};
-    dealer.vehicles.forEach((entry) => {
+    liste(dealer.vehicles).forEach((entry) => {
         counts[entry.category] = (counts[entry.category] || 0) + 1;
     });
 
-    const available = dealer.categories.filter((entry) => counts[entry.id]);
+    const available = liste(dealer.categories).filter((entry) => counts[entry.id]);
 
     if (!category || !counts[category]) {
         category = available.length ? available[0].id : null;
@@ -234,7 +237,7 @@ function renderCatalogue() {
     const box = $('catalogue');
     clear(box);
 
-    const list = dealer.vehicles.filter((entry) => entry.category === category);
+    const list = liste(dealer.vehicles).filter((entry) => entry.category === category);
 
     list.forEach((entry) => {
         const card = el('div',

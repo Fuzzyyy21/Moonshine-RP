@@ -81,6 +81,7 @@ local ergebnisse = {}
 
 --- Meldet, was eine Resource ans NUI schicken wuerde.
 local function bauen(resource, ereignisse)
+    Fangen.Nachrichten = {}
     local fehler = Fangen.Resource(resource)
 
     if #fehler > 0 then
@@ -225,6 +226,391 @@ do
         ergebnisse['moonshine-core'] = daten
         print(('  %-24s %d Nachrichten'):format('moonshine-core',
             schreiben('moonshine-core', daten)))
+    end
+end
+
+-- --------------------------------------------------------------- Auktion
+
+do
+    Fangen.Resource('moonshine-auction', true)
+
+    -- Zwei laufende Auktionen, damit die Liste etwas zu zeichnen hat.
+    local jetzt = os.time()
+    Auction.List = {
+        [1] = { id = 1, sellerId = 99, sellerName = 'Ruben Kast',
+                item = 'blutstein', label = 'Blutstein', count = 3,
+                category = 'mystik', startPrice = 2500, buyout = 9000,
+                bid = 4200, bidderId = 12, bidderName = 'Anna Voss',
+                endsAt = jetzt + 3600, metadata = nil },
+        [2] = { id = 2, sellerId = 12, sellerName = 'Anna Voss',
+                item = 'verband', label = 'Verband', count = 10,
+                category = 'medizin', startPrice = 400, buyout = 0,
+                bid = 0, bidderId = nil, bidderName = nil,
+                endsAt = jetzt + 7200, metadata = nil },
+    }
+
+    local daten = {
+        { action = 'auction:open', house = 'Auktionshaus Vinewood' },
+        { action = 'auction:data', data = Auction.BuildPayload(1) },
+        { action = 'auction:mail', data = {
+            { id = 1, kind = 'money', amount = 4200, label = nil,
+              reason = 'Ueberboten: 3x Blutstein' },
+            { id = 2, kind = 'item', item = 'verband', label = 'Verband',
+              count = 5, reason = 'Auktion ohne Gebot beendet' },
+        } },
+    }
+
+    ergebnisse['moonshine-auction'] = daten
+    print(('  %-24s %d Nachrichten'):format('moonshine-auction',
+        schreiben('moonshine-auction', daten)))
+end
+
+-- ----------------------------------------------------------- Ritualkrieg
+
+do
+    Fangen.Resource('moonshine-ritualwar', true)
+
+    local ok, uebersicht = pcall(RitualWar.Overview)
+
+    if ok and uebersicht then
+        local daten = { { action = 'ritualwar:open', data = uebersicht } }
+        ergebnisse['moonshine-ritualwar'] = daten
+        print(('  %-24s %d Nachrichten'):format('moonshine-ritualwar',
+            schreiben('moonshine-ritualwar', daten)))
+    else
+        print(('  %-24s Overview bricht ab: %s')
+            :format('moonshine-ritualwar', tostring(uebersicht)))
+    end
+end
+
+-- ---------------------------------------------------------- Verwaltung
+
+do
+    Fangen.Resource('moonshine-admin', true)
+
+    local ok, nutzlast = pcall(Admin.Payload, 1)
+
+    if ok and nutzlast then
+        local daten = {
+            { action = 'admin:open' },
+            { action = 'admin:data', data = nutzlast },
+        }
+        ergebnisse['moonshine-admin'] = daten
+        print(('  %-24s %d Nachrichten'):format('moonshine-admin',
+            schreiben('moonshine-admin', daten)))
+    else
+        print(('  %-24s Payload bricht ab: %s')
+            :format('moonshine-admin', tostring(nutzlast)))
+    end
+end
+
+-- ------------------------------------------------------------ Fahrzeuge
+
+do
+    Fangen.Resource('moonshine-vehicles', true)
+
+    Vehicles.DB.LoadOwned = function()
+        return {
+            { id = 1, owner_id = 12, plate = 'MS 12 ANN', model = 'sultan',
+              label = 'Sultan', category = 'sport', price = 68000,
+              state = 'garage', garage = 'zentral', fuel = 74.0,
+              engine = 910.0, body = 860.0, mods = '{}', keys = '[]' },
+            { id = 2, owner_id = 12, plate = 'MS 44 RUB', model = 'faggio',
+              label = 'Faggio', category = 'motorrad', price = 4200,
+              state = 'draussen', garage = 'zentral', fuel = 22.0,
+              engine = 640.0, body = 410.0, mods = '{}', keys = '[]' },
+        }
+    end
+
+    -- Die Server-Funktion aufrufen genuegt: TriggerClientEvent stellt in
+    -- dieser Attrappe direkt an den Client-Handler zu.
+    Fangen.Nachrichten = {}
+    Vehicles.SyncOwned(1)
+
+    local daten = { { action = 'vehicles:open', mode = 'garage' } }
+    for _, nachricht in ipairs(Fangen.Nachrichten) do
+        daten[#daten + 1] = nachricht
+    end
+
+    ergebnisse['moonshine-vehicles'] = daten
+    print(('  %-24s %d Nachrichten'):format('moonshine-vehicles',
+        schreiben('moonshine-vehicles', daten)))
+end
+
+-- ------------------------------------------------------- Dienstleistungen
+
+do
+    Fangen.Resource('moonshine-services', true)
+
+    local daten = {}
+    local bank = Services.BankPayload and Services.BankPayload(1, 'bank')
+
+    if bank then
+        daten[#daten + 1] = { action = 'services:open', mode = 'bank', data = bank }
+    end
+
+    if #daten > 0 then
+        ergebnisse['moonshine-services'] = daten
+        print(('  %-24s %d Nachrichten'):format('moonshine-services',
+            schreiben('moonshine-services', daten)))
+    else
+        print('  moonshine-services       keine Nutzlast')
+    end
+end
+
+-- ------------------------------------------------------------- Arbeit
+
+do
+    Fangen.Resource('moonshine-jobs', true)
+
+    local ok, nutzlast = pcall(Work.CenterPayload, 1)
+
+    if ok and nutzlast then
+        local daten = { { action = 'work:open', data = nutzlast } }
+        ergebnisse['moonshine-jobs'] = daten
+        print(('  %-24s %d Nachrichten'):format('moonshine-jobs',
+            schreiben('moonshine-jobs', daten)))
+    else
+        print(('  %-24s CenterPayload: %s'):format('moonshine-jobs',
+            tostring(nutzlast)))
+    end
+end
+
+-- ------------------------------------------------------ Zufluchtsorte
+
+do
+    Fangen.Resource('moonshine-refuge', true)
+
+    -- Ein Ort, der Anna gehoert, mit etwas im Lager.
+    local ort = Refuge.Places and Refuge.Places[1]
+
+    if ort then
+        Refuge.Owned = Refuge.Owned or {}
+        Refuge.Owned[ort.id] = {
+            characterId = 12, name = 'Annas Unterschlupf', stufe = 2,
+            stash = {
+                { name = 'verband', label = 'Verband', count = 6, metadata = nil },
+                { name = 'blutstein', label = 'Blutstein', count = 2, metadata = nil },
+            },
+            lastRest = 0, lastRefuge = 0,
+        }
+
+        Refuge.AtPlace = function() return true end
+
+        Fangen.Nachrichten = {}
+        Refuge.Open(1, ort.id)
+
+        local daten = {}
+        for _, nachricht in ipairs(Fangen.Nachrichten) do
+            daten[#daten + 1] = nachricht
+        end
+
+        -- Das Lager als eigene Nachricht.
+        Fangen.Nachrichten = {}
+        pcall(function()
+            TriggerClientEvent('refuge:client:stash', 1,
+                Refuge.BuildStash(Refuge.Owned[ort.id]))
+        end)
+        for _, nachricht in ipairs(Fangen.Nachrichten) do
+            daten[#daten + 1] = nachricht
+        end
+
+        if #daten > 0 then
+            ergebnisse['moonshine-refuge'] = daten
+            print(('  %-24s %d Nachrichten'):format('moonshine-refuge',
+                schreiben('moonshine-refuge', daten)))
+        else
+            print('  moonshine-refuge         keine Nutzlast')
+        end
+    end
+end
+
+-- ---------------------------------------------------------------- Welt
+
+do
+    Fangen.Nachrichten = {}
+    Fangen.Resource('moonshine-world', true)
+
+    -- world:setup steht in einem Thread hinter einem Wait. Die Attrappe
+    -- laesst Threads nur bis zum ersten Wait laufen, also faellt die
+    -- Nachricht dort nicht heraus - hier steht sie mit denselben Werten
+    -- aus der echten Config.
+    local daten = {
+        { action = 'world:setup', data = {
+            showClock = WorldConfig.Hud.showClock,
+            showMoon  = WorldConfig.Hud.showMoon,
+            visible   = WorldConfig.Hud.enabled,
+        } },
+    }
+
+    daten[#daten + 1] = { action = 'world:visible', value = true }
+    daten[#daten + 1] = { action = 'world:time', data = {
+        stunde = 21, minute = 14, nacht = true,
+    } }
+    daten[#daten + 1] = { action = 'world:phase', data = {
+        id = 'blutmond', label = 'Blutmond', icon = '🌕',
+        beschreibung = 'Der Mond steht rot. Vampire sind stark.',
+    } }
+    daten[#daten + 1] = { action = 'world:event', data = {
+        id = 'nebel', label = 'Dichter Nebel', icon = '🌫️',
+        beschreibung = 'Die Sicht ist schlecht.', endetIn = 900,
+    } }
+
+    ergebnisse['moonshine-world'] = daten
+    print(('  %-24s %d Nachrichten'):format('moonshine-world',
+        schreiben('moonshine-world', daten)))
+end
+
+-- --------------------------------------------------------------- Tod
+
+do
+    Fangen.Resource('moonshine-death', true)
+
+    local daten = {
+        { action = 'death', data = {
+            text = 'Du liegst am Boden.',
+            respawnAfter = 300, cost = 2500,
+            refuge = 'Annas Unterschlupf',
+        } },
+        { action = 'deathUpdate', data = { seconds = 148, canRespawn = false } },
+    }
+
+    ergebnisse['moonshine-death'] = daten
+    print(('  %-24s %d Nachrichten'):format('moonshine-death',
+        schreiben('moonshine-death', daten)))
+end
+
+-- -------------------------------------------------------------- Laden
+
+do
+    Fangen.Resource('moonshine-shops', true)
+
+    local daten = { { action = 'shop:open', data = {
+        label = 'Kiosk Vinewood', money = 1240,
+        items = {
+            { name = 'wasser', label = 'Wasser', price = 12, weight = 500 },
+            { name = 'brot',   label = 'Brot',   price = 18, weight = 400 },
+            { name = 'verband', label = 'Verband', price = 90, weight = 200 },
+        },
+    } } }
+
+    -- Der Name der Aktion muss zu dem passen, was das NUI erwartet.
+    local html = io.open('resources/[moonshine]/moonshine-shops/nui/app.js', 'r')
+    if html then
+        local text = html:read('a')
+        html:close()
+
+        local aktion = text:match("action === '([^']+)'")
+        if aktion then daten[1].action = aktion end
+    end
+
+    ergebnisse['moonshine-shops'] = daten
+    print(('  %-24s %d Nachrichten'):format('moonshine-shops',
+        schreiben('moonshine-shops', daten)))
+end
+
+-- ---------------------------------------------------------- Fraktionen
+
+do
+    Fangen.Nachrichten = {}
+    Fangen.Resource('moonshine-factions', true)
+
+    -- Faction.New ist lokal; der Weg fuehrt ueber Factions.Create, das
+    -- ohne Datenbank nicht durchkommt. Also die Zeile direkt durch den
+    -- Ladeweg schicken, den der Server beim Start ohnehin geht.
+    local ok, fraktion = pcall(function()
+        Factions.DB = Factions.DB or {}
+        Factions.DB.Ready = true
+        Factions.DB.LoadAll = function()
+            return { {
+                id = 1, name = 'Zirkel des Blutmonds', tag = 'ZDB',
+                owner_id = 12, base = 'vinewood', emblem = 'null',
+                ranks = 'null', skills = '{}', level = 4, xp = 3200,
+                points = 6, kasse = 184000, vault = '[]',
+            } }
+        end
+        Factions.DB.LoadMembers = function()
+            return { { character_id = 12, name = 'Anna Voss', grade = 4,
+                       contribution = 24000 },
+                     { character_id = 99, name = 'Ruben Kast', grade = 2,
+                       contribution = 8100 } }
+        end
+        Factions.DB.LoadVehicles = function() return {} end
+
+        Factions.LoadAll()
+        return Factions.Get(1)
+    end)
+
+    if ok and fraktion then
+        -- Der Client legt die Daten beim Empfang nur ab und reicht sie erst
+        -- weiter, wenn die Oberflaeche offen ist - das haengt an einer
+        -- lokalen Variablen. Die beiden Nachrichten stehen deshalb hier;
+        -- der Inhalt kommt aus der echten Aufbaufunktion.
+        local daten = {
+            { action = 'factions:open' },
+            { action = 'factions:data', data = fraktion:GetPayload(1) },
+        }
+
+        ergebnisse['moonshine-factions'] = daten
+        print(('  %-24s %d Nachrichten'):format('moonshine-factions',
+            schreiben('moonshine-factions', daten)))
+    else
+        print(('  %-24s keine Fraktion: %s'):format('moonshine-factions',
+            tostring(fraktion)))
+    end
+end
+
+-- ------------------------------------------------------------- Aussehen
+
+do
+    Fangen.Nachrichten = {}
+    Fangen.Resource('moonshine-appearance', true)
+
+    Fangen.Spieler.appearance = {}
+    Fangen.Spieler.gender = 'w'
+
+    Appearance.DB = Appearance.DB or {}
+    Appearance.DB.LoadOutfits = function()
+        return { { id = 1, label = 'Arbeitskleidung' },
+                 { id = 2, label = 'Ausgehen' } }
+    end
+
+    local daten = {}
+
+    local ok, err = pcall(function()
+        TriggerClientEvent('appearance:client:open', 1, {
+            kind = 'shop', label = 'Bekleidung Vinewood',
+            categories = { 'kleidung', 'accessoires' },
+            -- Bewusst der Zustand eines frischen Charakters: in der
+            -- Datenbank steht appearance = {}. Appearance.Of macht daraus
+            -- ein vollstaendiges Aussehen - genau das war der Fehler.
+            gender = 'w', appearance = Appearance.Of(Fangen.Spieler),
+            outfits = { { id = 1, label = 'Arbeitskleidung' } },
+            maxOutfits = AppearanceConfig.MaxOutfits,
+            prices = { kleidung = 120, accessoires = 90, outfitSlot = 500 },
+            balance = 48900,
+            data = {
+                components  = Appearance.Components,
+                props       = Appearance.Props,
+                overlays    = Appearance.Overlays,
+                features    = Appearance.Features,
+                parents     = Appearance.Parents,
+                hairColours = Appearance.HairColours,
+                eyeColours  = Appearance.EyeColours,
+            },
+        })
+    end)
+
+    for _, nachricht in ipairs(Fangen.Nachrichten) do
+        daten[#daten + 1] = nachricht
+    end
+
+    if #daten > 0 then
+        ergebnisse['moonshine-appearance'] = daten
+        print(('  %-24s %d Nachrichten'):format('moonshine-appearance',
+            schreiben('moonshine-appearance', daten)))
+    else
+        print(('  %-24s nichts: %s'):format('moonshine-appearance', tostring(err)))
     end
 end
 

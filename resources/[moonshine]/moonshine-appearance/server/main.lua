@@ -304,7 +304,7 @@ local function openEditor(source, kind, id)
         label      = label,
         categories = categories,
         gender     = player.gender,
-        appearance = player.appearance,
+        appearance = Appearance.Of(player),
         outfits    = outfits,
         maxOutfits = AppearanceConfig.MaxOutfits,
         prices     = {
@@ -441,7 +441,7 @@ RegisterNetEvent('appearance:server:wearOutfit', function(outfitId)
     if not ok or type(outfit) ~= 'table' then return end
 
     -- In das gespeicherte Aussehen uebernehmen.
-    local appearance = player.appearance or Appearance.Default(player.gender)
+    local appearance = Appearance.Of(player)
 
     appearance.components = outfit.components or appearance.components
     appearance.props = outfit.props or appearance.props
@@ -495,7 +495,7 @@ AddEventHandler('moonshine:server:playerLoaded', function(source, player)
 
             TriggerClientEvent('appearance:client:firstTime', source, {
                 gender     = player.gender,
-                appearance = player.appearance,
+                appearance = Appearance.Of(player),
                 data       = {
                     components = Appearance.Components,
                     props      = Appearance.Props,
@@ -540,7 +540,7 @@ exports('SetOutfit', function(source, outfit)
     local player = MS.GetPlayer(source)
     if not player or type(outfit) ~= 'table' then return false end
 
-    local appearance = player.appearance or Appearance.Default(player.gender)
+    local appearance = Appearance.Of(player)
 
     if type(outfit.components) == 'table' then appearance.components = outfit.components end
     if type(outfit.props) == 'table' then appearance.props = outfit.props end
@@ -584,7 +584,7 @@ RegisterCommand('editor', function(source)
         label      = 'Editor (Admin)',
         categories = { 'kleidung', 'accessoires', 'kopf', 'makeup', 'koerper' },
         gender     = player.gender,
-        appearance = player.appearance,
+        appearance = Appearance.Of(player),
         outfits    = {},
         maxOutfits = AppearanceConfig.MaxOutfits,
         prices     = { kleidung = 0, accessoires = 0, outfitSlot = 0 },

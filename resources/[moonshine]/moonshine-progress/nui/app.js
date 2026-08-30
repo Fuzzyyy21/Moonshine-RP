@@ -424,7 +424,7 @@ function playCase(data) {
     // Eine Rolle aus zufaelligen Losen, das Gewinnerlos sitzt fest.
     const pool = liste(state && state.cases)
         .find((entry) => entry.name === data.case);
-    const labels = pool ? pool.loot.map((loot) => loot.label) : [data.result];
+    const labels = pool ? liste(pool.loot).map((loot) => loot.label) : [data.result];
 
     clear(reel);
     const strip = el('div', 'case-strip');

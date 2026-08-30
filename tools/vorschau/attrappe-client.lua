@@ -13,7 +13,86 @@
 
 dofile('tools/attrappe.lua')
 
+-- Echtes JSON statt des Platzhalters aus tools/attrappe.lua. Der gab fuer
+-- decode immer {} zurueck - alles, was in einer Datenbankspalte als JSON
+-- liegt, kam damit leer heraus, und die Aufbaufunktionen rechneten auf
+-- Nichts. Das faellt lange nicht auf und macht dann alles falsch.
+json = dofile('tools/vorschau/json.lua')
+
 Fangen = { Ereignisse = {}, Nachrichten = {}, Rueckrufe = {} }
+
+-- Ein erfundener, aber vollstaendiger Spieler.
+--
+-- Damit laufen die Aufbaufunktionen der Server-Dateien wirklich, statt dass
+-- ich ihre Ergebnisse abschreibe. Was hier fehlt, faellt sofort auf: die
+-- Funktion bricht ab und die Nutzlast bleibt leer.
+Fangen.Spieler = {
+    source = 1, charId = 12, license = 'license:vorschau',
+    firstname = 'Anna', lastname = 'Voss', fullname = 'Anna Voss',
+    gender = 'w', dob = '1994-03-12', adminLevel = 4,
+    job = { name = 'post', label = 'Postdienst', grade = 2,
+            gradeLabel = 'Fahrerin', salary = 320 },
+    accounts = { cash = 1240, bank = 48900, black = 3500 },
+    inventory = {}, metadata = {}, position = { x = 0, y = 0, z = 70, heading = 0 },
+    appearance = {},
+}
+
+do
+    local spieler = Fangen.Spieler
+
+    function spieler:GetMoney(konto) return self.accounts[konto or 'cash'] or 0 end
+    function spieler:CanAfford(betrag, konto) return self:GetMoney(konto) >= betrag end
+    function spieler:AddMoney() return true end
+    function spieler:RemoveMoney() return true end
+    function spieler:SetMoney() return true end
+    function spieler:AddItem() return true end
+    function spieler:RemoveItem() return true end
+    function spieler:HasItem() return true end
+    function spieler:GetItemCount() return 4 end
+    function spieler:CanCarryItem() return true end
+    function spieler:GetSlot() return nil end
+    function spieler:GetInventory() return self.inventory end
+    function spieler:GetMetadata(name) return name and self.metadata[name] or self.metadata end
+    function spieler:SetMetadata() end
+    function spieler:AddStatus() end
+    function spieler:GetStatus() return 100.0 end
+    function spieler:SetStatus() end
+    function spieler:Save() return true end
+    function spieler:Sync() end
+    function spieler:Notify() end
+    function spieler:TriggerEvent() end
+    function spieler:SetJob() return true end
+    function spieler:GetData() return self end
+end
+
+MS = MS or {}
+MS.Players = { [1] = Fangen.Spieler }
+MS.Utils = MS.Utils or {}
+MS.Utils.FormatMoney = function(n) return ('%s $'):format(tostring(n or 0)) end
+MS.Utils.DecodeJson = function(_, standard) return standard or {} end
+MS.Utils.Print = function() end
+MS.GetPlayer = function() return Fangen.Spieler end
+MS.GetPlayers = function() return MS.Players end
+MS.GetItem = function(name)
+    return { name = name, label = tostring(name), weight = 100, stack = true }
+end
+MS.GetItemWeight = function(_, menge) return 100 * (menge or 1) end
+MS.GetJob = function(name)
+    return { name = name, label = tostring(name), grades = { [0] = { label = 'Neu' } } }
+end
+MS.BuildJob = function(name, grad)
+    return { name = name, label = tostring(name), grade = grad or 0,
+             gradeLabel = 'Rang ' .. tostring(grad or 0) }
+end
+MS.RateLimit = function() return true end
+MS.HasPermission = function() return true end
+MS.GetLicense = function() return 'license:vorschau' end
+MS.RegisterServerCallback = function() end
+MS.RegisterUsableItem = function() end
+MS.CreateDrop = function() end
+MS.SaveAllPlayers = function() end
+MS.Logger = { Log = function() end, Transaction = function() end }
+MS.DB = setmetatable({}, { __index = function() return function() return nil end end })
 
 -- Manche Nutzlasten baut der Server. Damit sich auch dessen Dateien laden
 -- lassen, braucht es oxmysql - hier als Attrappe, die nichts findet. Die
@@ -84,6 +163,21 @@ end
 
 function SendNUIMessage(nachricht)
     Fangen.Nachrichten[#Fangen.Nachrichten + 1] = nachricht
+end
+
+-- Der Server ruft TriggerClientEvent, der Client hoert darauf. Hier laeuft
+-- beides im selben Zustand, also wird direkt zugestellt. Damit reicht ein
+-- Aufruf der Server-Funktion, und die NUI-Nachricht faellt hinten heraus -
+-- ohne dass irgendwo abgeschrieben werden muss.
+function TriggerClientEvent(name, _, ...)
+    local handler = Fangen.Ereignisse[name]
+    if not handler then return end
+
+    local ok, err = pcall(handler, ...)
+    if not ok then
+        Fangen.Fehler = Fangen.Fehler or {}
+        Fangen.Fehler[#Fangen.Fehler + 1] = ('%s: %s'):format(name, tostring(err))
+    end
 end
 
 --- Loest ein Ereignis aus und gibt zurueck, was dabei ans NUI ging.
@@ -162,6 +256,15 @@ for _, name in ipairs({
     'GetGameTimer', 'GetClockHours', 'GetClockMinutes', 'CreateCam',
     'GetSelectedPedWeapon', 'GetPedMaxHealth', 'GetEntitySpeed',
     'GetVehicleClass', 'GetVehicleNumberOfPassengers', 'GetPedInVehicleSeat',
+    'GetPedHeadOverlayValue', 'GetPedHeadOverlayColour', 'GetPedDrawableVariation',
+    'GetPedTextureVariation', 'GetPedPaletteVariation', 'GetPedPropIndex',
+    'GetPedPropTextureIndex', 'GetPedFaceFeature', 'GetPedHairColor',
+    'GetPedHairHighlightColor', 'GetPedEyeColor', 'GetNumberOfPedDrawableVariations',
+    'GetNumberOfPedTextureVariations', 'GetNumberOfPedPropDrawableVariations',
+    'GetNumberOfPedPropTextureVariations', 'GetNumHeadOverlayValues',
+    'GetPlayerPed', 'GetPlayerPing', 'GetPlayerRoutingBucket',
+    'NetworkGetEntityOwner', 'GetNumPlayerIndices', 'GetPlayerFromIndex',
+    'GetEntityPopulationType',
 }) do
     if _G[name] == nil then _G[name] = NULL end
 end
@@ -182,6 +285,16 @@ function GetStreetNameAtCoord() return 0, 0 end
 function GetStreetNameFromHashKey() return 'Vinewood Blvd' end
 function GetLabelText(name) return tostring(name) end
 function GetHashKey(text) return #tostring(text) end
+function GetPlayerName() return 'Anna Voss' end
+function GetPlayerIdentifiers() return { 'license:vorschau', 'steam:110000100000000' } end
+function GetPlayerEndpoint() return '127.0.0.1' end
+function GetPlayers() return { '1' } end
+function GetConvar(_, standard) return standard or '' end
+function GetConvarInt(_, standard) return standard or 0 end
+function GetNumPlayerIndices() return 1 end
+function GetResourceState() return 'started' end
+function GetNumResources() return 0 end
+function GetResourceByFindIndex() return nil end
 function joaat(text) return #tostring(text) end
 
 --- Laedt eine Lua-Datei aus einer Resource.

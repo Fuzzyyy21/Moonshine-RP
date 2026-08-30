@@ -10,6 +10,16 @@ let sichtbar = false;     // darf die Anzeige gerade überhaupt zu sehen sein?
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, payload) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',

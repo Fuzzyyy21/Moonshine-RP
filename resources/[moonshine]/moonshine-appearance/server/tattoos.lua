@@ -79,7 +79,7 @@ end
 
 --- Schreibt die Liste zurueck und laesst sie am Ped erscheinen.
 local function apply(source, player, tattoos)
-    local appearance = player.appearance or Appearance.Default(player.gender)
+    local appearance = Appearance.Of(player)
 
     appearance.tattoos = Appearance.SanitizeTattoos(tattoos)
     player.appearance = appearance

@@ -96,7 +96,8 @@ let uid = 0;
 
 /** Baut das SVG eines Wappens. */
 function buildCrest(emblem, options) {
-    const shapes = (options && options.shapes) || SHAPES;
+    const geliefert = liste(options && options.shapes);
+    const shapes = geliefert.length ? geliefert : SHAPES;
     const symbols = (options && options.symbols) || SYMBOLS;
 
     const shape = shapes.find((entry) => entry.id === emblem.shape) || shapes[0];
@@ -258,8 +259,9 @@ function renderHeader() {
     $('faction-tag').textContent = `[${state.tag}]`;
     $('faction-motto').textContent = emblem.motto || '';
 
-    const rank = state.ranks[state.grade] || state.ranks[state.ranks.length - 1];
-    $('faction-rank').textContent = `${rank.icon} ${rank.label}`;
+    const raenge = liste(state.ranks);
+    const rank = raenge[state.grade] || raenge[raenge.length - 1] || { icon: '', label: '' };
+    $('faction-rank').textContent = `${rank.icon} ${rank.label}`.trim();
 
     $('faction-level').textContent = String(state.level);
     $('faction-kasse').textContent = money(state.kasse);
@@ -610,14 +612,14 @@ function renderSkillDetail(node) {
     if (node.current.length) {
         box.appendChild(el('div', 'section-caption', `Aktuell (Stufe ${node.rank})`));
         const list = el('div', 'effect-list');
-        node.current.forEach((line) => list.appendChild(el('div', 'effect', line)));
+        liste(node.current).forEach((line) => list.appendChild(el('div', 'effect', line)));
         box.appendChild(list);
     }
 
     if (node.next.length) {
         box.appendChild(el('div', 'section-caption', `Naechste Stufe (${node.rank + 1})`));
         const list = el('div', 'effect-list');
-        node.next.forEach((line) => list.appendChild(el('div', 'effect', line)));
+        liste(node.next).forEach((line) => list.appendChild(el('div', 'effect', line)));
         box.appendChild(list);
     }
 
@@ -868,7 +870,7 @@ function renderVault() {
         box.appendChild(el('p', 'muted', 'Der Tresor ist leer.'));
     }
 
-    vault.entries.forEach((entry) => {
+    liste(vault.entries).forEach((entry) => {
         const row = el('div', 'item-row');
 
         const body = el('div');
@@ -912,7 +914,7 @@ function renderShop() {
         return;
     }
 
-    shop.items.forEach((entry) => {
+    liste(shop.items).forEach((entry) => {
         const card = el('div', 'shop-card');
         card.appendChild(el('h3', null, entry.label));
 
@@ -1300,15 +1302,15 @@ window.addEventListener('message', (event) => {
         case 'factions:data':
             state = message.data && message.data.id ? message.data : null;
             if (state && state.options) {
-                SHAPES = state.options.shapes;
-                SYMBOLS = state.options.symbols;
+                SHAPES = liste(state.options.shapes);
+                SYMBOLS = liste(state.options.symbols);
             }
             render();
             break;
 
         case 'factions:options':
-            SHAPES = (message.data && message.data.shapes) || [];
-            SYMBOLS = (message.data && message.data.symbols) || [];
+            SHAPES = liste(message.data && message.data.shapes);
+            SYMBOLS = liste(message.data && message.data.symbols);
             break;
 
         case 'factions:list':

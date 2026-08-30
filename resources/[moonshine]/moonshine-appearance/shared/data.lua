@@ -109,6 +109,29 @@ Appearance.EyeColours = 32
 
 --- Leeres Aussehen als Ausgangspunkt.
 ---@param gender string 'm' oder 'w'
+--- Das gespeicherte Aussehen eines Spielers, immer vollstaendig.
+---
+--- "player.appearance or Appearance.Default(...)" sah richtig aus und war
+--- es nicht: ein frischer Charakter hat appearance = {} in der Datenbank,
+--- und eine leere Tabelle ist in Lua wahr. Der Rueckfall griff also nie.
+---
+--- Die Oberflaeche bekam damit ein Aussehen ohne components, und der erste
+--- Klick auf ein Kleidungsstueck lief auf undefined["11"] - der Editor war
+--- fuer jeden neuen Charakter tot.
+---@param player table
+---@return table
+function Appearance.Of(player)
+    local vorhanden = player and player.appearance
+
+    if type(vorhanden) ~= 'table'
+        or type(vorhanden.components) ~= 'table'
+        or type(vorhanden.props) ~= 'table' then
+        return Appearance.Default(player and player.gender or 'm')
+    end
+
+    return vorhanden
+end
+
 function Appearance.Default(gender)
     local female = gender == 'w'
 

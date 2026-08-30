@@ -327,7 +327,7 @@ function renderDetail() {
         detail.querySelector('.stages-wrap').classList.remove('hidden');
         const stages = detail.querySelector('.stages');
 
-        node.ranks.forEach((rank) => {
+        liste(node.ranks).forEach((rank) => {
             const row = document.createElement('div');
             row.className = 'stage-row'
                 + (rank.owned ? ' owned' : '')
@@ -602,7 +602,7 @@ function renderPersonalDetail() {
         detail.querySelector('.stages-wrap').classList.remove('hidden');
         const stages = detail.querySelector('.stages');
 
-        node.ranks.forEach((rank) => {
+        liste(node.ranks).forEach((rank) => {
             const row = document.createElement('div');
             row.className = 'stage-row'
                 + (rank.owned ? ' owned' : '')
@@ -876,7 +876,7 @@ function renderMerchant() {
     const list = $('merchant-list');
     list.innerHTML = '';
 
-    merchant.stones.forEach((stone) => {
+    liste(merchant.stones).forEach((stone) => {
         const row = document.createElement('div');
         row.className = 'merchant-row';
         row.innerHTML = `
@@ -1027,7 +1027,7 @@ window.addEventListener('message', (event) => {
 
         case 'mysticMerchantUpdate':
             $('merchant-money').textContent = number(data.money) + ' $';
-            merchant.stones.forEach((stone) => {
+            liste(merchant.stones).forEach((stone) => {
                 if (data.stones[stone.name] !== undefined) stone.count = data.stones[stone.name];
             });
             renderMerchant();

@@ -7,6 +7,16 @@ let data = null;
 
 const $ = (id) => document.getElementById(id);
 
+/** Eine Liste vom Server, verlaesslich als Feld.
+ *
+ * Lua kennt keinen Unterschied zwischen leerer Liste und leerer Tabelle -
+ * beides kommt hier als {} an, nicht als []. Der uebliche Schutz
+ * "x || []" greift dagegen nicht, weil {} wahr ist; das naechste forEach
+ * wirft dann. Auf einem frischen Server ist genau das der Normalfall.
+ */
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, payload) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -498,24 +508,24 @@ function zeichneTuningNav() {
 }
 
 function zeichneTuningListe() {
-    const liste = $('tuning-liste');
-    clear(liste);
+    const tuningListe = $('tuning-liste');
+    clear(tuningListe);
 
     const verfuegbar = data.verfuegbar || {};
     const katalog = data.katalog || {};
 
     if (reiter === 'leistung') {
-        liste(katalog.leistung).forEach((entry) => {
+        tuningListe(katalog.leistung).forEach((entry) => {
             const anzahl = verfuegbar[entry.id] || 0;
             if (anzahl > 0) {
-                liste.appendChild(teilZeile(entry, anzahl,
+                tuningListe.appendChild(teilZeile(entry, anzahl,
                     `bis ${money(entry.preise[entry.preise.length - 1])}`));
             }
         });
 
         const turbo = katalog.turbo;
         if (turbo) {
-            liste.appendChild(schalterZeile('Turbolader', turbo.preis,
+            tuningListe.appendChild(schalterZeile('Turbolader', turbo.preis,
                 stufeVon(turbo) > 0, [{ id: 1, label: 'Eingebaut' }],
                 1, (an) => {
                     wunsch.teile = wunsch.teile || {};
@@ -524,28 +534,28 @@ function zeichneTuningListe() {
                 }));
         }
 
-        if (!liste.firstChild) {
-            liste.appendChild(el('p', 'muted',
+        if (!tuningListe.firstChild) {
+            tuningListe.appendChild(el('p', 'muted',
                 'An diesem Fahrzeug lässt sich an der Leistung nichts machen.'));
         }
     } else if (reiter === 'optik') {
-        liste(katalog.optik).forEach((entry) => {
+        tuningListe(katalog.optik).forEach((entry) => {
             const anzahl = verfuegbar[entry.id] || 0;
-            if (anzahl > 0) liste.appendChild(teilZeile(entry, anzahl, money(entry.preis)));
+            if (anzahl > 0) tuningListe.appendChild(teilZeile(entry, anzahl, money(entry.preis)));
         });
 
-        if (!liste.firstChild) {
-            liste.appendChild(el('p', 'muted',
+        if (!tuningListe.firstChild) {
+            tuningListe.appendChild(el('p', 'muted',
                 'Für dieses Fahrzeug gibt es keine Anbauteile.'));
         }
     } else if (reiter === 'lack') {
-        liste.appendChild(lackZeile('Grundfarbe', 'primaer'));
-        liste.appendChild(lackZeile('Zweitfarbe', 'sekundaer'));
-        liste.appendChild(lackZeile('Perlmuttschimmer', 'perlmutt'));
-        liste.appendChild(lackZeile('Felgenfarbe', 'felgenfarbe'));
+        tuningListe.appendChild(lackZeile('Grundfarbe', 'primaer'));
+        tuningListe.appendChild(lackZeile('Zweitfarbe', 'sekundaer'));
+        tuningListe.appendChild(lackZeile('Perlmuttschimmer', 'perlmutt'));
+        tuningListe.appendChild(lackZeile('Felgenfarbe', 'felgenfarbe'));
     } else if (reiter === 'licht') {
         const xenon = wunsch.xenon || data.mods.xenon || {};
-        liste.appendChild(schalterZeile('Xenon-Scheinwerfer',
+        tuningListe.appendChild(schalterZeile('Xenon-Scheinwerfer',
             katalog.preise.xenon, xenon.an === true,
             katalog.xenon || [], xenon.farbe,
             (an, id) => {
@@ -554,7 +564,7 @@ function zeichneTuningListe() {
             }));
 
         const neon = wunsch.neon || data.mods.neon || {};
-        liste.appendChild(schalterZeile('Neonbeleuchtung',
+        tuningListe.appendChild(schalterZeile('Neonbeleuchtung',
             katalog.preise.neon, neon.an === true,
             katalog.neon || [], neon.id,
             (an, id) => {
@@ -569,7 +579,7 @@ function zeichneTuningListe() {
         folienBox.appendChild(folienKopf);
 
         const folienReihe = el('div', 'stufen');
-        liste(katalog.folien).forEach((eintrag) => {
+        tuningListe(katalog.folien).forEach((eintrag) => {
             const knopf = el('button',
                 `stufe${eintrag.id === folie ? ' gewaehlt' : ''}`,
                 `${eintrag.label}${eintrag.preis > 0 ? ` · ${money(eintrag.preis)}` : ''}`);
@@ -582,10 +592,10 @@ function zeichneTuningListe() {
             folienReihe.appendChild(knopf);
         });
         folienBox.appendChild(folienReihe);
-        liste.appendChild(folienBox);
+        tuningListe.appendChild(folienBox);
 
         const rauch = wunsch.rauch || data.mods.rauch || {};
-        liste.appendChild(schalterZeile('Reifenrauch',
+        tuningListe.appendChild(schalterZeile('Reifenrauch',
             katalog.preise.rauch, rauch.an === true,
             katalog.neon || [], rauch.id,
             (an, id) => {

@@ -179,3 +179,24 @@ Indizes zuweisen.
 
 `ms_outfits`. Das Aussehen selbst liegt in `ms_characters.appearance` — dort,
 wo es von Anfang an vorgesehen war.
+
+## Frische Charaktere
+
+Ein neu erstellter Charakter hat `appearance = {}` in der Datenbank — keine
+`components`, keine `props`. Der Rueckfall dafuer stand an vier Stellen als
+
+```lua
+local appearance = player.appearance or Appearance.Default(player.gender)
+```
+
+und griff nie: **eine leere Tabelle ist in Lua wahr.** Die Oberflaeche bekam
+damit ein Aussehen ohne `components`, und der erste Klick auf ein
+Kleidungsstueck lief auf `undefined["11"]` — der Editor war fuer jeden neuen
+Charakter tot.
+
+Dafuer gibt es jetzt `Appearance.Of(player)`. Sie prueft den Inhalt, nicht
+nur auf `nil`, und liefert immer ein vollstaendiges Aussehen. Die Oberflaeche
+sichert sich zusaetzlich selbst ab.
+
+Gefunden hat das `node tools/vorschau/laden.js` — die Vorschau laedt den
+Editor mit genau dem Aussehen, das ein frischer Charakter mitbringt.

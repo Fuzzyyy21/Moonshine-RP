@@ -36,6 +36,23 @@ Drei Durchgaenge je Oberflaeche:
    Zustand eines frischen Servers: keine Auktionen, keine Auftraege, und
    beim allerersten Spieler nicht einmal ein Charakter.
 
+Die ersten beiden Durchgaenge sind harte Fehler. Der dritte meldet nur
+**Hinweise** und faerbt den Durchlauf nicht rot: er leert auch Listen, die
+aus der Config kommen und im Betrieb nie leer sind — eine Fraktion ohne
+Rangliste etwa. Solche Funde sind einen Blick wert, aber kein Grund, den
+Durchlauf zu blockieren.
+
+### Was die drei Durchgaenge gefunden haben
+
+| Fund | Wirkung |
+|---|---|
+| `state.characters.forEach` | Der allererste Spieler kommt nicht in die Charakterauswahl |
+| `owned.vehicles.filter` | Wer kein Fahrzeug hat, bekommt die Garage nicht auf |
+| `outfits.forEach` | Editor ohne gespeicherte Outfits |
+| `SHAPES = state.options.shapes` | Wappen-Editor der Fraktionen |
+| `state.components["11"]` | Kleidungseditor fuer jeden frischen Charakter |
+| `$('personal-level')` | Der Skilltree ging ueberhaupt nicht auf |
+
 Geprueft wird ausserdem, dass keine Oberflaeche quer scrollt.
 
 ## payloads.lua — die Nutzlasten

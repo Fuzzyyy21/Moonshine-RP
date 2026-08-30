@@ -9,6 +9,9 @@ let reiter = 'info';
 
 const $ = (id) => document.getElementById(id);
 
+const liste = (wert) => (Array.isArray(wert) ? wert : []);
+
+
 function post(name, payload) {
     return fetch(`https://${RESOURCE}/${name}`, {
         method: 'POST',
@@ -189,7 +192,7 @@ function lagerZeichnen() {
         return;
     }
 
-    lager.entries.forEach((entry) => {
+    liste(lager.entries).forEach((entry) => {
         const zeile = el('div', 'posten');
         zeile.appendChild(el('span', 'posten-name', entry.label));
         zeile.appendChild(el('span', 'posten-zahl', `×${entry.count}`));
