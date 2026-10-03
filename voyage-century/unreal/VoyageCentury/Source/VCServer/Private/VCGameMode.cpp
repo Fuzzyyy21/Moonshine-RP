@@ -277,6 +277,11 @@ void AVCGameMode::SaveAllPlayers()
 
 void AVCGameMode::DisconnectTimedOutPlayers()
 {
+	if (!IsAuthRequired())
+	{
+		// PIE ohne Backend: niemand wird authentifiziert, also auch niemand wegen Zeitüberschreitung getrennt.
+		return;
+	}
 	const double Now = GetWorld()->GetTimeSeconds();
 	const double Timeout = GetDefault<UVCServerSettings>()->AuthTimeoutSeconds;
 	TArray<APlayerController*> Expired;
