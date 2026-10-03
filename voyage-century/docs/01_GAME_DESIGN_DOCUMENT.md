@@ -1,0 +1,276 @@
+# Game Design Document
+
+Stand: 2026-10-03 · Phase 0 · Version 0.1
+
+## Lesehilfe
+
+Jedes System hat drei Teile:
+
+* **Original** – Befunde aus der Reconstruction Database mit ID und Confidence.
+  Nur das ist Rekonstruktion.
+* **Design** – wie wir das System bauen. Alles hier ohne Original-ID ist eine
+  eigene Designentscheidung (Quellen-Priorität 6) und als `[DESIGN]` markiert.
+* **Offen** – unbekannte Punkte. Sie werden nicht erfunden, sondern als leere
+  Datenfelder (NULL / UNKNOWN) gebaut und später befüllt.
+
+Grundsatz: **Spielwerte stehen nie im Code.** Sie kommen aus Data Tables, die
+aus der Reconstruction Database erzeugt werden. Fehlt ein Wert, ist die
+Funktion gesperrt statt mit einer Fantasiezahl aktiv.
+
+---
+
+## 1. Spielkern
+
+Ein Spieler ist Kapitän und Landkämpfer zugleich. Die Progression läuft auf
+mehreren getrennten Achsen, die sich gegenseitig freischalten:
+
+```
+Berufsstufe (Level) ──► Ausrüstung, Gebiete, Quests
+17 Skills (je 1–120, Summe ≤ 1700) ──► Fähigkeiten, Schiffstypen, Crafting
+Militärrang ──► UNKNOWN
+Schiff: Schiffsstufe + Umbaustufe + 3 Schiffs-Skills ──► Seekampf, Handel, Erkundung
+Offiziere ──► Schiffsboni (UNKNOWN)
+Gilde ──► Städtebesitz, Belagerung
+```
+
+Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKELY, `SYS-MILITARY-RANK` UNCERTAIN.
+
+---
+
+## 2. Charakter
+
+**Original**
+* Fünf Berufe mit Land- und See-Spezialisierung (`PROF-*`, vier LIKELY, Schatzjäger UNCERTAIN).
+* HP und SP (Stamina) als Ressourcen; +10 HP / +5 SP pro Stufe in der intl. Version (`LVL-PER-LEVEL-BONUS` UNCERTAIN).
+* Berufswechsel möglich (`SYS-PROFESSION-CHANGE` UNCERTAIN).
+
+**Design**
+* Datenfelder wie im Master-Prompt (CharacterID … Guild), Umsetzung siehe [03_DATA_MODEL.md](03_DATA_MODEL.md).
+* Charaktererstellung: Geschlecht, Gesicht, Haare, Haarfarbe, Haut, Körper, Startkleidung, Name, **Beruf**. `[DESIGN]` Erscheinungsbild als Parameter-Set (`appearance` JSON), damit neue Optionen ohne Migration dazukommen.
+* Attribute: als offene Schlüssel-Wert-Liste modelliert, weil die Originalattribute UNKNOWN sind. `[DESIGN]`
+* Beruf bestimmt nur **Spezialisierungsboni**, keine harten Sperren, bis das Original geklärt ist. `[DESIGN]`
+* Später: Outfits, Kosmetik, Titel, Pets, Reittiere (Prioritätsstufe 13).
+
+**Offen**: Attributnamen, Startwerte, Startort je Beruf, Kosten des Berufswechsels.
+
+---
+
+## 3. Levelsystem
+
+**Original**: Cap 160 ab 2011 (LIKELY), ≥ 168 später (LIKELY), 230 nur als Indiz (UNCERTAIN). XP-Kurve UNKNOWN.
+
+**Design**
+* Das Cap ist **kein Code-Wert**: die höchste Stufe mit gesetztem `xp_required` in `level_table` ist das Cap.
+* Bänder aus dem Master-Prompt (1–30 … 221–230) werden als **Content-Bänder** für Gebiete, Gegner und Ausrüstung genutzt. `[DESIGN]`
+* Solange die XP-Kurve fehlt, gibt es für Entwicklung und Tests eine **klar markierte Test-Kurve** in einer separaten Data Table `DT_LevelCurve_DEV`, die im Shipping-Build nicht geladen werden darf. `[DESIGN]`
+
+**Offen**: echte XP-Tabelle, aktuelles Cap, Boni pro Stufe in der CN-Version.
+
+---
+
+## 4. Skills
+
+**Original**
+* 17 Skills, 4 Kategorien, Stufen 31 / 100 / 120, Summe ≤ 1700 (alle LIKELY).
+* Navigation beeinflusst nutzbare Schiffstypen und Spezialfähigkeiten.
+* Seekampf-Zweige aus den Berufstexten: Kanonen (nah/fern), Entern, Enterhaken, Rammen, Minen, Reparatur, Verstärkung, Matrosen heilen.
+
+**Design**
+* Skill-XP durch **Benutzung** (Kampf mit Schwert erhöht Schwert usw.). `[DESIGN]` – Original-Mechanik UNKNOWN, Annahme muss geprüft werden.
+* Stufenaufstieg 31 → 32 und 100 → 101 erfordert eine **Beförderung** (Quest oder NPC). Bedingungen kommen aus `skill_stages.promotion_requirements`; bis zur Klärung ist die Beförderung gesperrt.
+* Gesamtcap 1700 wird serverseitig geprüft; Spieler können Skills **senken**, um Punkte umzuverteilen. `[DESIGN]`
+* Fähigkeiten (aktiv/passiv) sind GAS-Abilities, die über `abilities.required_skill_level` freigeschaltet werden.
+* UI-Gruppierung Kampf / Seefahrt / Berufe wie im Master-Prompt, Datenkategorie bleibt original (`CONTRA-005`).
+
+**Offen**: chinesische Skillnamen für 12 von 17 Skills, XP-Gewinn je Aktion, Liste der Fähigkeiten pro Skill, Beförderungsbedingungen.
+
+---
+
+## 5. Landkampf
+
+**Original**: Waffenklassen Schwert, Klinge, Axt, Schusswaffe, Unbewaffnet (über Skills LIKELY). Schwere Rüstung beim Gardisten. Heilung und Support beim Händler. Kampfmodell (Tab-Target oder Action) **UNKNOWN**.
+
+**Design**
+* **Tab-Target mit Auto-Attack und Hotbar-Skills** als Ausgangsbasis `[DESIGN]` – passt zum MMO-Stil der Zeit, muss per Video bestätigt werden. Die Architektur (GAS) trägt auch Action-Kampf.
+* Schadensformel serverseitig in einer Gameplay Effect Execution; alle Koeffizienten aus Data Tables.
+* Kritische Treffer, Block, Ausweichen als Attribute im AttributeSet; Buffs, Debuffs, Statuseffekte als Gameplay Effects mit Gameplay Tags.
+* Waffen: Damage, Attack Speed, Range, Animation (Montage-Referenz), Skills, Requirements, Durability – alles in `items` bzw. `DT_Weapons`.
+* NPC-KI: StateTree je Gegnerprofil (Patrouille, Aggro, Flucht, Rückkehr). Aggro-Liste serverseitig.
+* PvP und PvE nutzen dieselbe Pipeline; PvP-Regeln (Zonen, Strafen) siehe Abschnitt 17.
+
+**Offen**: Kampfmodell, Combo-System (im Original nicht belegt), Spezialwaffen.
+
+---
+
+## 6. Schiffe
+
+**Original**
+* Drei Klassen: Kriegsschiff, Erkundungsschiff, Handelsschiff (LIKELY).
+* Schiffe nur beim Werftmeister (LIKELY).
+* Drei Schiffs-Skills Bewaffnung / Mobilität / Struktur, steigen durch Kampf / Erkundung / Handel (intl., UNCERTAIN).
+* Schiffsstufen (10 + Anfänger + Sonderschiff, intl.) getrennt von Umbaustufen (1–14, CN) – `CONTRA-003`.
+* Alle Werte UNKNOWN (`SHIP-STATS`).
+
+**Design**
+* Schiffsvorlage = Zeile in `ships` / `DT_Ships` mit allen Feldern aus dem Master-Prompt; jedes Feld darf NULL sein.
+* Ein Schiff mit NULL in einem **bewegungsrelevanten** Feld (Speed, Turning, HullHP) kann nicht ausgegeben werden. So wird nie mit erfundenen Werten gespielt.
+* Schiffs-Instanz trägt Rumpf-HP, Segel-HP, Matrosen (gesund/verletzt), Proviant, Umbaurichtung und -stufe sowie XP der drei Schiffs-Skills.
+
+**Offen**: alle Schiffsnamen und Werte, Bedingungen für den Schiffsstufen-Aufstieg.
+
+---
+
+## 7. Segeln und Navigation
+
+**Original**: nicht belegt. Belegt ist nur: Matrosenzahl beeinflusst Tempo, Galionsfigur „Wind“ erhöht Tempo, Mobilitäts-Umbau erhöht Vortrieb.
+
+**Design** `[DESIGN]`
+* Eigenes, serverautoritatives Bewegungsmodell (kein Chaos-Rigid-Body für die Fahrt):
+  `Zielgeschwindigkeit = BaseSpeed × Segelstellung × Windfaktor(Kurs zum Wind) × Matrosenfaktor × Zustandsfaktor`
+  Beschleunigung und Drehrate begrenzen den Weg zur Zielgeschwindigkeit.
+* Wind: globales, langsam veränderliches Windfeld pro Seegebiet (Richtung, Stärke), vom Server repliziert.
+* Strömung: Vektorfeld je Region, addiert sich zur Fahrt.
+* Wellen und Wetter: visuell (Water-Plugin, Niagara) plus ein serverseitiger Wetterzustand, der Sicht und Tempo beeinflussen kann.
+* Steuerung: Ruder links/rechts, Segelstufen (z. B. 0 / ¼ / ½ / voll), Anker.
+* Alle Faktoren als Kurven in Data Assets, damit sie nach Videoanalyse an das Original angepasst werden können.
+
+**Offen**: Gibt es im Original Wind? Wie war die Steuerung? Wie stark wirkte Matrosenzahl?
+
+---
+
+## 8. Seekampf
+
+**Original**: Kanonen nah/fern, Entern, Enterhaken, Rammen, Minen, Reparatur, Verstärkung, Matrosen heilen (LIKELY). Kanonen sind stufige Ausrüstung (`SHIP-CANNON-LEVELS` UNCERTAIN). Seeschlachten mit sehr vielen Schiffen (LIKELY). Schadensmodell UNKNOWN.
+
+**Design**
+* Breitseiten: Kanonen sitzen in Slots links/rechts/Bug/Heck; Feuern nur im Schusswinkel des Slots. `[DESIGN]`
+* Projektile: serverseitig ballistisch simuliert (wenige Schüsse pro Sekunde, daher günstig); Client zeigt kosmetische Kugeln mit Vorhersage.
+* Schadenskanäle: Rumpf, Segel, Matrosen; optional Feuer und Leck als Dauer-Effekte. Welche Kanäle das Original hatte, ist UNKNOWN – alle sind einzeln abschaltbar.
+* Entern: ab Nähe X und Tempo < Y Übergang in einen Boarding-Kampf, Ausgang über Matrosenzahl, Entern-Skill und Offiziere. Werte UNKNOWN.
+* Reparatur: auf See mit Material (Fähigkeit), im Hafen gegen Gold (Gold-Senke).
+* Flucht: Kampf endet, wenn Abstand > Kampfradius für Z Sekunden.
+* Untergang: Schiff sinkt, Spieler respawnt im Hafen; Verlustregeln UNKNOWN.
+
+---
+
+## 9. Crew und Offiziere
+
+**Original**: Matrosen mit Zuständen (UNCERTAIN), Proviant (UNCERTAIN), Offiziere über **Offizierskarten** mit Tauschhändler in London (UNCERTAIN). Rollen und Werte UNKNOWN.
+
+**Design**
+* Offiziere als Vorlage (`officers`) + Instanz (`officer_instances`), Karte = Item, das eine Instanz erzeugt.
+* Rollenliste aus dem Master-Prompt (Captain, Navigator, Gunner …) nur als **Platzhalter**; Feld `role` ist frei, bis das Original geklärt ist. `[DESIGN]`
+* Matrosen: anwerben in Taverne, verletzt → heilen mit Medizin oder im Hafen, tot → neu anwerben.
+
+---
+
+## 10. Schiffs-Upgrades
+
+**Original**
+* Umbau in drei Richtungen, Stufen 1–14, an bestimmte Städte gebunden (LIKELY/UNCERTAIN).
+* Galionsfiguren Wasser/Feuer/Wind (LIKELY), Verfeinerung von Galionsfiguren (UNCERTAIN).
+* Schiffspanzerung aus dem Schiffbau-Skill (LIKELY).
+
+**Design**
+* Die Kette aus dem Master-Prompt wird auf das Original abgebildet:
+  `Base Ship → Umbau 1–n → Galionsfigur + Panzerung + Kanonen → hohe Umbaustufen → Endgame-Schiff`.
+* Umbau ist eine einmal gewählte Richtung pro Schiff (`mod_direction`). Ob das Original einen Richtungswechsel erlaubt, ist UNKNOWN.
+* Module (Rumpf, Segel, Kanonen, Panzerung, Steuerung, Frachtraum, Crew, Spezial) als Ausrüstungsslots am Schiff.
+
+---
+
+## 11. Offene Welt
+
+**Original**: reale Weltkarte, fünf Kontinente, sieben Meere; Städte siehe `CITY-*`. Übergang Land/See UNKNOWN.
+
+**Design**
+* Hierarchie Kontinent → Region → Stadt / Hafen / Insel / Dungeon / Ruine / Spezialgebiet.
+* Technisch: jedes Seegebiet ist eine eigene Server-Zone, Städte sind eigene Zonen, Dungeons sind Instanzen (siehe [02_TECHNICAL_ARCHITECTURE.md](02_TECHNICAL_ARCHITECTURE.md)).
+* Maßstab der Karte: verkleinerte reale Geografie; Faktor ist eine offene Designfrage, abhängig von Reisezeiten im Original.
+
+---
+
+## 12. Städte und Häfen
+
+**Original**: Werftmeister, Hafenarbeiter, Offizierskarten-Tauscher, Schiffsumbau in festen Städten.
+
+**Design**: jeder Hafen bekommt Dienste als Flags (`ports.has_*`) und NPCs mit Rolle (`npcs.npc_role`). Regionale Wirtschaftsunterschiede über Warenangebot und Preise je Hafen (`markets`).
+
+---
+
+## 13. Handel und Wirtschaft
+
+**Original**: Handel existiert, Rhetorik ist Handels-Skill, Handelsschiffe steigen durch Handel auf (LIKELY). Preismodell, Waren, Steuern UNKNOWN.
+
+**Design** `[DESIGN]`
+* Preis je Ware und Hafen:
+  `Preis = BasePrice × f(Supply, Demand) × Regionsfaktor × Eventfaktor × (1 ± Rhetorik-Bonus) × (1 + Steuer)`
+  Supply und Demand erholen sich zeitbasiert zum Gleichgewicht; Spielerkäufe und -verkäufe verschieben sie.
+* Alles serverseitig; Clients sehen nur Preise.
+* Währungen: Gold, Premium, Gilde, Event. Nur Gold ist zwischen Spielern handelbar.
+* **Inflationskontrolle**: jede Gold-Bewegung landet im `currency_ledger` mit Kennzeichnung SOURCE/SINK. Ein Dashboard vergleicht täglich Quellen und Senken.
+* Gold-Senken: Reparaturen, Steuern, Crafting-Gebühren, Schiffskauf, Umbau, Marktgebühren, Matrosenlohn, Proviant.
+* Auktionshaus mit Einstellgebühr und Verkaufssteuer.
+
+---
+
+## 14. Crafting und Berufe
+
+**Original**: Sammel-Skills (Bergbau, Holz, Landwirtschaft, Fischen), Herstellungs-Skills (Schmieden, Schneiderei, Alchemie, Schiffbau), Ausrüstungs-Synthese für Sets (LIKELY).
+
+**Design**: Rezepte mit RecipeID, RequiredSkill, RequiredLevel, Materials, Quantity, CraftTime, Result, Quality. Qualität als Zufallsverteilung, deren Parameter aus der Rezeptzeile kommen. Sammelpunkte als serverseitige Ressourcen-Spawner mit Respawn-Zeit.
+
+**Offen**: alle Rezepte, Materiallisten, Sammelorte.
+
+---
+
+## 15. Ausrüstung und Verfeinerung
+
+**Original**: Sets 148/150/155/168, Synthese, Sockel (bis 3), Verfeinerung mit Stein + Edelstein, Ausrüstung 155/160 (LIKELY/UNCERTAIN). Seltenheitsstufen UNKNOWN.
+
+**Design**
+* Item-Felder wie im Master-Prompt (ItemID, Level, Rarity, Stats, Requirements, Durability, Sockets, SetID, EnhancementLevel) plus RefinementLevel.
+* Verfeinerung, Sockeln, Set-Boni als **getrennte Module**, jeweils per Feature-Flag schaltbar. Enhancement für Ausrüstung bleibt aus, bis es im Original belegt ist (`SYS-ENHANCEMENT`).
+* Seltenheit Common … Endgame `[DESIGN]`, bis Originalstufen bekannt sind.
+* Haltbarkeit sinkt durch Kampf, Reparatur kostet Gold.
+
+---
+
+## 16. Quests, Exploration, Dungeons
+
+**Original**: Hauptquest bis ca. 160 mit Rückkehr nach England, Folgequests in Quanzhou, Militärrang durch Hauptquest, 海灵之石-Questgegenstände (UNCERTAIN). Dungeons 波托洛维海湾 (See), 暴风岛, 黄金塔.
+
+**Design**
+* Questtypen wie im Master-Prompt; Questdaten mit QuestID, Title, Description, NPC, Objectives, Requirements, Rewards, NextQuest, Unlocks.
+* Questfortschritt wird nur vom Server über Gameplay-Events (Kill, Collect, Reach …) erhöht.
+* Exploration: Entdeckungspunkte (Inseln, Ruinen, Wracks) als Trigger-Volumen; Schatzkarten als Item mit Zielkoordinate; Entdeckungen geben Erkundungsschiff-XP.
+* Dungeons als eigene Server-Instanzen (Land und See). Raids und Weltbosse nur, wenn im Original belegt oder hier bewusst als neu markiert.
+
+---
+
+## 17. Piraten, Gilden, PvP
+
+**Original**: Karibik-Pirat als Beruf; Gilden mit Banner, Städtekauf und -besetzung; Stadtbelagerung; große Seeschlachten; Gildenquests (LIKELY). Regeln UNKNOWN.
+
+**Design**
+* Piraten-NPC-Fraktionen mit Flotten, Lagern und Missionen; Kopfgelder (`bounties`) auf NPCs und Spieler mit hoher `infamy`.
+* Gilden: Gründung, Ränge mit Rechten, Einladungen, Gildenchat, Gildenlager, Gildenlevel, Gildenskills, Gildenmissionen.
+* Territorium: Stadt kann von einer Gilde besessen werden (`territories`), Besitzer erhält Steueranteil und Verwaltungsrechte.
+* Belagerung: geplanter Kampf (`territory_wars`) mit Land- und Seephase. Ablauf UNKNOWN, Phase 7.
+* PvP-Zonen: sicher (Häfen), umkämpft (Seegebiete mit Regeln je Region), frei (bestimmte Gewässer). Zuordnung `[DESIGN]`.
+
+---
+
+## 18. UI/UX
+
+**Original**: Layout nur über Screenshots rekonstruierbar – derzeit **UNKNOWN**.
+
+**Design**: HUD mit Minimap, Kompass, Status, Quest-Tracker, Chat, Hotbar, XP-Leiste, Schiffsstatus, Benachrichtigungen. Fenster wie im Master-Prompt. Umsetzung mit UMG + CommonUI, Fenster als eigenständige Widgets mit eigenem ViewModel (MVVM), damit das Layout nach der Screenshot-Analyse umgebaut werden kann, ohne Logik anzufassen.
+
+---
+
+## 19. Events, Chat, Admin
+
+* **Events**: serverseitiger Scheduler, Eventtypen aus `events.event_type`, Konfiguration in JSON.
+* **Chat**: Kanäle Local, World, Trade, Guild, Party, Whisper, System, Combat; Moderation mit Mute, Ignore, Report, Log, Admin-Kontrolle.
+* **Admin**: `/give /item /setlevel /teleport /spawn /kick /ban /mute /announce /event /setmoney /setskill`; jedes Kommando schreibt genau eine Zeile in `admin_audit_log` (append-only, per Trigger erzwungen).

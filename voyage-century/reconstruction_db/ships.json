@@ -1,0 +1,225 @@
+{
+  "_comment": "Schiffe, Schiffsumbau, Galionsfiguren, Matrosen. Konkrete Schiffsnamen und Werte sind in keiner Quelle gesehen worden und stehen auf UNKNOWN.",
+  "records": [
+    {
+      "id": "SHIPCLASS-BATTLE",
+      "entity": "SHIP_CLASS",
+      "names": { "zh": "战船", "en": "Battle Ship", "de": "Kriegsschiff" },
+      "data": {
+        "profile": "meiste Kanonen, hält am meisten Schaden aus",
+        "mod_attribute_cn": "武装属性 (Bewaffnung): mehr Kanonenplätze",
+        "leveled_by": "Kämpfe gegen andere Schiffe auf Schlachtfeldern"
+      },
+      "sources": ["SRC-007", "SRC-010", "SRC-022"],
+      "confidence": "LIKELY",
+      "field_confidence": { "leveled_by": "UNCERTAIN" },
+      "notes": "Chinesische (战船, Umbau) und internationale (Battle Ship) Beschreibung passen zusammen. 'leveled_by' nur aus dem internationalen Wiki."
+    },
+    {
+      "id": "SHIPCLASS-RAIDER",
+      "entity": "SHIP_CLASS",
+      "names": { "zh": "探险船", "en": "Raider Ship", "de": "Erkundungsschiff" },
+      "data": {
+        "profile": "schnellstes Schiff, meiste Matrosen, stark beim Entern",
+        "mod_attribute_cn": "机动属性 (Mobilität): mehr Matrosen, Geschwindigkeit, Vortrieb",
+        "leveled_by": "Erkundung"
+      },
+      "sources": ["SRC-007", "SRC-010", "SRC-022"],
+      "confidence": "LIKELY",
+      "field_confidence": { "leveled_by": "UNCERTAIN" },
+      "notes": "CN-Name heißt wörtlich 'Expeditionsschiff', international 'Raider'."
+    },
+    {
+      "id": "SHIPCLASS-MERCHANT",
+      "entity": "SHIP_CLASS",
+      "names": { "zh": "商船", "en": "Merchant Ship", "de": "Handelsschiff" },
+      "data": {
+        "profile": "langsamstes Schiff, schwach im PvP, größte Ladekapazität",
+        "mod_attribute_cn": "构造属性 (Struktur): mehr Haltbarkeit und Ladung",
+        "leveled_by": "Handel"
+      },
+      "sources": ["SRC-007", "SRC-010", "SRC-022"],
+      "confidence": "LIKELY",
+      "field_confidence": { "leveled_by": "UNCERTAIN" },
+      "notes": ""
+    },
+    {
+      "id": "SHIP-TIERS-INTL",
+      "entity": "MECHANIC",
+      "names": { "zh": "UNKNOWN", "en": "Ship levels", "de": "Schiffsstufen" },
+      "data": {
+        "levels": 10,
+        "special_ships": ["Anfängerschiff", "Dragon Head Gunboat"],
+        "ship_names_per_level": "UNKNOWN",
+        "upgrade_rule": "Für eine höhere Schiffsstufe müssen die drei Schiffs-Skills bestimmte Stufen erreichen"
+      },
+      "sources": ["SRC-022"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": { "ship_names_per_level": "UNKNOWN" },
+      "notes": "Nur internationales Community-Wiki. Verhältnis zu den 14 Umbaustufen der CN-Version ungeklärt (CONTRA-003)."
+    },
+    {
+      "id": "SHIP-SKILLS",
+      "entity": "MECHANIC",
+      "names": { "zh": "武装 / 机动 / 构造", "en": "Military Equipment / Maneuverability / Structure", "de": "Bewaffnung / Mobilität / Struktur" },
+      "data": {
+        "skills": ["Military Equipment", "Maneuverability", "Structure"],
+        "mapping_cn": { "Military Equipment": "武装属性", "Maneuverability": "机动属性", "Structure": "构造属性" }
+      },
+      "sources": ["SRC-010", "SRC-022"],
+      "confidence": "LIKELY",
+      "field_confidence": { "mapping_cn": "UNCERTAIN" },
+      "notes": "Jedes Schiff hat drei Schiffs-Skills (international). Die Zuordnung zu den drei CN-Umbauattributen ist eine naheliegende, aber nicht belegte Gleichsetzung."
+    },
+    {
+      "id": "SHIP-ACQUISITION",
+      "entity": "MECHANIC",
+      "names": { "zh": "船老板", "en": "Shipyard Boss", "de": "Werftmeister" },
+      "data": { "rule": "Schiffe werden nur vom NPC 'Shipyard Boss' gebaut/verkauft; Spieler können keine Schiffe herstellen", "also_does": "Schiffsumbau" },
+      "sources": ["SRC-010", "SRC-022"],
+      "confidence": "LIKELY",
+      "field_confidence": {},
+      "notes": "CN: Umbau beim 船老板. International: Schiffe nur über Shipyard Boss."
+    },
+    {
+      "id": "SHIP-STATS",
+      "entity": "SHIP",
+      "names": { "zh": "UNKNOWN", "en": "UNKNOWN", "de": "Platzhalter für Einzelschiffe" },
+      "data": {
+        "ship_id": "UNKNOWN", "name": "UNKNOWN", "class": "UNKNOWN", "level": "UNKNOWN",
+        "hull_hp": "UNKNOWN", "armor": "UNKNOWN", "speed": "UNKNOWN", "acceleration": "UNKNOWN",
+        "turning": "UNKNOWN", "cargo_capacity": "UNKNOWN", "crew_capacity": "UNKNOWN",
+        "cannons": "UNKNOWN", "cannon_range": "UNKNOWN", "reload_time": "UNKNOWN",
+        "sail_power": "UNKNOWN", "wind_efficiency": "UNKNOWN", "cost": "UNKNOWN",
+        "requirements": "UNKNOWN", "upgrade_slots": "UNKNOWN"
+      },
+      "sources": [],
+      "confidence": "UNKNOWN",
+      "field_confidence": {},
+      "notes": "Vorlage. Einzelschiffe werden erst aus SRC-002 (direkt gelesen), Screenshots oder Clientdaten angelegt. Ob das Original Werte wie Beschleunigung oder Windeffizienz überhaupt kennt, ist UNKNOWN."
+    },
+    {
+      "id": "SHIPMOD-SYSTEM",
+      "entity": "MECHANIC",
+      "names": { "zh": "船只改造", "en": "Ship modification", "de": "Schiffsumbau" },
+      "data": {
+        "directions": ["战船 (Bewaffnung)", "探险船 (Mobilität)", "商船 (Struktur)"],
+        "requirements": ["Stufe", "Materialien", "Geld"],
+        "cost_scaling": "steigt mit der Umbaustufe",
+        "tiers": "1 bis 14",
+        "npc": "船老板",
+        "tier_values": "UNKNOWN"
+      },
+      "sources": ["SRC-002", "SRC-007", "SRC-010"],
+      "confidence": "LIKELY",
+      "field_confidence": { "tiers": "UNCERTAIN", "tier_values": "UNKNOWN" },
+      "notes": "Jede höhere Umbaustufe verbessert die Schiffswerte 'deutlich'. Konkrete Werte, Materialien und Kosten UNKNOWN."
+    },
+    { "id": "SHIPMOD-T01", "entity": "SHIP_MOD_TIER", "names": { "zh": "1级改造", "en": "Modification tier 1", "de": "Umbaustufe 1" },
+      "data": { "tier": 1, "cities": ["CITY-ATHENS"], "cost": "UNKNOWN", "materials": "UNKNOWN", "level_req": "UNKNOWN" },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {},
+      "notes": "Stand 2005. Spätere Verlegungen möglich." },
+    { "id": "SHIPMOD-T02", "entity": "SHIP_MOD_TIER", "names": { "zh": "2级改造", "en": "Modification tier 2", "de": "Umbaustufe 2" },
+      "data": { "tier": 2, "cities": ["CITY-GENOA"], "cost": "UNKNOWN", "materials": "UNKNOWN", "level_req": "UNKNOWN" },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "" },
+    { "id": "SHIPMOD-T03_04", "entity": "SHIP_MOD_TIER", "names": { "zh": "3-4级改造", "en": "Modification tiers 3-4", "de": "Umbaustufen 3-4" },
+      "data": { "tier_from": 3, "tier_to": 4, "cities": ["CITY-ALGIERS"], "cost": "UNKNOWN", "materials": "UNKNOWN", "level_req": "UNKNOWN" },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "" },
+    { "id": "SHIPMOD-T05_06", "entity": "SHIP_MOD_TIER", "names": { "zh": "5-6级改造", "en": "Modification tiers 5-6", "de": "Umbaustufen 5-6" },
+      "data": { "tier_from": 5, "tier_to": 6, "cities": ["CITY-SEVILLE"], "cost": "UNKNOWN", "materials": "UNKNOWN", "level_req": "UNKNOWN" },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "" },
+    { "id": "SHIPMOD-T07_08", "entity": "SHIP_MOD_TIER", "names": { "zh": "7-8级改造", "en": "Modification tiers 7-8", "de": "Umbaustufen 7-8" },
+      "data": { "tier_from": 7, "tier_to": 8, "cities": ["CITY-HAMBURG"], "cost": "UNKNOWN", "materials": "UNKNOWN", "level_req": "UNKNOWN" },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "" },
+    { "id": "SHIPMOD-T09", "entity": "SHIP_MOD_TIER", "names": { "zh": "9级改造", "en": "Modification tier 9", "de": "Umbaustufe 9" },
+      "data": { "tier": 9, "cities": ["CITY-MUSCAT"], "cost": "UNKNOWN", "materials": "UNKNOWN", "level_req": "UNKNOWN" },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "" },
+    { "id": "SHIPMOD-T10", "entity": "SHIP_MOD_TIER", "names": { "zh": "10级改造", "en": "Modification tier 10", "de": "Umbaustufe 10" },
+      "data": { "tier": 10, "cities": ["CITY-ZHIGU", "CITY-SEOUL"], "cost": "UNKNOWN", "materials": "UNKNOWN", "level_req": "UNKNOWN" },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "" },
+    { "id": "SHIPMOD-T11_14", "entity": "SHIP_MOD_TIER", "names": { "zh": "UNKNOWN", "en": "Modification tiers 11-14", "de": "Umbaustufen 11-14" },
+      "data": { "tier_from": 11, "tier_to": 14, "cities": "UNKNOWN", "cost": "UNKNOWN", "materials": "UNKNOWN", "level_req": "UNKNOWN" },
+      "sources": ["SRC-002"], "confidence": "UNCERTAIN", "field_confidence": { "cities": "UNKNOWN" },
+      "notes": "Existenz nur über die Angabe 'Umbau 1 bis 14' bekannt." },
+    {
+      "id": "FIGUREHEAD-SYSTEM",
+      "entity": "MECHANIC",
+      "names": { "zh": "船首像", "en": "Figurehead", "de": "Galionsfigur" },
+      "data": {
+        "types": [
+          { "element": "水 (Wasser)", "bonus": "Haltbarkeit und Ladekapazität" },
+          { "element": "火 (Feuer)", "bonus": "Kanonenplätze" },
+          { "element": "风 (Wind)", "bonus": "Geschwindigkeit und Matrosenkapazität" }
+        ],
+        "produced_by": "SKILL-SHIPBUILDING",
+        "bonus_values": "UNKNOWN"
+      },
+      "sources": ["SRC-003", "SRC-022"],
+      "confidence": "LIKELY",
+      "field_confidence": { "bonus_values": "UNKNOWN" },
+      "notes": "Die drei Elemente spiegeln die drei Umbaurichtungen (Struktur / Bewaffnung / Mobilität)."
+    },
+    {
+      "id": "FIGUREHEAD-REFINE",
+      "entity": "MECHANIC",
+      "names": { "zh": "船头精炼", "en": "UNKNOWN", "de": "Galionsfigur verfeinern" },
+      "data": {
+        "observations": ["Verfeinerung mit Steinen, z. B. 暴焰石 'Kanonenplätze bis 400', 暴烈石 'bis 600'"],
+        "meaning_of_numbers": "UNKNOWN"
+      },
+      "sources": ["SRC-005"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": { "meaning_of_numbers": "UNKNOWN" },
+      "notes": "Zahlen 400/600 sind ohne Kontext nicht interpretierbar (Attributwert? Prozent? Grenze?). Nicht verwenden, bevor die Quelle direkt gelesen wurde."
+    },
+    {
+      "id": "SAILOR-SYSTEM",
+      "entity": "MECHANIC",
+      "names": { "zh": "水手", "en": "Sailors", "de": "Matrosen" },
+      "data": {
+        "states": ["gesund", "verletzt", "tot"],
+        "healing": ["Medizin-Kits", "Hafenarbeiter-NPC"],
+        "tradeoff": "mehr Matrosen = mehr Geschwindigkeit, aber mehr Proviantverbrauch",
+        "community_advice": "etwa die Hälfte der Maximalkapazität anheuern",
+        "recruitment_cost": "UNKNOWN"
+      },
+      "sources": ["SRC-003"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": { "recruitment_cost": "UNKNOWN" },
+      "notes": "Offizielle FAQ als wahrscheinliche Quelle, Zuordnung im Suchauszug nicht eindeutig. Der Proviant ist damit indirekt belegt (siehe SYS-PROVISIONS)."
+    },
+    {
+      "id": "SYS-PROVISIONS",
+      "entity": "MECHANIC",
+      "names": { "zh": "UNKNOWN", "en": "Provisions", "de": "Proviant" },
+      "data": { "consumed_by": "Matrosen", "effect_when_empty": "UNKNOWN" },
+      "sources": ["SRC-003"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": { "effect_when_empty": "UNKNOWN" },
+      "notes": "Nur indirekt aus dem Matrosen-Tipp abgeleitet."
+    },
+    {
+      "id": "SHIP-SPECIAL-ABILITIES",
+      "entity": "MECHANIC",
+      "names": { "zh": "UNKNOWN", "en": "Naval abilities", "de": "Seekampf-Fähigkeiten" },
+      "data": {
+        "observed": ["Kanonen (Nah/Fern)", "Entern", "Enterhaken", "Rammen", "Minen", "Reparatur", "Schiffsverstärkung", "Matrosen heilen"],
+        "damage_model": "UNKNOWN"
+      },
+      "sources": ["SRC-004", "SRC-006"],
+      "confidence": "LIKELY",
+      "field_confidence": { "damage_model": "UNKNOWN" },
+      "notes": "Aus den Berufsbeschreibungen. Ob es Segelschaden, Feuer oder Lecks gibt, ist UNKNOWN."
+    },
+    {
+      "id": "SHIP-CANNON-LEVELS",
+      "entity": "MECHANIC",
+      "names": { "zh": "改良炮", "en": "Improved cannon", "de": "Verbesserte Kanone" },
+      "data": { "observed": "'Verbesserte Kanonen Stufe 11' als Dungeon-Drop", "cannon_stats": "UNKNOWN" },
+      "sources": ["SRC-018"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": { "cannon_stats": "UNKNOWN" },
+      "notes": "Belegt, dass Kanonen als Ausrüstung mit Stufen existieren."
+    }
+  ]
+}

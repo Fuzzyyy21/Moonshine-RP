@@ -1,0 +1,78 @@
+{
+  "_comment": "Welt: Seegebiete und Städte/Häfen. coord_as_given wird exakt so übernommen, wie die Quelle sie nennt (keine Korrektur auf reale Geografie).",
+  "records": [
+    {
+      "id": "WORLD-STRUCTURE",
+      "entity": "MECHANIC",
+      "names": { "zh": "五大洲七大洋", "en": "Five continents, seven seas", "de": "Fünf Kontinente, sieben Meere" },
+      "data": {
+        "map_basis": "reale Weltkarte",
+        "land_sea_transition": "UNKNOWN",
+        "map_size": "UNKNOWN"
+      },
+      "sources": ["SRC-004", "SRC-007"],
+      "confidence": "LIKELY",
+      "field_confidence": { "land_sea_transition": "UNKNOWN", "map_size": "UNKNOWN" },
+      "notes": "Ob Städte, Land und See nahtlos oder über Ladebildschirme verbunden sind, muss aus Videos geklärt werden."
+    },
+    {
+      "id": "REGION-LIST-17173",
+      "entity": "REGION",
+      "names": { "zh": "海域", "en": "Sea regions", "de": "Seegebiete" },
+      "data": {
+        "regions_zh": ["北海", "中欧", "波罗的海", "马格里布地区", "亚德里亚海", "小亚细亚", "黑海", "埃及", "伊比利亚", "西地中海"],
+        "regions_de": ["Nordsee", "Mitteleuropa", "Ostsee", "Maghreb", "Adria", "Kleinasien", "Schwarzes Meer", "Ägypten", "Iberien", "Westliches Mittelmeer"],
+        "complete": false
+      },
+      "sources": ["SRC-011"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": {},
+      "notes": "VERMISCHUNGSGEFAHR: Diese Einteilung ähnelt stark 大航海时代 Online (Koei). Bis zur direkten Prüfung nicht als Original übernehmen. Asien, Afrika und Amerika fehlen in der Liste, obwohl Städte dort genannt werden."
+    },
+    { "id": "CITY-LONDON", "entity": "CITY", "names": { "zh": "伦敦", "en": "London", "de": "London" },
+      "data": { "coord_as_given": "N52E0", "services_observed": ["Hafen", "Offizierskarten-Tauscher (副官卡片兑换员)"], "role": "Ende der Hauptquest ('zurück nach England')" },
+      "sources": ["SRC-011", "SRC-017"], "confidence": "LIKELY", "field_confidence": {}, "notes": "" },
+    { "id": "CITY-ATHENS", "entity": "CITY", "names": { "zh": "雅典", "en": "Athens", "de": "Athen" },
+      "data": { "coord_as_given": "N38E23", "services_observed": ["Schiffsumbau Stufe 1"] },
+      "sources": ["SRC-010", "SRC-011"], "confidence": "LIKELY", "field_confidence": {}, "notes": "" },
+    { "id": "CITY-GENOA", "entity": "CITY", "names": { "zh": "热那亚", "en": "Genoa", "de": "Genua" },
+      "data": { "coord_as_given": "N40E5", "services_observed": ["Schiffsumbau Stufe 2"] },
+      "sources": ["SRC-010", "SRC-011"], "confidence": "LIKELY", "field_confidence": { "coord_as_given": "UNCERTAIN" },
+      "notes": "Koordinate weicht stark vom realen Genua (ca. N44 E9) ab. Entweder eigenes Spielraster oder Fehler im Auszug." },
+    { "id": "CITY-SEVILLE", "entity": "CITY", "names": { "zh": "塞维利亚", "en": "Seville", "de": "Sevilla" },
+      "data": { "coord_as_given": "N37W6", "services_observed": ["Schiffsumbau Stufe 5-6"] },
+      "sources": ["SRC-010", "SRC-011"], "confidence": "LIKELY", "field_confidence": {}, "notes": "" },
+    { "id": "CITY-HAMBURG", "entity": "CITY", "names": { "zh": "汉堡", "en": "Hamburg", "de": "Hamburg" },
+      "data": { "coord_as_given": "UNKNOWN", "services_observed": ["Schiffsumbau Stufe 7-8"] },
+      "sources": ["SRC-010", "SRC-011"], "confidence": "LIKELY", "field_confidence": {}, "notes": "" },
+    { "id": "CITY-SEOUL", "entity": "CITY", "names": { "zh": "汉城", "en": "Seoul (Hanseong)", "de": "Seoul (Hanseong)" },
+      "data": { "coord_as_given": "UNKNOWN", "services_observed": ["Schiffsumbau Stufe 10"] },
+      "sources": ["SRC-010", "SRC-011"], "confidence": "LIKELY", "field_confidence": {}, "notes": "" },
+    { "id": "CITY-QUANZHOU", "entity": "CITY", "names": { "zh": "泉州", "en": "Quanzhou", "de": "Quanzhou" },
+      "data": { "coord_as_given": "UNKNOWN", "services_observed": ["Questreihe nach der Hauptquest (bis 170er-Set)"] },
+      "sources": ["SRC-011", "SRC-017"], "confidence": "LIKELY", "field_confidence": {}, "notes": "" },
+    { "id": "CITY-ALGIERS", "entity": "CITY", "names": { "zh": "阿尔及尔", "en": "Algiers", "de": "Algier" },
+      "data": { "coord_as_given": "UNKNOWN", "services_observed": ["Schiffsumbau Stufe 3-4"] },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "" },
+    { "id": "CITY-MUSCAT", "entity": "CITY", "names": { "zh": "马斯喀特", "en": "Muscat", "de": "Maskat" },
+      "data": { "coord_as_given": "UNKNOWN", "services_observed": ["Schiffsumbau Stufe 9"] },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "" },
+    { "id": "CITY-ZHIGU", "entity": "CITY", "names": { "zh": "直沽", "en": "Zhigu (Tianjin)", "de": "Zhigu (Tianjin)" },
+      "data": { "coord_as_given": "UNKNOWN", "services_observed": ["Schiffsumbau Stufe 10"] },
+      "sources": ["SRC-010"], "confidence": "UNCERTAIN", "field_confidence": {}, "notes": "直沽 ist der historische Name von Tianjin." },
+    {
+      "id": "CITY-LIST-17173",
+      "entity": "CITY",
+      "names": { "zh": "港口城市", "en": "Port cities", "de": "Weitere Hafenstädte (Sammeleintrag)" },
+      "data": {
+        "cities_zh": ["阿姆斯特丹", "奥斯陆", "巴塞罗那", "开普敦", "拉斯帕马斯", "雷克雅未克", "里斯本", "罗安达", "马达加斯加", "马六甲", "孟买", "摩加迪修", "萨丁岛", "斯德哥尔摩", "苏伊士港", "台湾岛", "土伦港", "威尼斯", "亚丁港", "亚历山大", "伊斯坦堡"],
+        "cities_de": ["Amsterdam", "Oslo", "Barcelona", "Kapstadt", "Las Palmas", "Reykjavík", "Lissabon", "Luanda", "Madagaskar", "Malakka", "Mumbai", "Mogadischu", "Sardinien", "Stockholm", "Sues", "Taiwan", "Toulon", "Venedig", "Aden", "Alexandria", "Istanbul"],
+        "complete": false
+      },
+      "sources": ["SRC-011"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": {},
+      "notes": "Einzelquelle mit Vermischungsgefahr (siehe REGION-LIST-17173). Erst nach Bestätigung in Einzel-Datensätze aufteilen. Amerika fehlt vollständig in der Liste, obwohl es einen Karibik-Piraten-Beruf gibt."
+    }
+  ]
+}

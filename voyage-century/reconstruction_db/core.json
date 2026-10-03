@@ -1,0 +1,160 @@
+{
+  "_comment": "Spiel-Metadaten, Versionen/Addons und Levelsystem.",
+  "records": [
+    {
+      "id": "GAME-VC",
+      "entity": "GAME_META",
+      "names": { "zh": "航海世纪", "en": "Voyage Century Online", "de": "Voyage Century" },
+      "data": {
+        "developer": "蜗牛 / Snail Games (Woniu)",
+        "operator_cn": "蜗牛 / Snail Games (Woniu)",
+        "publisher_intl": "IGG",
+        "genre": "3D-MMORPG mit Seefahrtsthema (Quellen nennen auch 'MOARPG')",
+        "setting": "Seefahrt und Kolonialexpansion im 16. Jahrhundert",
+        "world": "reale Weltkarte, beworben als 五大洲七大洋 (fünf Kontinente, sieben Meere)",
+        "headline_features": [
+          "Kampf zu Land und zu See",
+          "Stadtbelagerungs-System",
+          "Echtzeit-Seeschlachten mit 'hunderten' Schiffen gleichzeitig",
+          "Schiffsumbau",
+          "Anwerben von Matrosen",
+          "historische Story-Missionen"
+        ],
+        "release_date_cn": "UNKNOWN",
+        "engine_original": "UNKNOWN",
+        "still_operated": "2026 laut Event-News weiterhin in Betrieb"
+      },
+      "sources": ["SRC-004", "SRC-007", "SRC-014", "SRC-024"],
+      "confidence": "LIKELY",
+      "field_confidence": {
+        "release_date_cn": "UNKNOWN",
+        "engine_original": "UNKNOWN",
+        "setting": "UNCERTAIN"
+      },
+      "notes": "Release-Datum widersprüchlich, siehe CONTRA-001. Die Engine des Originals ist für die Rekonstruktion irrelevant und wird nicht übernommen."
+    },
+    {
+      "id": "VER-STORM_ISLAND",
+      "entity": "VERSION",
+      "names": { "zh": "暴风岛疑云", "en": "UNKNOWN", "de": "Das Rätsel der Sturminsel" },
+      "data": {
+        "release_date": "2011-07-05",
+        "changes": [
+          "Berufsstufe 160 geöffnet",
+          "neue Ausrüstung Stufe 155 und 160",
+          "Dungeon/Gebiet 暴风岛 (Sturminsel)"
+        ]
+      },
+      "sources": ["SRC-001"],
+      "confidence": "LIKELY",
+      "field_confidence": {},
+      "notes": "Offizielle Ankündigung, aber nur als Suchauszug gesehen. Der deutsche Name ist eine Arbeitsübersetzung."
+    },
+    {
+      "id": "LVL-CAP-INTL-120",
+      "entity": "LEVEL_CAP",
+      "names": { "zh": "UNKNOWN", "en": "Profession level cap 120", "de": "Berufsstufen-Cap 120 (international, früh)" },
+      "data": { "cap": 120, "scope": "internationale Version, früher Stand", "valid_from": "UNKNOWN" },
+      "sources": ["SRC-023"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": {},
+      "notes": "Gilt nicht für den heutigen chinesischen Stand. Nur historisch relevant."
+    },
+    {
+      "id": "LVL-CAP-CN-160",
+      "entity": "LEVEL_CAP",
+      "names": { "zh": "160级职业等级", "en": "Profession level 160", "de": "Berufsstufe 160" },
+      "data": { "cap": 160, "scope": "chinesische Version", "valid_from": "2011-07-05" },
+      "sources": ["SRC-001"],
+      "confidence": "LIKELY",
+      "field_confidence": {},
+      "notes": "Mit dem Addon 暴风岛疑云 geöffnet. Spätere Erhöhungen siehe LVL-OBS-168 und LVL-OBS-230."
+    },
+    {
+      "id": "LVL-OBS-168",
+      "entity": "LEVEL_CAP",
+      "names": { "zh": "UNKNOWN", "en": "UNKNOWN", "de": "Indiz: Inhalte ab Stufe 168/170" },
+      "data": {
+        "cap": "UNKNOWN",
+        "evidence": [
+          "Ausrüstungsset 塔洛斯 auf Stufe 168 (SRC-005)",
+          "Questreihe in Quanzhou führt zum '170er-Set' (SRC-017)"
+        ]
+      },
+      "sources": ["SRC-005", "SRC-017"],
+      "confidence": "LIKELY",
+      "field_confidence": { "cap": "UNKNOWN" },
+      "notes": "Belegt, dass das Cap irgendwann über 160 lag. Der genaue Wert des Caps ist damit nicht belegt."
+    },
+    {
+      "id": "LVL-OBS-230",
+      "entity": "LEVEL_CAP",
+      "names": { "zh": "UNKNOWN", "en": "UNKNOWN", "de": "Indiz: Ausrüstung Stufe 230" },
+      "data": {
+        "cap": "UNKNOWN",
+        "evidence": ["Event-News 2026 erwähnt 230er-Ausrüstungssets mit Handels-Buffs"]
+      },
+      "sources": ["SRC-014"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": { "cap": "UNKNOWN" },
+      "notes": "Stützt das Projektziel 230, belegt es aber nicht. Unklar, ob '230' Charakterstufe, Ausrüstungsstufe oder Setname meint. Aktuelles Cap muss über Screenshots oder Clientdaten geprüft werden."
+    },
+    {
+      "id": "LVL-PER-LEVEL-BONUS",
+      "entity": "MECHANIC",
+      "names": { "zh": "UNKNOWN", "en": "Per-level bonus", "de": "Bonus pro Berufsstufe" },
+      "data": { "hp_per_level": 10, "sp_per_level": 5, "scope": "internationale Version" },
+      "sources": ["SRC-023"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": {},
+      "notes": "SP = Stamina Points. Für die chinesische Version nicht bestätigt. Laut SRC-001 bringen neue Stufen 'höhere Attributboni', also gibt es mindestens einen stufenabhängigen Bonus."
+    },
+    {
+      "id": "LVL-XP-CURVE",
+      "entity": "MECHANIC",
+      "names": { "zh": "UNKNOWN", "en": "XP curve", "de": "Erfahrungskurve" },
+      "data": { "formula": "UNKNOWN", "table": "UNKNOWN" },
+      "sources": [],
+      "confidence": "UNKNOWN",
+      "field_confidence": {},
+      "notes": "Keine Quelle. Wird nicht erfunden; das Datenmodell sieht eine Tabelle level_table mit NULL-Werten vor."
+    },
+    {
+      "id": "SYS-MAIN-QUEST",
+      "entity": "MECHANIC",
+      "names": { "zh": "主线任务", "en": "Main quest", "de": "Hauptquestreihe" },
+      "data": {
+        "observations": [
+          "Hauptquest reicht bis ca. Stufe 160 und endet mit der Rückkehr nach England",
+          "danach Questreihe in 泉州 (Quanzhou) bis zum '170er-Set'",
+          "Hauptquest erhöht den Militärrang (军阶) bis Rang 8",
+          "im Verlauf werden drei 海灵之石 (Meergeist-Steine) gesammelt"
+        ]
+      },
+      "sources": ["SRC-016", "SRC-017"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": {},
+      "notes": "Spielerbeiträge zum 20. Jubiläum, Zuordnung der Einzelaussagen unsicher. Die Questinhalte selbst sind UNKNOWN."
+    },
+    {
+      "id": "SYS-MILITARY-RANK",
+      "entity": "MECHANIC",
+      "names": { "zh": "军阶", "en": "UNKNOWN", "de": "Militärrang" },
+      "data": { "max_rank": "UNKNOWN", "observed_rank": 8, "gained_by": "Hauptquest (weitere Quellen UNKNOWN)", "effects": "UNKNOWN" },
+      "sources": ["SRC-017"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": { "max_rank": "UNKNOWN", "effects": "UNKNOWN" },
+      "notes": "Eigenes Progressionssystem neben der Berufsstufe. Wirkung und Obergrenze unbekannt."
+    },
+    {
+      "id": "SYS-PROFESSION-CHANGE",
+      "entity": "MECHANIC",
+      "names": { "zh": "转职", "en": "Profession change", "de": "Berufswechsel" },
+      "data": { "available": true, "cost": "UNKNOWN", "conditions": "UNKNOWN" },
+      "sources": ["SRC-015"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": { "cost": "UNKNOWN", "conditions": "UNKNOWN" },
+      "notes": "Spielerempfehlung: 'Land: Pirat mit Klinge, See: Offizier mit Schwert, später kann man den Beruf wechseln'."
+    }
+  ]
+}

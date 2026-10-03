@@ -173,3 +173,10 @@ Vollständige Referenz: [`docs/API.md`](docs/API.md).
 * Skins/Kleidung sind bewusst nicht enthalten – `appearance` liegt als Spalte und
   Feld bereit, damit ein Clothing-Script direkt andocken kann.
 * Was als Nächstes sinnvoll wäre, steht in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+## Weiteres Projekt im Repo: Voyage Century Reconstruction
+
+Der Ordner [`voyage-century/`](voyage-century/) enthält ein davon unabhängiges
+Projekt: die Rekonstruktion eines Seefahrts-MMORPG nach dem Vorbild von
+航海世纪 (Unreal Engine 5). Aktuell in Phase 0 (Recherche, Datenmodell,
+Architektur) – Einstieg über [`voyage-century/README.md`](voyage-century/README.md).

@@ -1,0 +1,95 @@
+{
+  "_comment": "Widersprüche zwischen Quellen. Werden nicht still aufgelöst; die Auflösung wird mit Quelle hier eingetragen.",
+  "records": [
+    {
+      "id": "CONTRA-001",
+      "entity": "CONTRADICTION",
+      "names": { "zh": "上线时间", "en": "Launch date", "de": "Startdatum der CN-Version" },
+      "data": {
+        "claims": [
+          { "value": "2005-12-08", "source": "SRC-007" },
+          { "value": "9. Jubiläum im Dezember 2013, also Start ca. Dezember 2004", "source": "SRC-025" },
+          { "value": "Presseartikel bereits 2004 (Test- oder Betaphase)", "source": "SRC-009" },
+          { "value": "Website-Titel 2011 '九年经典' und später '十年经典'", "source": "SRC-001" }
+        ],
+        "resolution": "UNRESOLVED",
+        "hypothesis": "Testphase 2004, kommerzieller Start 2005; Jubiläen könnten ab Teststart zählen."
+      },
+      "sources": ["SRC-001", "SRC-007", "SRC-009", "SRC-025"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": {},
+      "notes": "Für die Spielmechanik irrelevant, aber wichtig für die Zuordnung von Patch-Ständen."
+    },
+    {
+      "id": "CONTRA-002",
+      "entity": "CONTRADICTION",
+      "names": { "zh": "等级上限", "en": "Level cap", "de": "Stufen-Cap" },
+      "data": {
+        "claims": [
+          { "value": 120, "source": "SRC-023", "scope": "international, früh" },
+          { "value": 160, "source": "SRC-001", "scope": "CN ab 2011-07-05" },
+          { "value": "mindestens 168", "source": "SRC-005", "scope": "Set-Stufe" },
+          { "value": "230 (Ausrüstung)", "source": "SRC-014", "scope": "CN 2026" }
+        ],
+        "resolution": "UNRESOLVED",
+        "hypothesis": "Kein echter Widerspruch, sondern mehrere Zeitstände. Das aktuelle Cap ist UNKNOWN; das Projektziel 230 ist plausibel, aber nicht belegt."
+      },
+      "sources": ["SRC-001", "SRC-005", "SRC-014", "SRC-023"],
+      "confidence": "LIKELY",
+      "field_confidence": {},
+      "notes": "Priorität hoch: Screenshot eines aktuellen Charakters auf Maximalstufe würde das klären."
+    },
+    {
+      "id": "CONTRA-003",
+      "entity": "CONTRADICTION",
+      "names": { "zh": "船只等级 vs 改造等级", "en": "Ship levels vs modification tiers", "de": "Schiffsstufen gegen Umbaustufen" },
+      "data": {
+        "claims": [
+          { "value": "10 Schiffsstufen + Anfängerschiff + Dragon Head Gunboat", "source": "SRC-022", "scope": "international" },
+          { "value": "Umbaustufen 1 bis 14", "source": "SRC-002", "scope": "CN" },
+          { "value": "Umbau-Städte nur bis Stufe 10 aufgelistet", "source": "SRC-010", "scope": "CN 2005" }
+        ],
+        "resolution": "UNRESOLVED",
+        "hypothesis": "Schiffsstufe (Rumpf/Modell) und Umbaustufe sind zwei getrennte Achsen. Stufen 11 bis 14 kamen vermutlich nach 2005 hinzu."
+      },
+      "sources": ["SRC-002", "SRC-010", "SRC-022"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": {},
+      "notes": "Das Datenmodell trennt deshalb ship_level und mod_tier."
+    },
+    {
+      "id": "CONTRA-004",
+      "entity": "CONTRADICTION",
+      "names": { "zh": "职业名称", "en": "Profession names", "de": "Berufsnamen" },
+      "data": {
+        "claims": [
+          { "value": "帝国禁卫军 vs 帝国卫士", "source": "SRC-004" },
+          { "value": "宝藏猎人 vs 寻宝人", "source": "SRC-006" }
+        ],
+        "resolution": "UNRESOLVED",
+        "hypothesis": "Umbenennung zwischen Versionen oder umgangssprachliche Kurzformen. Primärname = Text der offiziellen Website."
+      },
+      "sources": ["SRC-004", "SRC-006"],
+      "confidence": "UNCERTAIN",
+      "field_confidence": {},
+      "notes": ""
+    },
+    {
+      "id": "CONTRA-005",
+      "entity": "CONTRADICTION",
+      "names": { "zh": "UNKNOWN", "en": "Skill grouping", "de": "Skill-Gruppierung" },
+      "data": {
+        "claims": [
+          { "value": "CN: 4 Kategorien 战斗系/贸易系/采集系/生产系", "source": "SRC-009" },
+          { "value": "Master-Prompt: Kampf / Seefahrt / Berufe", "source": "SRC-DESIGN" }
+        ],
+        "resolution": "Originalkategorien bleiben Datenwahrheit; die Gruppierung aus dem Master-Prompt wird nur als UI-Gruppierung genutzt.",
+        "hypothesis": ""
+      },
+      "sources": ["SRC-009", "SRC-DESIGN"],
+      "confidence": "LIKELY",
+      "field_confidence": {},
+      "notes": ""
+    }
+  ]
+}
