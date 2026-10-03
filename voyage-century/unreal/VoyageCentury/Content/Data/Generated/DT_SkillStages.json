@@ -1,0 +1,23 @@
+[
+  {
+    "Name": "STAGE_1",
+    "StageNo": 1,
+    "MaxLevel": 31,
+    "ReconId": "SKILL-STAGES",
+    "Confidence": "Likely"
+  },
+  {
+    "Name": "STAGE_2",
+    "StageNo": 2,
+    "MaxLevel": 100,
+    "ReconId": "SKILL-STAGES",
+    "Confidence": "Likely"
+  },
+  {
+    "Name": "STAGE_3",
+    "StageNo": 3,
+    "MaxLevel": 120,
+    "ReconId": "SKILL-STAGES",
+    "Confidence": "Likely"
+  }
+]

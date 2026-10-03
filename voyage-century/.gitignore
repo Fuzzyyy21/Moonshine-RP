@@ -1,0 +1,19 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+*.user
+.vs/
+
+# Unreal
+unreal/**/Binaries/
+unreal/**/Intermediate/
+unreal/**/Saved/
+unreal/**/DerivedDataCache/
+unreal/**/.vs/
+unreal/**/*.sln
+
+# Python
+__pycache__/
+
+# Analyse-Ausgaben enthalten nie Originaldateien, nur Berichte
+analysis/**/*.bin

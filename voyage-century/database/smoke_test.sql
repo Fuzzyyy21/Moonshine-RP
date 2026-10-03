@@ -6,15 +6,16 @@
 INSERT INTO accounts (login, password_hash, admin_level) VALUES ('tester', 'argon2id$test', 5);
 INSERT INTO professions (code, name_de) VALUES ('TEST_PROF', 'Testberuf');
 INSERT INTO characters (account_id, name, gender, appearance, profession_id)
-VALUES (1, 'Testkapitän', 'FEMALE', '{}'::jsonb, 1);
+VALUES (1, 'Testkapitän', 'FEMALE', '{}'::jsonb, (SELECT profession_id FROM professions WHERE code = 'TEST_PROF'));
 INSERT INTO character_wallets (character_id, currency_code, balance) VALUES (1, 'GOLD', 100);
 INSERT INTO items (code, item_type, weapon_class, name_de) VALUES ('TEST_SWORD', 'WEAPON', 'SWORD', 'Testschwert');
 INSERT INTO item_instances (item_id, location_type, owner_character_id, slot, origin)
-VALUES (1, 'INVENTORY', 1, '0', 'ADMIN');
+VALUES ((SELECT item_id FROM items WHERE code = 'TEST_SWORD'), 'INVENTORY', 1, '0', 'ADMIN');
 
 -- Unbekannte Spielwerte bleiben NULL statt erfundener Zahlen.
-INSERT INTO ship_classes (code, name_de, confidence) VALUES ('BATTLE', 'Kriegsschiff', 'LIKELY');
-INSERT INTO ships (code, ship_class_id, recon_id) VALUES ('TEST_SHIP', 1, 'SHIP-STATS');
+INSERT INTO ship_classes (code, name_de) VALUES ('TEST_CLASS', 'Testklasse');
+INSERT INTO ships (code, ship_class_id, recon_id)
+VALUES ('TEST_SHIP', (SELECT ship_class_id FROM ship_classes WHERE code = 'TEST_CLASS'), 'SHIP-STATS');
 DO $$ BEGIN
     ASSERT (SELECT hull_hp IS NULL AND speed IS NULL FROM ships WHERE code = 'TEST_SHIP'),
         'Schiffswerte müssen ohne Quelle NULL (UNKNOWN) bleiben';
@@ -23,7 +24,7 @@ END $$;
 -- 1. Zwei Items im selben Inventarslot sind verboten.
 DO $$ BEGIN
     INSERT INTO item_instances (item_id, location_type, owner_character_id, slot, origin)
-    VALUES (1, 'INVENTORY', 1, '0', 'ADMIN');
+    VALUES ((SELECT item_id FROM items WHERE code = 'TEST_SWORD'), 'INVENTORY', 1, '0', 'ADMIN');
     RAISE EXCEPTION 'FEHLT: doppelter Slot wurde akzeptiert';
 EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'ok: doppelter Slot abgelehnt';
 END $$;
@@ -64,9 +65,11 @@ EXCEPTION WHEN raise_exception THEN
 END $$;
 
 -- 5. Nur ein aktives Schiff pro Charakter.
-INSERT INTO ship_instances (ship_id, owner_character_id, hull_hp, is_active) VALUES (1, 1, 0, TRUE);
+INSERT INTO ship_instances (ship_id, owner_character_id, hull_hp, is_active)
+VALUES ((SELECT ship_id FROM ships WHERE code = 'TEST_SHIP'), 1, 0, TRUE);
 DO $$ BEGIN
-    INSERT INTO ship_instances (ship_id, owner_character_id, hull_hp, is_active) VALUES (1, 1, 0, TRUE);
+    INSERT INTO ship_instances (ship_id, owner_character_id, hull_hp, is_active)
+    VALUES ((SELECT ship_id FROM ships WHERE code = 'TEST_SHIP'), 1, 0, TRUE);
     RAISE EXCEPTION 'FEHLT: zweites aktives Schiff wurde akzeptiert';
 EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'ok: nur ein aktives Schiff';
 END $$;
@@ -83,7 +86,13 @@ DO $$ BEGIN
     ASSERT (SELECT count(*) FROM inventory WHERE character_id = 1) = 1, 'inventory-Sicht falsch';
 END $$;
 
--- 8. Partitionierte Logs nehmen Zeilen an.
+-- 8. Seed aus der Reconstruction Database ist eingespielt (falls vorhanden).
+DO $$ BEGIN
+    ASSERT (SELECT count(*) FROM professions WHERE recon_id LIKE 'PROF-%') IN (0, 5), 'Berufe-Seed unvollständig';
+    ASSERT NOT EXISTS (SELECT 1 FROM skills WHERE name_zh = 'UNKNOWN'), 'UNKNOWN darf nicht als Text in der DB landen';
+END $$;
+
+-- 9. Partitionierte Logs nehmen Zeilen an.
 INSERT INTO game_event_log (character_id, action, new_value, server_id) VALUES (1, 'LEVEL_UP', '{"level":2}', 'test');
 INSERT INTO chat_log (channel, sender_character_id, message) VALUES ('WORLD', 1, 'Hallo');
 

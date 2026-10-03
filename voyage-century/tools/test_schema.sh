@@ -1,40 +1,28 @@
 #!/usr/bin/env bash
-# Spielt database/schema.sql in eine Wegwerf-PostgreSQL-Instanz ein und führt
-# database/smoke_test.sql aus. Braucht lokale PostgreSQL-Binaries (initdb, pg_ctl, psql).
+# Spielt alle Migrationen (database/migrations/V*.sql) und Seeds (database/seed/R__*.sql)
+# per psql in eine frische Datenbank ein und führt database/smoke_test.sql aus.
+# Unabhängig vom .NET-Migrator, damit das Schema für sich allein prüfbar bleibt.
 #
 #   tools/test_schema.sh
 #
-# Läuft das Skript als root, werden die Server-Befehle als Benutzer "postgres" ausgeführt.
+# Nutzt eine vorhandene Instanz über PGHOST/PGPORT/PGUSER, wenn VC_TEST_PG gesetzt ist,
+# sonst eine Wegwerf-Instanz (tools/lib/pg_temp.sh).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PG_BIN="${PG_BIN:-$(dirname "$(command -v initdb 2>/dev/null || ls -d /usr/lib/postgresql/*/bin/initdb | tail -1)")}"
-WORK="$(mktemp -d)"
-PORT="${PGTEST_PORT:-55432}"
+# shellcheck source=lib/pg_temp.sh
+source "$ROOT/tools/lib/pg_temp.sh"
+pg_temp_start
 
-run() {
-    if [ "$(id -u)" -eq 0 ]; then
-        su postgres -s /bin/bash -c "$(printf '%q ' "$@")"
-    else
-        "$@"
-    fi
-}
+DB="vc_schema_test_$$"
+PSQL=(psql -v ON_ERROR_STOP=1 -q -X)
+"${PSQL[@]}" -d postgres -c "CREATE DATABASE $DB"
+trap '"${PSQL[@]}" -d postgres -c "DROP DATABASE IF EXISTS $DB" >/dev/null 2>&1 || true; pg_temp_stop' EXIT
 
-cleanup() {
-    run "$PG_BIN/pg_ctl" -D "$WORK/data" -m immediate stop >/dev/null 2>&1 || true
-    rm -rf "$WORK"
-}
-trap cleanup EXIT
-
-[ "$(id -u)" -eq 0 ] && chown postgres "$WORK"
-cp "$ROOT/database/schema.sql" "$ROOT/database/smoke_test.sql" "$WORK/"
-[ "$(id -u)" -eq 0 ] && chown postgres "$WORK"/*.sql
-
-run "$PG_BIN/initdb" -D "$WORK/data" -U postgres --auth=trust -E UTF8 >/dev/null
-run "$PG_BIN/pg_ctl" -D "$WORK/data" -o "-p $PORT -k $WORK -c listen_addresses=''" -l "$WORK/pg.log" -w start >/dev/null
-
-PSQL=("$PG_BIN/psql" -h "$WORK" -p "$PORT" -U postgres -v ON_ERROR_STOP=1 -q)
-run "${PSQL[@]}" -d postgres -c "CREATE DATABASE vc_test"
-run "${PSQL[@]}" -d vc_test -f "$WORK/schema.sql"
-echo "Schema eingespielt: $(run "${PSQL[@]}" -d vc_test -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = 'public'") Tabellen"
-run "${PSQL[@]}" -d vc_test -f "$WORK/smoke_test.sql"
+for f in "$ROOT"/database/migrations/V*.sql "$ROOT"/database/seed/R__*.sql; do
+    [ -e "$f" ] || continue
+    "${PSQL[@]}" -d "$DB" --single-transaction -f "$f"
+    echo "angewendet: ${f#"$ROOT"/}"
+done
+echo "Tabellen: $("${PSQL[@]}" -d "$DB" -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = 'public'")"
+"${PSQL[@]}" -d "$DB" -f "$ROOT/database/smoke_test.sql"

@@ -10,7 +10,7 @@ Jede Phase endet erst, wenn ihre Abnahmekriterien erfüllt sind.
 | Recherchebericht | ✅ erste Runde ([00](00_PHASE0_RESEARCH_REPORT.md)) |
 | Reconstruction Database mit Validator | ✅ 97 Datensätze, 28 Quellen |
 | GDD-Gerüst | ✅ ([01](01_GAME_DESIGN_DOCUMENT.md)) |
-| Technische Architektur | ✅ Entwurf ([02](02_TECHNICAL_ARCHITECTURE.md)) |
+| Technische Architektur | ✅ bestätigt mit Start von Phase 1 ([02](02_TECHNICAL_ARCHITECTURE.md)) |
 | Relationales Datenmodell | ✅ getestet ([03](03_DATA_MODEL.md)) |
 | Protokoll für Dateianalyse + Inventar-Tool | ✅ ([04](04_FILE_ANALYSIS_PROTOCOL.md)) |
 | Volltext der offiziellen Quellen | ❌ blockiert (Netzwerk) |
@@ -20,15 +20,29 @@ Jede Phase endet erst, wenn ihre Abnahmekriterien erfüllt sind.
 **Abnahme Phase 0**: Architektur und Backend-Sprache bestätigt; offene Fragen 1–4
 aus dem Recherchebericht mindestens auf LIKELY oder bewusst als `[DESIGN]` entschieden.
 
-## Phase 1 – Technische Grundlage
+## Phase 1 – Technische Grundlage (in Arbeit)
 
-1. UE5-Projekt mit Modulstruktur aus der Architektur, Dedicated-Server-Target, CI-Build für Client und Server.
-2. Export-Tool: Reconstruction DB → Data Tables + Seed-SQL; Validator in CI.
-3. Auth-Dienst mit Login und Session-Ticket; Zonen-Server prüft Ticket.
-4. Persistence Service mit Charakter laden/speichern; Migrationswerkzeug.
-5. Strukturiertes Logging in allen Teilen; Konfiguration pro Umgebung.
+| Schritt | Status | Prüfung |
+|---|---|---|
+| Migrationen + Migrator (Prüfsummen, Reihenfolge, Rollback, Seeds) | ✅ | `tools/test_schema.sh`, Migrator-Tests |
+| Export-Tool Reconstruction DB → Seed-SQL + Data-Table-JSON, `--check` für CI | ✅ | `python3 tools/export_content.py --check` |
+| Auth-Dienst: Registrierung, Login (argon2id), Ticket, Logout, Ticketprüfung, Rate-Limit, Sperren | ✅ | Backend-Tests |
+| GameData-Dienst: Charaktere, Zustand laden/speichern mit Besitzprüfung, Admin-Audit | ✅ | Backend-Tests |
+| Strukturiertes JSON-Logging, Konfiguration pro Umgebung, Schutz vor Dev-Keys | ✅ | Backend-Tests, Prozesslauf |
+| CI für Daten, Datenbank und Backend | ✅ | GitHub Actions |
+| UE5-Projekt: Module, Targets, Ticket-Login, Positions-Persistenz, Admin-Teleport mit Audit | ⚠️ geschrieben, **nicht kompiliert** | lokaler Build nötig ([unreal/README.md](../unreal/README.md)) |
+| UE5-Build in CI | ❌ | braucht Runner mit Unreal Engine |
+| Testkarte und Data-Table-Assets | ❌ | einmalig im Editor anlegen |
 
 **Abnahme**: Zwei Clients loggen ein, sehen sich in einer Testzone, Position wird gespeichert und nach Neustart geladen. Ein Admin-Kommando landet im Audit-Log.
+
+Die Backend-Seite dieser Abnahme ist automatisiert getestet
+(`ZoneServerFlowTests`: Login → Ticket → Laden → Speichern → Neustart → Laden → Audit).
+Die Engine-Seite steht aus, bis das UE-Projekt lokal gebaut und nach
+[unreal/README.md](../unreal/README.md) durchgespielt wurde.
+
+Offen für die nächsten Iterationen: World Directory mit Sperre gegen Doppel-Login,
+Redis, TLS-Terminierung, mTLS zwischen Diensten.
 
 ## Phase 2 – Charakter
 

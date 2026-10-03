@@ -1,5 +1,5 @@
 -- =============================================================================
--- Voyage Century Reconstruction – relationales Datenmodell (PostgreSQL 16)
+-- V0001 – Ausgangsschema (PostgreSQL 16)
 -- =============================================================================
 -- Konventionen
 --   * Inhaltstabellen (statische Spieldaten) tragen recon_id + confidence und
@@ -11,12 +11,12 @@
 --     dem Game Server bzw. den Backend-Diensten. Clients schreiben nie direkt.
 --   * Geld liegt nur in character_wallets; jede Änderung erzeugt eine Zeile in
 --     currency_ledger (Grundlage für Inflationsmonitoring und Anti-Cheat).
+--   * Transaktionen setzt der Migrator; diese Datei enthält kein BEGIN/COMMIT.
 --   * Jedes Item-Exemplar existiert genau einmal in item_instances und hat genau
 --     einen Ort (location_type + Besitzer + Container + Slot). Damit sind Dupes
 --     durch "gleichzeitig in Inventar und Mail" strukturell ausgeschlossen.
 -- =============================================================================
 
-BEGIN;
 
 CREATE TYPE confidence_level AS ENUM ('CONFIRMED', 'LIKELY', 'UNCERTAIN', 'UNKNOWN');
 
@@ -910,5 +910,3 @@ CREATE TRIGGER trg_currency_ledger_append_only
 -- Grunddaten ohne Spielwerte
 INSERT INTO currencies (currency_code, tradeable) VALUES
     ('GOLD', TRUE), ('PREMIUM', FALSE), ('GUILD', FALSE), ('EVENT', FALSE);
-
-COMMIT;

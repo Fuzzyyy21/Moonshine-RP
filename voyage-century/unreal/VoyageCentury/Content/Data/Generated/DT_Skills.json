@@ -1,0 +1,172 @@
+[
+  {
+    "Name": "ALCHEMY",
+    "NameZh": "",
+    "NameEn": "Alchemy",
+    "NameDe": "Alchemie",
+    "ReconId": "SKILL-ALCHEMY",
+    "Confidence": "Likely",
+    "CategoryCn": "Production",
+    "UiGroup": "Profession"
+  },
+  {
+    "Name": "AXE",
+    "NameZh": "斧术",
+    "NameEn": "Axe-playing",
+    "NameDe": "Axt",
+    "ReconId": "SKILL-AXE",
+    "Confidence": "Likely",
+    "CategoryCn": "Combat",
+    "UiGroup": "Combat"
+  },
+  {
+    "Name": "BAREHAND",
+    "NameZh": "",
+    "NameEn": "Bare-hand fighting",
+    "NameDe": "Unbewaffnet",
+    "ReconId": "SKILL-BAREHAND",
+    "Confidence": "Likely",
+    "CategoryCn": "Combat",
+    "UiGroup": "Combat"
+  },
+  {
+    "Name": "ELOQUENCE",
+    "NameZh": "",
+    "NameEn": "Eloquence",
+    "NameDe": "Rhetorik",
+    "ReconId": "SKILL-ELOQUENCE",
+    "Confidence": "Likely",
+    "CategoryCn": "Trade",
+    "UiGroup": "Profession"
+  },
+  {
+    "Name": "FALCHION",
+    "NameZh": "刀术",
+    "NameEn": "Falchion-playing",
+    "NameDe": "Klinge",
+    "ReconId": "SKILL-FALCHION",
+    "Confidence": "Likely",
+    "CategoryCn": "Combat",
+    "UiGroup": "Combat"
+  },
+  {
+    "Name": "FISHING",
+    "NameZh": "",
+    "NameEn": "Fishing",
+    "NameDe": "Fangen / Fischen",
+    "ReconId": "SKILL-FISHING",
+    "Confidence": "Likely",
+    "CategoryCn": "Gathering",
+    "UiGroup": "Profession"
+  },
+  {
+    "Name": "FOUNDRY",
+    "NameZh": "",
+    "NameEn": "Foundry",
+    "NameDe": "Schmieden",
+    "ReconId": "SKILL-FOUNDRY",
+    "Confidence": "Likely",
+    "CategoryCn": "Production",
+    "UiGroup": "Profession"
+  },
+  {
+    "Name": "MEDICINE",
+    "NameZh": "",
+    "NameEn": "Medicine",
+    "NameDe": "Medizin",
+    "ReconId": "SKILL-MEDICINE",
+    "Confidence": "Likely",
+    "CategoryCn": "Unknown",
+    "UiGroup": "Combat"
+  },
+  {
+    "Name": "MINING",
+    "NameZh": "",
+    "NameEn": "Mining",
+    "NameDe": "Bergbau",
+    "ReconId": "SKILL-MINING",
+    "Confidence": "Likely",
+    "CategoryCn": "Gathering",
+    "UiGroup": "Profession"
+  },
+  {
+    "Name": "NAVIGATION",
+    "NameZh": "",
+    "NameEn": "Navigation",
+    "NameDe": "Navigation",
+    "ReconId": "SKILL-NAVIGATION",
+    "Confidence": "Likely",
+    "CategoryCn": "Unknown",
+    "UiGroup": "Seafaring"
+  },
+  {
+    "Name": "PLANTING",
+    "NameZh": "",
+    "NameEn": "Planting",
+    "NameDe": "Landwirtschaft",
+    "ReconId": "SKILL-PLANTING",
+    "Confidence": "Likely",
+    "CategoryCn": "Gathering",
+    "UiGroup": "Profession"
+  },
+  {
+    "Name": "SEA_BATTLE",
+    "NameZh": "",
+    "NameEn": "Sea Battle",
+    "NameDe": "Seekampf",
+    "ReconId": "SKILL-SEA_BATTLE",
+    "Confidence": "Likely",
+    "CategoryCn": "Unknown",
+    "UiGroup": "Seafaring"
+  },
+  {
+    "Name": "SEWING",
+    "NameZh": "",
+    "NameEn": "Sewing",
+    "NameDe": "Schneiderei",
+    "ReconId": "SKILL-SEWING",
+    "Confidence": "Likely",
+    "CategoryCn": "Production",
+    "UiGroup": "Profession"
+  },
+  {
+    "Name": "SHIPBUILDING",
+    "NameZh": "",
+    "NameEn": "Ship building",
+    "NameDe": "Schiffbau",
+    "ReconId": "SKILL-SHIPBUILDING",
+    "Confidence": "Likely",
+    "CategoryCn": "Production",
+    "UiGroup": "Profession"
+  },
+  {
+    "Name": "SHOOTING",
+    "NameZh": "",
+    "NameEn": "Shooting",
+    "NameDe": "Schusswaffen",
+    "ReconId": "SKILL-SHOOTING",
+    "Confidence": "Likely",
+    "CategoryCn": "Combat",
+    "UiGroup": "Combat"
+  },
+  {
+    "Name": "SWORD",
+    "NameZh": "剑术",
+    "NameEn": "Sword-playing",
+    "NameDe": "Schwert",
+    "ReconId": "SKILL-SWORD",
+    "Confidence": "Likely",
+    "CategoryCn": "Combat",
+    "UiGroup": "Combat"
+  },
+  {
+    "Name": "TIMBER",
+    "NameZh": "",
+    "NameEn": "Timber-felling",
+    "NameDe": "Holzfällerei",
+    "ReconId": "SKILL-TIMBER",
+    "Confidence": "Likely",
+    "CategoryCn": "Gathering",
+    "UiGroup": "Profession"
+  }
+]

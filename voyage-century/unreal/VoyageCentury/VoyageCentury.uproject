@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.6",
+	"Category": "",
+	"Description": "Voyage Century Reconstruction",
+	"Modules": [
+		{ "Name": "VoyageCentury", "Type": "Runtime", "LoadingPhase": "Default" },
+		{ "Name": "VCCore", "Type": "Runtime", "LoadingPhase": "Default" },
+		{ "Name": "VCData", "Type": "Runtime", "LoadingPhase": "Default" },
+		{ "Name": "VCNet", "Type": "Runtime", "LoadingPhase": "Default" },
+		{ "Name": "VCServer", "Type": "Runtime", "LoadingPhase": "Default" }
+	]
+}

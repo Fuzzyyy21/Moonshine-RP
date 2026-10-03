@@ -1,8 +1,8 @@
 # Datenmodell
 
-Stand: 2026-10-03 · Schema: [`../database/schema.sql`](../database/schema.sql) (PostgreSQL 16)
+Stand: 2026-10-03 · Schema: [`../database/migrations/`](../database/migrations/) (PostgreSQL 16)
 
-Getestet mit `tools/test_schema.sh`: Schema wird in eine Wegwerf-Instanz
+Getestet mit `tools/test_schema.sh`: alle Migrationen und Seeds werden in eine Wegwerf-Instanz
 eingespielt, danach prüft [`../database/smoke_test.sql`](../database/smoke_test.sql)
 die Schutzregeln (doppelter Slot, negatives Guthaben, append-only-Protokolle,
 doppelte Buchung, ein aktives Schiff, Waffenklasse).
@@ -68,4 +68,16 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 * `character_stats.attributes` ist JSON, weil die Originalattribute UNKNOWN sind. Sobald sie bekannt sind, werden sie zu Spalten.
 * `items.rarity` ist Freitext ohne CHECK, weil die Originalstufen UNKNOWN sind.
 * `officer_instances.role` ist Freitext aus demselben Grund.
-* Migrationen: ab Phase 1 über ein Migrationswerkzeug (z. B. Flyway oder das des Backends). `schema.sql` ist der Ausgangsstand.
+## Migrationen
+
+| Datei | Inhalt |
+|---|---|
+| `V0001__initial_schema.sql` | Ausgangsschema aus Phase 0 |
+| `V0002__session_tickets.sql` | `account_sessions.token_hash` (SHA-256 des Tickets), `last_seen_at`, `server_id` |
+| `V0003__dev_test_zone.sql` | technische Zone `DEV_TESTZONE` für Phase 1 |
+| `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Sets) |
+
+Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);
+Änderungen kommen als neue Datei. `R__content.sql` wird nur über `tools/export_content.py`
+geändert und bei jeder Inhaltsänderung neu eingespielt. Der Migrator legt die Tabelle
+`schema_migrations` selbst an.

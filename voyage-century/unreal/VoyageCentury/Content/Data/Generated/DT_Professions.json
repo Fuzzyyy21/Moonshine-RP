@@ -1,0 +1,42 @@
+[
+  {
+    "Name": "ARMED_MERCHANT",
+    "NameZh": "武装商人",
+    "NameEn": "Armed Businessman",
+    "NameDe": "Bewaffneter Händler",
+    "ReconId": "PROF-ARMED_MERCHANT",
+    "Confidence": "Likely"
+  },
+  {
+    "Name": "CARIBBEAN_PIRATE",
+    "NameZh": "加勒比海盗",
+    "NameEn": "Caribbean Pirate",
+    "NameDe": "Karibik-Pirat",
+    "ReconId": "PROF-CARIBBEAN_PIRATE",
+    "Confidence": "Likely"
+  },
+  {
+    "Name": "IMPERIAL_GUARD",
+    "NameZh": "帝国禁卫军",
+    "NameEn": "Imperial Guardian",
+    "NameDe": "Kaiserliche Garde",
+    "ReconId": "PROF-IMPERIAL_GUARD",
+    "Confidence": "Likely"
+  },
+  {
+    "Name": "ROYAL_OFFICER",
+    "NameZh": "皇家军官",
+    "NameEn": "Royal Military Officer",
+    "NameDe": "Königlicher Offizier",
+    "ReconId": "PROF-ROYAL_OFFICER",
+    "Confidence": "Likely"
+  },
+  {
+    "Name": "TREASURE_HUNTER",
+    "NameZh": "宝藏猎人",
+    "NameEn": "Treasure Hunter",
+    "NameDe": "Schatzjäger",
+    "ReconId": "PROF-TREASURE_HUNTER",
+    "Confidence": "Uncertain"
+  }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "Name": "BATTLE",
+    "NameZh": "战船",
+    "NameEn": "Battle Ship",
+    "NameDe": "Kriegsschiff",
+    "ReconId": "SHIPCLASS-BATTLE",
+    "Confidence": "Likely",
+    "LeveledBy": "Kämpfe gegen andere Schiffe auf Schlachtfeldern"
+  },
+  {
+    "Name": "MERCHANT",
+    "NameZh": "商船",
+    "NameEn": "Merchant Ship",
+    "NameDe": "Handelsschiff",
+    "ReconId": "SHIPCLASS-MERCHANT",
+    "Confidence": "Likely",
+    "LeveledBy": "Handel"
+  },
+  {
+    "Name": "RAIDER",
+    "NameZh": "探险船",
+    "NameEn": "Raider Ship",
+    "NameDe": "Erkundungsschiff",
+    "ReconId": "SHIPCLASS-RAIDER",
+    "Confidence": "Likely",
+    "LeveledBy": "Erkundung"
+  }
+]

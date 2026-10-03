@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VC.Auth/VC.Auth.csproj" />
+    <Project Path="src/VC.Common/VC.Common.csproj" />
+    <Project Path="src/VC.GameData/VC.GameData.csproj" />
+    <Project Path="src/VC.Migrations/VC.Migrations.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VC.Tests/VC.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -7,8 +7,9 @@ PostgreSQL.
 
 Unabhängig vom FiveM-Framework im Repo-Wurzelverzeichnis.
 
-**Aktueller Stand: Phase 0 – Research.** Es gibt noch keinen Spielcode, nur
-Dokumentation, Datenbasis, Datenmodell und Werkzeuge.
+**Aktueller Stand: Phase 1 – Technische Grundlage.** Backend (Login, Charaktere,
+Persistenz, Audit) läuft und ist getestet; das UE5-Projekt ist angelegt, aber noch
+nicht kompiliert (siehe [`unreal/README.md`](unreal/README.md)).
 
 ## Inhalt
 
@@ -21,8 +22,11 @@ Dokumentation, Datenbasis, Datenmodell und Werkzeuge.
 | [`docs/04_FILE_ANALYSIS_PROTOCOL.md`](docs/04_FILE_ANALYSIS_PROTOCOL.md) | Ablauf für später bereitgestellte Dateien |
 | [`docs/05_ROADMAP.md`](docs/05_ROADMAP.md) | Phasen 0–8 mit Abnahmekriterien |
 | [`reconstruction_db/`](reconstruction_db/) | Reconstruction Database (JSON, mit Quellen und Confidence) |
-| [`database/schema.sql`](database/schema.sql) | PostgreSQL-Schema |
-| [`tools/`](tools/) | Validator, Datei-Inventar, Schematest |
+| [`design_data/`](design_data/) | Designentscheidungen als Daten (getrennt von Originalbefunden) |
+| [`database/migrations/`](database/migrations/) | PostgreSQL-Schema als Migrationen; `database/seed/` ist generiert |
+| [`backend/`](backend/) | .NET-10-Dienste: Auth, GameData, Migrator, Tests |
+| [`unreal/`](unreal/) | UE5-Projekt (Module, Targets, Konfiguration, generierte Data-Table-Quellen) |
+| [`tools/`](tools/) | Validator, Export, Datei-Inventar, Testskripte |
 
 ## Befehle
 
@@ -30,8 +34,15 @@ Dokumentation, Datenbasis, Datenmodell und Werkzeuge.
 # Reconstruction Database prüfen
 python3 tools/validate_reconstruction_db.py
 
-# Schema in Wegwerf-PostgreSQL einspielen und Schutzregeln testen
+# Abgeleitete Daten (Seed-SQL, Data-Table-JSON) neu erzeugen bzw. prüfen
+python3 tools/export_content.py
+python3 tools/export_content.py --check
+
+# Migrationen in Wegwerf-PostgreSQL einspielen und Schutzregeln testen
 tools/test_schema.sh
+
+# Backend bauen und alle Tests gegen echte PostgreSQL ausführen
+tools/test_backend.sh
 
 # Gelieferte Dateien read-only inventarisieren
 python3 tools/inventory_files.py /pfad/zu/originalen --out analysis/inventory.csv

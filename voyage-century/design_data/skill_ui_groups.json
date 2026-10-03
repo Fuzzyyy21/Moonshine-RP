@@ -1,0 +1,23 @@
+{
+  "_comment": "Designdaten (Quellen-Priorität 6), keine Originalbefunde. UI-Gruppierung der Skills nach Master-Prompt Abschnitt 8; die Originalkategorie (category_cn) bleibt davon unberührt, siehe CONTRA-005.",
+  "source": "SRC-DESIGN",
+  "groups": {
+    "SKILL-SWORD": "COMBAT",
+    "SKILL-FALCHION": "COMBAT",
+    "SKILL-AXE": "COMBAT",
+    "SKILL-SHOOTING": "COMBAT",
+    "SKILL-BAREHAND": "COMBAT",
+    "SKILL-MEDICINE": "COMBAT",
+    "SKILL-NAVIGATION": "SEAFARING",
+    "SKILL-SEA_BATTLE": "SEAFARING",
+    "SKILL-ELOQUENCE": "PROFESSION",
+    "SKILL-MINING": "PROFESSION",
+    "SKILL-TIMBER": "PROFESSION",
+    "SKILL-PLANTING": "PROFESSION",
+    "SKILL-FISHING": "PROFESSION",
+    "SKILL-FOUNDRY": "PROFESSION",
+    "SKILL-SEWING": "PROFESSION",
+    "SKILL-ALCHEMY": "PROFESSION",
+    "SKILL-SHIPBUILDING": "PROFESSION"
+  }
+}

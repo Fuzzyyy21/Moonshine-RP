@@ -1,6 +1,6 @@
 # Technische Architektur
 
-Stand: 2026-10-03 · Phase 0 · Status: **Entwurf, vor Phase 1 zu bestätigen**
+Stand: 2026-10-03 · Phase 1 · Status: **bestätigt, Phase-1-Entscheidungen in Abschnitt 13**
 
 Alle Entscheidungen hier sind Designentscheidungen (Priorität 6). Die Architektur
 des Originals ist unbekannt und wird nicht nachgebaut.
@@ -14,11 +14,11 @@ des Originals ist unbekannt und wird nicht nachgebaut.
  │ (UE5)  │         │ └───────────┘   └───────┬───────┘   └────┬─────┘ └────┬─────┘ └───┬────┘ └───┬────┘ │
  └───┬────┘         │                         │ weist Zone zu    │            │           │          │      │
      │ UE-Netzwerk  │ ┌───────────────────────┴──────────────────┴────────────┴───────────┴──────────┴────┐ │
-     │ (UDP)        │ │                         Persistence Service                                       │ │
+     │ (UDP)        │ │                    GameData-Dienst (Persistenz)                                   │ │
      ▼              │ └──────────────┬─────────────────────────────────────────────┬─────────────────────┘ │
  ┌──────────────────┴─┐              │                                             │                       │
- │ UE5 Dedicated      │  gRPC/mTLS   │                                             │                       │
- │ Server je Zone     │─────────────►│                                             │                       │
+ │ UE5 Dedicated      │ HTTPS/JSON   │                                             │                       │
+ │ Server je Zone     │ +Service-Key►│                                             │                       │
  │ (See, Stadt,       │              ▼                                             ▼                       │
  │  Dungeon-Instanz)  │        ┌────────────┐                                ┌──────────┐                  │
  └────────────────────┘        │ PostgreSQL │                                │  Redis   │                  │
@@ -32,14 +32,14 @@ des Originals ist unbekannt und wird nicht nachgebaut.
 | Auth | Login, Passwort-Hash (argon2id), Session-Ticket | Accounts, Sessions |
 | World Directory | Liste laufender Zonen-Server, Zuweisung, Zonenwechsel | Wer ist wo |
 | UE5 Dedicated Server | Simulation einer Zone: Bewegung, Kampf, Schiffe, NPCs, Quests, Drops | alles, was in der Zone passiert |
-| Persistence Service | einziger Schreibzugang zur Datenbank für Spielzustand | Speicherung, Transaktionen |
+| GameData-Dienst (Persistenz) | einziger Schreibzugang zur Datenbank für Spielzustand | Speicherung, Transaktionen |
 | Chat / Guild / Market / Mail | zonenübergreifende Systeme | jeweils ihr Bereich |
 | PostgreSQL | Wahrheit für alles Dauerhafte | — |
 | Redis | Sessions, Präsenz, Marktpreis-Cache, Pub/Sub für Chat | nur Cache, nie Wahrheit |
 
-**Empfehlung Backend-Sprache: C# (.NET 8 LTS oder neuer).** Gründe: starke
-Typisierung, ausgereifter PostgreSQL-Treiber (Npgsql), gRPC erstklassig,
-leicht zu testen. Zu bestätigen vor Phase 1.
+**Backend-Sprache: C# auf .NET 10 (LTS).** Gründe: starke Typisierung,
+ausgereifter PostgreSQL-Treiber (Npgsql), leicht zu testen. Bestätigt mit dem
+Start von Phase 1; Details in Abschnitt 13.
 
 ## 2. Server-Autorität
 
@@ -76,7 +76,7 @@ VoyageCentury/
 ├── Source/
 │   ├── VCCore/          Logging, Konfiguration, Fehlercodes, gemeinsame Typen
 │   ├── VCData/          Row-Structs der Data Tables, DataRegistry, Validierung beim Laden
-│   ├── VCNet/           Backend-Clients (gRPC), Tickets, Zonenwechsel
+│   ├── VCNet/           Backend-Client (HTTP/JSON), Login-Ablauf, Zonenwechsel
 │   ├── VCAbilities/     GAS: AttributeSets, Abilities, Effects, Tags
 │   ├── VCCharacter/     Charakter, Erscheinung, Level, Skills
 │   ├── VCCombat/        Landkampf, Schadens-Execution, Zielwahl
@@ -97,14 +97,15 @@ VoyageCentury/
 Regeln:
 
 * Kein Modul kennt die UI; die UI bindet über ViewModels.
-* `VCServer` wird im Client-Build nicht kompiliert (`Type = "Server"` bzw. `#if WITH_SERVER_CODE`).
+* `VCServer` ist ein Runtime-Modul; alles mit Service-Key steht hinter `#if WITH_SERVER_CODE` und fehlt damit im Client-Build (Begründung in Abschnitt 13).
 * Jede Klasse hat eine Aufgabe; keine „GameManager“-Monolithen. Subsysteme (`UWorldSubsystem`, `UGameInstanceSubsystem`) statt Singletons.
 
 ## 5. Datenpipeline (eine Wahrheit)
 
 ```
-reconstruction_db/*.json  ──(Export-Tool, Phase 1)──►  Content/Data/*.json  (UE Data Tables)
-         │                                        └──►  database/seed/*.sql (statische Tabellen)
+reconstruction_db/*.json ─┐
+design_data/*.json ───────┴─(tools/export_content.py)─┬─► unreal/…/Content/Data/Generated/*.json (UE Data Tables)
+                                                      └─► database/seed/R__content.sql (statische Tabellen)
          └── Validator (tools/validate_reconstruction_db.py) läuft in CI
 ```
 
@@ -114,7 +115,7 @@ reconstruction_db/*.json  ──(Export-Tool, Phase 1)──►  Content/Data/*.
 
 ## 6. Persistenz
 
-* Der Zonen-Server hält den aktiven Zustand im Speicher und speichert über den Persistence Service:
+* Der Zonen-Server hält den aktiven Zustand im Speicher und speichert über den GameData-Dienst:
   * **Write-behind** alle N Sekunden und bei Zonenwechsel/Logout für unkritische Werte (Position, HP).
   * **Sofort und transaktional** für alles Wertvolle: Handel zwischen Spielern, Auktionshaus, Mail mit Anhang, Itemerzeugung, Gold-Buchungen, Umbau.
 * Jede wertvolle Operation trägt einen **Idempotency-Key** (`currency_ledger.idempotency_key`), damit Wiederholungen nach Netzwerkfehlern nicht doppelt buchen.
@@ -179,3 +180,33 @@ bestätigten Mustern; zunächst Review durch Admins.
 Wie im Master-Prompt, Abschnitt 37: Code → Kompilieren → Fehler analysieren →
 Testen → Netzwerk testen → Datenbank testen → Performance prüfen →
 Dokumentation aktualisieren → erst dann nächstes System.
+
+## 13. Entscheidungen in Phase 1
+
+| Thema | Entscheidung | Begründung |
+|---|---|---|
+| Backend | C# / .NET 10 LTS, ASP.NET Core Minimal APIs, Npgsql ohne ORM | explizites SQL, wenige Abhängigkeiten, gut testbar |
+| Server ↔ Backend | **HTTPS/JSON** statt gRPC | UE5 bringt HTTP und JSON mit; gRPC bräuchte ein Fremd-Plugin |
+| Dienst-Authentifizierung | Service-Key im Header `X-Service-Key`, mehrere Schlüssel für Rotation; mTLS später | einfach, rotierbar; Schlüssel nur aus Umgebungsvariablen |
+| Session-Tickets | opake 256-Bit-Tickets, in der DB nur SHA-256, widerrufbar | sofortiger Entzug bei Logout oder Sperre, kein Token-Parsing im Spielserver |
+| Passwörter | argon2id im PHC-Format, Parameter im Hash, Rehash beim Login | Parameter später erhöhbar ohne Zwangs-Reset |
+| Migrationen | eigener Migrator (`backend/src/VC.Migrations`): `V0001__*.sql` einmalig, `R__*.sql` bei Änderung, Prüfsummen, Advisory Lock | gleiche Semantik wie Flyway, ohne Java-Abhängigkeit |
+| Logs | JSON auf stdout, quellgenerierte `LoggerMessage`-Methoden, keine Query-Strings/Bodies | sammelbar, schnell, keine Tickets/Passwörter im Log |
+| `VCServer` | Runtime-Modul statt ServerOnly; Service-Key-Pfade hinter `WITH_SERVER_CODE` | Karten und Konfiguration verweisen auf den GameMode; ein im Client fehlendes Modul würde Ladefehler erzeugen |
+| Zonenwahl | in Phase 1 fest per `-VCZone=`; World Directory folgt | erst nötig, wenn mehrere Zonen existieren |
+
+### Login-Ablauf
+
+```
+Client                    Auth                  GameData             Zonen-Server
+  │ POST /v1/sessions ────►│                        │                      │
+  │◄──── ticket ───────────│                        │                      │
+  │ GET/POST /v1/characters (Bearer ticket) ───────►│                      │
+  │ open host:7777?ticket=…?character=… ───────────────────────────────────►│ PreLogin: Optionen da?
+  │                        │◄── POST /internal/v1/sessions/validate ───────│ (Service-Key)
+  │                        │─── accountId, adminLevel ────────────────────►│
+  │                        │                        │◄── GET …/state ──────│ Besitz geprüft
+  │                        │                        │─── Position ────────►│ Pawn spawnen
+  │◄──────────────────────── Replikation ──────────────────────────────────│
+  │                        │                        │◄── PUT …/state ──────│ alle 30 s + beim Verlassen
+```
