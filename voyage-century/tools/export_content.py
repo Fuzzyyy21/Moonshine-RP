@@ -56,6 +56,13 @@ def load_records() -> dict[str, dict]:
     return records
 
 
+CONFIDENCE_ORDER = ["UNKNOWN", "UNCERTAIN", "LIKELY", "CONFIRMED"]
+
+
+def weakest(*levels: str) -> str:
+    return min(levels, key=CONFIDENCE_ORDER.index)
+
+
 def strip_prefix(record_id: str) -> str:
     return record_id.split("-", 1)[1]
 
@@ -132,6 +139,22 @@ def build_rows(records: dict[str, dict], ui_groups: dict[str, str]) -> dict[str,
     if officer_cards and known(officer_cards["data"].get("exchange_city")):
         port(officer_cards["data"]["exchange_city"], officer_cards)["services"]["officer_card_exchange"] = True
     rows["ports"] = list(ports.values())
+
+    # NPCs, deren Rolle und Ort belegt sind. Einzelne Namen sind UNKNOWN; der Name ist der Rollentitel der Quelle.
+    # Der Hafenarbeiter (SAILOR-SYSTEM) hat keinen belegten Ort und wird deshalb nicht platziert.
+    npcs = []
+    acquisition = records.get("SHIP-ACQUISITION")
+    if acquisition:
+        for p in ports.values():
+            if p["has_shipyard"]:
+                npcs.append({"code": f"{p['city']}_SHIPYARD", "role": "SHIPYARD", "city": p["city"], **names(acquisition),
+                             "recon_id": acquisition["id"], "confidence": weakest(acquisition["confidence"], p["confidence"])})
+    if officer_cards and known(officer_cards["data"].get("exchange_city")):
+        city = strip_prefix(officer_cards["data"]["exchange_city"])
+        npcs.append({"code": f"{city}_OFFICER_EXCHANGE", "role": "OFFICER_EXCHANGE", "city": city,
+                     "zh": known(officer_cards["data"].get("exchange_npc_title_zh")), "en": None, "de": "Offizierskarten-Tauscher",
+                     "recon_id": officer_cards["id"], "confidence": officer_cards["confidence"]})
+    rows["npcs"] = npcs
 
     total_cap = records.get("SKILL-TOTAL-CAP")
     rows["game_rules"] = [
@@ -278,7 +301,7 @@ def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: lis
 
 
 def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict,
-               world: dict) -> str:
+               world: dict, discoveries: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
     city_zones = {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]}
 
@@ -307,6 +330,15 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
                [{"city_id": SqlExpr(f"(SELECT city_id FROM cities WHERE code = {sql_literal(p['city'])})"),
                  "has_shipyard": p["has_shipyard"], "services": p["services"], "recon_id": p["recon_id"],
                  "confidence": p["confidence"]} for p in rows["ports"]]),
+        upsert("npcs", "code", ["code", *name_cols, "npc_role", "port_id", "zone_id", "recon_id", "confidence"],
+               [{**n, "npc_role": n["role"],
+                 "port_id": SqlExpr(f"(SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = {sql_literal(n['city'])})"),
+                 "zone_id": city_zones.get(n["city"])}
+                for n in renamed(rows["npcs"])]),
+        "-- Entdeckungen (design_data/dev_discoveries.json, is_dev = TRUE).\n",
+        upsert("discoveries", "code", ["code", "zone_id", "name_de", "xp_reward", "is_dev", "confidence"],
+               [{"code": d["code"], "zone_id": d["zone"], "name_de": d["name_de"], "xp_reward": d["xp_reward"], "is_dev": True,
+                 "confidence": "UNKNOWN"} for d in sorted(discoveries["discoveries"], key=lambda d: d["code"])]),
         upsert("zone_links", ("from_zone_id", "exit_code"), ["from_zone_id", "exit_code", "to_zone_id", "arrival_tag"],
                [{"from_zone_id": link["from"], "exit_code": link["exit"], "to_zone_id": link["to"], "arrival_tag": link["arrival"]}
                 for link in sorted(world["links"], key=lambda link: (link["from"], link["exit"]))]),
@@ -359,8 +391,20 @@ def ue_common(row: dict) -> dict:
     }
 
 
-def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abilities: dict) -> dict[str, list[dict]]:
+NPC_ROLE_UE = {"SHIPYARD": "Shipyard", "OFFICER_EXCHANGE": "OfficerExchange"}
+
+
+def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abilities: dict,
+              discoveries: dict) -> dict[str, list[dict]]:
     return {
+        "DT_Npcs.json": [
+            {"Name": n["code"], **ue_common(n), "Role": NPC_ROLE_UE[n["role"]], "CityCode": n["city"]}
+            for n in sorted(rows["npcs"], key=lambda n: n["code"])
+        ],
+        "DT_Discoveries.json": [
+            {"Name": d["code"], "NameDe": d["name_de"], "ZoneId": d["zone"], "XpReward": d["xp_reward"], "bIsDev": True}
+            for d in sorted(discoveries["discoveries"], key=lambda d: d["code"])
+        ],
         "DT_Abilities.json": [
             {"Name": a["code"], "NameDe": a["name_de"], "SkillCode": a["skill"], "RequiredSkillLevel": a["required_skill_level"],
              "bRequiresWeaponClass": a["weapon_class"] is not None,
@@ -435,8 +479,13 @@ def outputs() -> dict[Path, str]:
     check_abilities(abilities, {r["code"] for r in rows["skills"]})
     world = json.loads((DESIGN_DIR / "world_layout.json").read_text(encoding="utf-8"))
     check_world(world, load_records())
-    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world)}
-    for name, table in render_ue(rows, appearance, combat, abilities).items():
+    discoveries = json.loads((DESIGN_DIR / "dev_discoveries.json").read_text(encoding="utf-8"))
+    zone_ids = {z["zone_id"] for z in world["zones"]} | MIGRATION_ZONES
+    for d in discoveries["discoveries"]:
+        if d["zone"] not in zone_ids or not TAG_RE.match(d["code"]):
+            raise SystemExit(f"design_data/dev_discoveries.json: {d['code']} (Zone {d['zone']} unbekannt oder Code ungültig)")
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries)}
+    for name, table in render_ue(rows, appearance, combat, abilities, discoveries).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files
 

@@ -41,4 +41,7 @@ public:
 
 	/** Eine Spielfigur hat einen Zonenausgang betreten (AVCZoneExit). Wechsel nur, wenn das Backend ihn erlaubt. */
 	virtual void HandleZoneExit(APawn* Pawn, FName ExitCode) = 0;
+
+	/** Eine Spielfigur hat einen Entdeckungspunkt betreten (AVCDiscoveryPoint). Zählt das Backend einmal je Charakter. */
+	virtual void HandleDiscovery(APawn* Pawn, FName DiscoveryCode) = 0;
 };

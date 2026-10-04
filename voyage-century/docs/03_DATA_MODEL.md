@@ -38,7 +38,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | Crafting | **recipes**, recipe_materials | – |
 | Gilden | – | **guilds**, guild_ranks, **guild_members**, guild_invites, guild_skills, Sicht guild_storage |
 | Territorium | **territories** | territory_wars |
-| Inhalte | **dungeons**, **events** | event_runs |
+| Inhalte | **dungeons**, **events**, discoveries | event_runs, character_discoveries |
 | Sozial | – | **mail**, **friends**, ignores, chat_log, chat_mutes, player_reports |
 | PvP/Piraten | – | **pvp_statistics**, bounties |
 | Betrieb | – | game_event_log, admin_audit_log, anticheat_flags |
@@ -69,6 +69,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 * `items.rarity` ist Freitext ohne CHECK, weil die Originalstufen UNKNOWN sind.
 * `officer_instances.role` ist Freitext aus demselben Grund.
 * `regions` und `continents` bleiben leer: Die einzige Seegebiet-Liste (`REGION-LIST-17173`) ist wegen Vermischungsgefahr mit 大航海时代 Online nicht übernommen; Zonen haben deshalb noch keine Region.
+* `npcs`: nur mit belegter Rolle und belegtem Ort; Name = Rollentitel der Quelle (einzelne Namen UNKNOWN).
 * `ports.has_*`: TRUE nur bei Beleg (Schiffsumbau in der Stadt → Werft), sonst NULL; „kein Dienst“ ist nie belegt.
 * Statuseffekte haben keine Tabelle: Sie leben nur auf dem Zonen-Server (`DT_StatusEffects`) und enden mit Tod oder Ausloggen.
 
@@ -84,6 +85,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0006__land_combat.sql` | `items.is_dev`, `monsters.is_dev`/`xp_reward`, `zones.pvp_mode` (Testzone = FREE), `combat_kills` (Kill-Protokoll, Idempotenz) |
 | `V0007__abilities_hotbar.sql` | `abilities.is_dev`, `character_hotbar` (Platz 0–9, jede Fähigkeit einmal), entfernt die nie benutzte Spalte `character_abilities.hotbar_slot` |
 | `V0008__world_directory.sql` | `zones.is_dev`, Hafendienste nullable (NULL = UNKNOWN), `zone_links` (Ausgang → Zielzone, Ankunftspunkt), `zone_servers`, `character_presence` (eine Anwesenheit je Charakter) |
+| `V0009__npcs_discoveries.sql` | `discoveries` (Punkt je Zone, `xp_reward` NULL = UNKNOWN), `character_discoveries` (einmal je Charakter) |
 | `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Häfen, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten, Zonen und Übergänge) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);

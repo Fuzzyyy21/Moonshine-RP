@@ -268,3 +268,34 @@ struct VCDATA_API FVCStatusEffectRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Periodisch") double HealPerTick = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
 };
+
+/** Rolle eines NPCs; nur belegte Rollen (siehe tools/export_content.py). */
+UENUM(BlueprintType)
+enum class EVCNpcRole : uint8
+{
+	Shipyard,
+	OfficerExchange
+};
+
+/** NPC (DT_Npcs). Einzelne Namen sind UNKNOWN; der Name ist der Rollentitel der Quelle. */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCNpcRow : public FVCReconRow
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC") EVCNpcRole Role = EVCNpcRole::Shipyard;
+	/** Stadt aus der Reconstruction Database (cities.code). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC") FString CityCode;
+};
+
+/** Entdeckungspunkt (DT_Discoveries). Die Belohnung legt das Backend fest; XpReward ist nur Anzeige. */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCDiscoveryRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Entdeckung") FString NameDe;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Entdeckung") FString ZoneId;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Entdeckung") int64 XpReward = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
+};

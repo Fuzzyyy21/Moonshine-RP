@@ -1,0 +1,92 @@
+[
+  {
+    "Name": "ALGIERS_SHIPYARD",
+    "NameZh": "船老板",
+    "NameEn": "Shipyard Boss",
+    "NameDe": "Werftmeister",
+    "ReconId": "SHIP-ACQUISITION",
+    "Confidence": "Uncertain",
+    "Role": "Shipyard",
+    "CityCode": "ALGIERS"
+  },
+  {
+    "Name": "ATHENS_SHIPYARD",
+    "NameZh": "船老板",
+    "NameEn": "Shipyard Boss",
+    "NameDe": "Werftmeister",
+    "ReconId": "SHIP-ACQUISITION",
+    "Confidence": "Uncertain",
+    "Role": "Shipyard",
+    "CityCode": "ATHENS"
+  },
+  {
+    "Name": "GENOA_SHIPYARD",
+    "NameZh": "船老板",
+    "NameEn": "Shipyard Boss",
+    "NameDe": "Werftmeister",
+    "ReconId": "SHIP-ACQUISITION",
+    "Confidence": "Uncertain",
+    "Role": "Shipyard",
+    "CityCode": "GENOA"
+  },
+  {
+    "Name": "HAMBURG_SHIPYARD",
+    "NameZh": "船老板",
+    "NameEn": "Shipyard Boss",
+    "NameDe": "Werftmeister",
+    "ReconId": "SHIP-ACQUISITION",
+    "Confidence": "Uncertain",
+    "Role": "Shipyard",
+    "CityCode": "HAMBURG"
+  },
+  {
+    "Name": "LONDON_OFFICER_EXCHANGE",
+    "NameZh": "副官卡片兑换员",
+    "NameEn": "",
+    "NameDe": "Offizierskarten-Tauscher",
+    "ReconId": "SYS-OFFICER-CARDS",
+    "Confidence": "Uncertain",
+    "Role": "OfficerExchange",
+    "CityCode": "LONDON"
+  },
+  {
+    "Name": "MUSCAT_SHIPYARD",
+    "NameZh": "船老板",
+    "NameEn": "Shipyard Boss",
+    "NameDe": "Werftmeister",
+    "ReconId": "SHIP-ACQUISITION",
+    "Confidence": "Uncertain",
+    "Role": "Shipyard",
+    "CityCode": "MUSCAT"
+  },
+  {
+    "Name": "SEOUL_SHIPYARD",
+    "NameZh": "船老板",
+    "NameEn": "Shipyard Boss",
+    "NameDe": "Werftmeister",
+    "ReconId": "SHIP-ACQUISITION",
+    "Confidence": "Uncertain",
+    "Role": "Shipyard",
+    "CityCode": "SEOUL"
+  },
+  {
+    "Name": "SEVILLE_SHIPYARD",
+    "NameZh": "船老板",
+    "NameEn": "Shipyard Boss",
+    "NameDe": "Werftmeister",
+    "ReconId": "SHIP-ACQUISITION",
+    "Confidence": "Uncertain",
+    "Role": "Shipyard",
+    "CityCode": "SEVILLE"
+  },
+  {
+    "Name": "ZHIGU_SHIPYARD",
+    "NameZh": "船老板",
+    "NameEn": "Shipyard Boss",
+    "NameDe": "Werftmeister",
+    "ReconId": "SHIP-ACQUISITION",
+    "Confidence": "Uncertain",
+    "Role": "Shipyard",
+    "CityCode": "ZHIGU"
+  }
+]

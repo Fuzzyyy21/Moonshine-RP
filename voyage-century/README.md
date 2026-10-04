@@ -7,7 +7,7 @@ PostgreSQL.
 
 Unabhängig vom FiveM-Framework im Repo-Wurzelverzeichnis.
 
-**Aktueller Stand: Phase 4 – Welt (Iteration 1: Zonen, Häfen, World Directory, Zonenwechsel).**
+**Aktueller Stand: Phase 4 – Welt (Iteration 2: NPCs und Entdeckungen; davor Zonen, Häfen, World Directory).**
 Backend (Login, Charaktere, Progression, Kampf, Hotbar, World Directory) und die Kampf- und Fähigkeitsregeln sind getestet; der Unreal-Code ist
 geschrieben, aber noch nicht kompiliert (siehe [`unreal/README.md`](unreal/README.md)).
 Stand je Phase: [`docs/05_ROADMAP.md`](docs/05_ROADMAP.md).

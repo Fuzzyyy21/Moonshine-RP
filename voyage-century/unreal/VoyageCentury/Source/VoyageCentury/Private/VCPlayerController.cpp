@@ -137,6 +137,16 @@ void AVCPlayerController::VCPlay(const FString& CharacterId)
 	}
 }
 
+void AVCPlayerController::ClientShowNpcDialog_Implementation(FName NpcCode)
+{
+	OnNpcDialog.Broadcast(NpcCode);
+}
+
+void AVCPlayerController::ClientDiscovered_Implementation(FName DiscoveryCode, int64 XpAwarded)
+{
+	OnDiscovered.Broadcast(DiscoveryCode, XpAwarded);
+}
+
 void AVCPlayerController::ClientTravelToZone_Implementation(const FString& Address, int64 CharacterId)
 {
 	// Das Ticket hat nur der Client; der Server nennt nur das Ziel.

@@ -142,7 +142,22 @@ DO $$ BEGIN
     ASSERT NOT EXISTS (SELECT 1 FROM character_presence WHERE character_id = 1), 'Anwesenheit überlebt das Abmelden des Servers';
 END $$;
 
--- 11. Partitionierte Logs nehmen Zeilen an.
+-- 11. NPCs nur mit belegtem Ort; jede Entdeckung zählt je Charakter einmal.
+DO $$ BEGIN
+    ASSERT NOT EXISTS (SELECT 1 FROM npcs WHERE port_id IS NULL AND zone_id IS NULL), 'NPC ohne Ort';
+    ASSERT (SELECT count(*) FROM discoveries WHERE code LIKE 'DEV_%' AND NOT is_dev) = 0, 'DEV-Entdeckung ohne is_dev';
+END $$;
+INSERT INTO discoveries (code, zone_id) VALUES ('TEST_DISCOVERY', 'DEV_TESTZONE');
+INSERT INTO character_discoveries (character_id, discovery_id, server_id)
+VALUES (1, (SELECT discovery_id FROM discoveries WHERE code = 'TEST_DISCOVERY'), 'smoke');
+DO $$ BEGIN
+    INSERT INTO character_discoveries (character_id, discovery_id, server_id)
+    VALUES (1, (SELECT discovery_id FROM discoveries WHERE code = 'TEST_DISCOVERY'), 'smoke');
+    RAISE EXCEPTION 'FEHLT: doppelte Entdeckung wurde akzeptiert';
+EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'ok: Entdeckung einmal je Charakter';
+END $$;
+
+-- 12. Partitionierte Logs nehmen Zeilen an.
 INSERT INTO game_event_log (character_id, action, new_value, server_id) VALUES (1, 'LEVEL_UP', '{"level":2}', 'test');
 INSERT INTO chat_log (channel, sender_character_id, message) VALUES ('WORLD', 1, 'Hallo');
 

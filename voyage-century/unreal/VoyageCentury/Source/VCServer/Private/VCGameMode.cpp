@@ -393,6 +393,21 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 	{
 		AbilityState->ServerSetHotbar(ParseHotbar(Result.Json));
 	}
+	if (FPlayerSession* Session = Sessions.Find(PC))
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Found = nullptr;
+		if (Result.Json->TryGetArrayField(TEXT("discoveries"), Found) && Found)
+		{
+			for (const TSharedPtr<FJsonValue>& Value : *Found)
+			{
+				FString Code;
+				if (Value.IsValid() && Value->TryGetString(Code))
+				{
+					Session->Discoveries.Add(FName(*Code));
+				}
+			}
+		}
+	}
 
 	// Leben/Ausdauer: gespeicherten Stand übernehmen, sonst (oder nach Tod) voll.
 	if (FPlayerSession* Session = Sessions.Find(PC))
@@ -1156,4 +1171,54 @@ void AVCGameMode::CancelTransfer(APlayerController* PC, const FString& Reason)
 		Session->bTransferring = false;
 	}
 	PC->ClientMessage(FString::Printf(TEXT("Zonenwechsel nicht möglich: %s"), *Reason));
+}
+
+void AVCGameMode::HandleDiscovery(APawn* Pawn, FName DiscoveryCode)
+{
+	APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
+	FPlayerSession* Session = PC ? Sessions.Find(PC) : nullptr;
+	if (!Session || !Session->bAuthenticated || !Session->bClaimed || Session->bTransferring || Session->Discoveries.Contains(DiscoveryCode))
+	{
+		return;
+	}
+	// Vorab als bekannt markieren: ein zweites Betreten während der Meldung schickt nichts doppelt.
+	Session->Discoveries.Add(DiscoveryCode);
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(PC);
+	FVCServerBackend::ReportDiscovery(Session->CharacterId, Session->AccountId, DiscoveryCode.ToString(),
+		[WeakThis, WeakPC, DiscoveryCode](const FVCHttpResult& Result)
+		{
+			AVCGameMode* Self = WeakThis.Get();
+			APlayerController* Player = WeakPC.Get();
+			if (!Self || !Player)
+			{
+				return;
+			}
+			bool bFirstTime = false;
+			if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetBoolField(TEXT("firstTime"), bFirstTime))
+			{
+				// Nicht gezählt (z. B. Punkt gehört zu einer anderen Zone): beim nächsten Betreten erneut versuchen.
+				UE_LOG(LogVC, Warning, TEXT("Entdeckung %s abgelehnt: %s"), *DiscoveryCode.ToString(), *Result.ErrorMessage());
+				if (FPlayerSession* S = Self->Sessions.Find(Player))
+				{
+					S->Discoveries.Remove(DiscoveryCode);
+				}
+				return;
+			}
+			if (!bFirstTime)
+			{
+				return;
+			}
+			double Xp = 0.0;
+			Result.Json->TryGetNumberField(TEXT("xpAwarded"), Xp);
+			const TSharedPtr<FJsonObject>* Progress = nullptr;
+			if (Result.Json->TryGetObjectField(TEXT("progress"), Progress) && Progress)
+			{
+				ApplyCharacterProgress(Player, *Progress);
+			}
+			if (AVCPlayerController* VCPC = Cast<AVCPlayerController>(Player))
+			{
+				VCPC->ClientDiscovered(DiscoveryCode, static_cast<int64>(Xp));
+			}
+		});
 }

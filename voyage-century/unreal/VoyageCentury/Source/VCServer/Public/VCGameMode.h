@@ -55,6 +55,7 @@ public:
 	virtual void HandleSkillUse(AActor* User, FName SkillCode) override;
 	virtual void HandleHotbarChange(APlayerController* Player, int32 Slot, FName AbilityCode) override;
 	virtual void HandleZoneExit(APawn* Pawn, FName ExitCode) override;
+	virtual void HandleDiscovery(APawn* Pawn, FName DiscoveryCode) override;
 
 	/** Charakter-XP vergeben (z. B. aus Kampf oder Quest, ab Phase 3). Nur Server. */
 	void GrantExperience(APlayerController* PC, int64 Amount, const FString& Source);
@@ -91,6 +92,8 @@ private:
 		bool bFinalSaveSent = false;
 		/** PlayerStart-Tag aus einem Zonenwechsel; leer = gespeicherte Position oder Standard-Start. */
 		FString ArrivalTag;
+		/** Bereits entdeckt (aus dem Charakterzustand) oder Meldung unterwegs: nicht erneut melden. */
+		TSet<FName> Discoveries;
 	};
 
 	/** PvP-Regel der Zone; bis das Backend antwortet, ist PvP aus. */

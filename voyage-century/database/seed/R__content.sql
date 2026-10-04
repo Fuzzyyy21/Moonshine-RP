@@ -113,6 +113,39 @@ ON CONFLICT (city_id) DO UPDATE SET
     recon_id = EXCLUDED.recon_id,
     confidence = EXCLUDED.confidence;
 
+INSERT INTO npcs (code, name_zh, name_en, name_de, npc_role, port_id, zone_id, recon_id, confidence) VALUES
+    ('ALGIERS_SHIPYARD', '船老板', 'Shipyard Boss', 'Werftmeister', 'SHIPYARD', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'ALGIERS'), NULL, 'SHIP-ACQUISITION', 'UNCERTAIN'::confidence_level),
+    ('ATHENS_SHIPYARD', '船老板', 'Shipyard Boss', 'Werftmeister', 'SHIPYARD', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'ATHENS'), 'CITY_ATHENS', 'SHIP-ACQUISITION', 'UNCERTAIN'::confidence_level),
+    ('GENOA_SHIPYARD', '船老板', 'Shipyard Boss', 'Werftmeister', 'SHIPYARD', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'GENOA'), NULL, 'SHIP-ACQUISITION', 'UNCERTAIN'::confidence_level),
+    ('HAMBURG_SHIPYARD', '船老板', 'Shipyard Boss', 'Werftmeister', 'SHIPYARD', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'HAMBURG'), NULL, 'SHIP-ACQUISITION', 'UNCERTAIN'::confidence_level),
+    ('LONDON_OFFICER_EXCHANGE', '副官卡片兑换员', NULL, 'Offizierskarten-Tauscher', 'OFFICER_EXCHANGE', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'LONDON'), 'CITY_LONDON', 'SYS-OFFICER-CARDS', 'UNCERTAIN'::confidence_level),
+    ('MUSCAT_SHIPYARD', '船老板', 'Shipyard Boss', 'Werftmeister', 'SHIPYARD', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'MUSCAT'), NULL, 'SHIP-ACQUISITION', 'UNCERTAIN'::confidence_level),
+    ('SEOUL_SHIPYARD', '船老板', 'Shipyard Boss', 'Werftmeister', 'SHIPYARD', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'SEOUL'), NULL, 'SHIP-ACQUISITION', 'UNCERTAIN'::confidence_level),
+    ('SEVILLE_SHIPYARD', '船老板', 'Shipyard Boss', 'Werftmeister', 'SHIPYARD', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'SEVILLE'), NULL, 'SHIP-ACQUISITION', 'UNCERTAIN'::confidence_level),
+    ('ZHIGU_SHIPYARD', '船老板', 'Shipyard Boss', 'Werftmeister', 'SHIPYARD', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'ZHIGU'), NULL, 'SHIP-ACQUISITION', 'UNCERTAIN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_zh = EXCLUDED.name_zh,
+    name_en = EXCLUDED.name_en,
+    name_de = EXCLUDED.name_de,
+    npc_role = EXCLUDED.npc_role,
+    port_id = EXCLUDED.port_id,
+    zone_id = EXCLUDED.zone_id,
+    recon_id = EXCLUDED.recon_id,
+    confidence = EXCLUDED.confidence;
+
+-- Entdeckungen (design_data/dev_discoveries.json, is_dev = TRUE).
+
+INSERT INTO discoveries (code, zone_id, name_de, xp_reward, is_dev, confidence) VALUES
+    ('DEV_DISC_LONDON_LOOKOUT', 'CITY_LONDON', 'Aussichtspunkt (Test)', 30, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_DISC_SEA_WRECK', 'SEA_DEV', 'Wrack (Test)', 80, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_DISC_TESTZONE_RUIN', 'DEV_TESTZONE', 'Übungsruine', 50, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    zone_id = EXCLUDED.zone_id,
+    name_de = EXCLUDED.name_de,
+    xp_reward = EXCLUDED.xp_reward,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO zone_links (from_zone_id, exit_code, to_zone_id, arrival_tag) VALUES
     ('CITY_ATHENS', 'HARBOR', 'SEA_DEV', 'ATHENS'),
     ('CITY_LONDON', 'HARBOR', 'SEA_DEV', 'LONDON'),

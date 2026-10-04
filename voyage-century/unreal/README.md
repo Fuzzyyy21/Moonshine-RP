@@ -20,7 +20,7 @@ nutzen `BuildSettingsVersion.Latest`, damit kein versionsspezifischer Wert festg
 | `VCRules` | Kampfformeln ohne Engine-Abhängigkeit |
 | `VCAbilities` | Attribute, Kampfablauf (`FVCCombat`), Grundangriff, Fähigkeiten, Statuseffekte, Hotbar, Kampfdaten (`UVCCombatSettings`) |
 | `VCAI` | `AVCMonster`, `AVCMonsterAIController`, `AVCMonsterSpawner` |
-| `VCWorld` | Objekte in Karten: `AVCZoneExit` (Zonenausgang) |
+| `VCWorld` | Objekte in Karten: `AVCZoneExit` (Zonenausgang), `AVCNpc`, `AVCDiscoveryPoint`; Weltdaten (`UVCWorldSettings`) |
 
 Targets: `VoyageCentury` (Game), `VoyageCenturyEditor`, `VoyageCenturyServer`, `VoyageCenturyClient`.
 
@@ -136,6 +136,30 @@ Was der Server verhindert: zweites Einloggen desselben Charakters (Meldung „Ch
 direktes Verbinden in eine Zone, in der der Charakter nicht steht, und Speichern durch den alten Server nach
 einem Wechsel.
 
+## NPCs und Entdeckungen (Phase 4, Iteration 2)
+
+| Data Table | Row-Struktur | Pfad |
+|---|---|---|
+| `DT_Npcs.json` | `VCNpcRow` | `/Game/Data/DT_Npcs` |
+| `DT_Discoveries.json` | `VCDiscoveryRow` | `/Game/Data/DT_Discoveries` |
+
+In den Karten platzieren (Stadtpläne des Originals sind UNKNOWN, Position frei wählbar):
+
+| Karte | `VCNpc` (*Npc Code*) | `VCDiscoveryPoint` (*Discovery Code*) |
+|---|---|---|
+| `L_London` | `LONDON_OFFICER_EXCHANGE` | `DEV_DISC_LONDON_LOOKOUT` |
+| `L_Athens` | `ATHENS_SHIPYARD` | – |
+| `L_SeaDev` | – | `DEV_DISC_SEA_WRECK` |
+| `L_DevTestZone` | – | `DEV_DISC_TESTZONE_RUIN` |
+
+Nur NPCs mit belegter Rolle **und** belegtem Ort gibt es: Werftmeister (船老板) in jeder Stadt mit belegtem
+Schiffsumbau, Offizierskarten-Tauscher (副官卡片兑换员) in London. Der Hafenarbeiter (heilt Matrosen) hat keinen
+belegten Ort und fehlt deshalb.
+
+Testen: zu einem NPC gehen, **E** → Fenster mit Namen (Rollentitel), Aufgabe und Beleg; die Dienste folgen
+mit Schiffen bzw. Offizieren. Entdeckungspunkt betreten → „Entdeckt: … (+50 XP)“, zweites Betreten gibt nichts.
+Nach Neustart bleibt die Entdeckung gespeichert (`VCStatus` zeigt die XP).
+
 ## Fähigkeiten, Statuseffekte, Hotbar (Phase 3, Iteration 2)
 
 Zusätzliche Data Tables (Pfade in `DefaultGame.ini`):
@@ -220,4 +244,4 @@ Server an und nur aus Backend-Antworten; `CheckAuthority` verwirft alle anderen 
 * Das Ticket steht in der Verbindungs-URL und kann in ausführlichen Engine-Logs auftauchen.
 * Fällt ein Zonen-Server aus, kann der Charakter erst nach `World:ServerTimeoutSeconds` (30 s) wieder einloggen.
 * Zonen-Server weisen sich nur über den gemeinsamen Service-Key aus; ein Server könnte sich als anderer ausgeben (Vertrauensgrenze: Serverbetrieb).
-* Nur Speichern prüft die Anwesenheit; XP-Vergaben und Kill-Meldungen eines alten Servers würden noch angenommen (idempotent, aber nicht an die Zone gebunden).
+* Nur Speichern und Entdeckungen prüfen die Anwesenheit; XP-Vergaben und Kill-Meldungen eines alten Servers würden noch angenommen (idempotent, aber nicht an die Zone gebunden).

@@ -26,6 +26,9 @@
 #include "VCAttributeSet.h"
 #include "VCCombatData.h"
 #include "VCCombatStateComponent.h"
+#include "VCNpc.h"
+#include "VCPlayerController.h"
+#include "VCWorldData.h"
 #include "VCGameplayTags.h"
 #include "VCPlayerState.h"
 #include "VCProgressionComponent.h"
@@ -116,6 +119,10 @@ void AVCCharacter::CreateInputObjects()
 	AttackAction->ValueType = EInputActionValueType::Boolean;
 	InputContext->MapKey(AttackAction, EKeys::LeftMouseButton);
 
+	InteractAction = NewObject<UInputAction>(this, TEXT("IA_Interact"));
+	InteractAction->ValueType = EInputActionValueType::Boolean;
+	InputContext->MapKey(InteractAction, EKeys::E);
+
 	// Tasten 1–9 und 0 → Plätze 1–10. Der Scalar-Modifier macht aus "gedrückt" (1.0) die Platznummer.
 	HotbarAction = NewObject<UInputAction>(this, TEXT("IA_Hotbar"));
 	HotbarAction->ValueType = EInputActionValueType::Axis1D;
@@ -161,6 +168,7 @@ void AVCCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(TargetAction, ETriggerEvent::Started, this, &AVCCharacter::CycleTarget);
 	Input->BindAction(AttackAction, ETriggerEvent::Started, this, &AVCCharacter::Attack);
 	Input->BindAction(HotbarAction, ETriggerEvent::Started, this, &AVCCharacter::UseHotbar);
+	Input->BindAction(InteractAction, ETriggerEvent::Started, this, &AVCCharacter::Interact);
 }
 
 void AVCCharacter::Move(const FInputActionValue& Value)
@@ -422,4 +430,38 @@ void AVCCharacter::ServerUseHotbarSlot_Implementation(int32 Slot, AActor* Target
 	}
 	FGameplayEventData Payload = UVCAbility_UseSkill::MakeRequest(this, Code, Target);
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, TAG_VC_Event_UseAbility, Payload);
+}
+
+void AVCCharacter::Interact()
+{
+	// Nächster NPC in Reichweite; der Server prüft den Abstand erneut.
+	const float Range = GetDefault<UVCWorldSettings>()->InteractRangeCm;
+	AVCNpc* Best = nullptr;
+	double BestDistSq = FMath::Square(static_cast<double>(Range));
+	for (TActorIterator<AVCNpc> It(GetWorld()); It; ++It)
+	{
+		const double DistSq = FVector::DistSquared(GetActorLocation(), It->GetActorLocation());
+		if (DistSq <= BestDistSq)
+		{
+			BestDistSq = DistSq;
+			Best = *It;
+		}
+	}
+	if (Best)
+	{
+		ServerInteract(Best);
+	}
+}
+
+void AVCCharacter::ServerInteract_Implementation(AVCNpc* Npc)
+{
+	// Kleine Toleranz für Latenz, wie bei Angriffen.
+	constexpr double ToleranceCm = 50.0;
+	const double Range = GetDefault<UVCWorldSettings>()->InteractRangeCm + ToleranceCm;
+	AVCPlayerController* PC = Cast<AVCPlayerController>(GetController());
+	if (!Npc || !PC || !IsAlive() || Npc->NpcCode.IsNone() || FVector::Dist(GetActorLocation(), Npc->GetActorLocation()) > Range)
+	{
+		return;
+	}
+	PC->ClientShowNpcDialog(Npc->NpcCode);
 }

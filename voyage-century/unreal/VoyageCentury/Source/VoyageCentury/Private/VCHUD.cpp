@@ -11,13 +11,16 @@
 #include "VCCharacter.h"
 #include "VCCombatData.h"
 #include "VCCombatant.h"
+#include "VCPlayerController.h"
 #include "VCPlayerState.h"
+#include "VCWorldData.h"
 #include "VCProgressionComponent.h"
 
 namespace
 {
 	constexpr double FloatingTextSeconds = 1.5;
 	constexpr double NoticeSeconds = 2.0;
+	constexpr double DialogSeconds = 10.0;
 	constexpr float SlotSize = 58.f;
 	constexpr float SlotGap = 6.f;
 
@@ -122,11 +125,21 @@ void AVCHUD::DrawHUD()
 			BlockedHandle = State->OnAbilityBlocked.AddUObject(this, &AVCHUD::OnAbilityBlocked);
 		}
 	}
+	if (!bBoundController)
+	{
+		if (AVCPlayerController* VCPC = Cast<AVCPlayerController>(PlayerOwner))
+		{
+			VCPC->OnNpcDialog.AddUObject(this, &AVCHUD::OnNpcDialog);
+			VCPC->OnDiscovered.AddUObject(this, &AVCHUD::OnDiscovered);
+			bBoundController = true;
+		}
+	}
 	DrawOwnFrame();
 	DrawTargetFrame();
 	DrawHotbar();
 	DrawFloatingTexts();
 	DrawNotice();
+	DrawNpcDialog();
 }
 
 void AVCHUD::DrawBar(float X, float Y, float Width, float Height, double Value, double Max, const FLinearColor& Color, const FString& Label)
@@ -284,4 +297,59 @@ void AVCHUD::DrawNotice()
 	float W = 0.f, H = 0.f;
 	GetTextSize(Notice, W, H, SmallFont(), 1.2f);
 	DrawText(Notice, DebuffColor, (Canvas->ClipX - W) * 0.5f, Canvas->ClipY - SlotSize - 50.f, SmallFont(), 1.2f);
+}
+
+void AVCHUD::OnNpcDialog(FName NpcCode)
+{
+	DialogNpc = NpcCode;
+	DialogUntil = LocalNow() + DialogSeconds;
+}
+
+void AVCHUD::OnDiscovered(FName DiscoveryCode, int64 XpAwarded)
+{
+	const FVCDiscoveryRow* Row = FVCWorldData::FindDiscovery(DiscoveryCode);
+	const FString Name = Row ? Row->NameDe : DiscoveryCode.ToString();
+	Notice = XpAwarded > 0 ? FString::Printf(TEXT("Entdeckt: %s (+%lld XP)"), *Name, XpAwarded) : FString::Printf(TEXT("Entdeckt: %s"), *Name);
+	NoticeUntil = LocalNow() + NoticeSeconds * 2.0;
+}
+
+void AVCHUD::DrawNpcDialog()
+{
+	if (DialogNpc.IsNone() || LocalNow() > DialogUntil)
+	{
+		return;
+	}
+	const FVCNpcRow* Row = FVCWorldData::FindNpc(DialogNpc);
+	TArray<FString> Lines;
+	Lines.Add(FVCWorldData::NpcDisplayName(DialogNpc));
+	if (Row && !Row->NameZh.IsEmpty())
+	{
+		Lines.Add(Row->NameZh);
+	}
+	// Was der NPC im Original tut (belegt), und was davon hier schon geht.
+	if (Row && Row->Role == EVCNpcRole::Shipyard)
+	{
+		Lines.Add(TEXT("Baut und verkauft Schiffe, übernimmt den Schiffsumbau."));
+		Lines.Add(TEXT("Dienst folgt mit Phase 5 (Schiffe)."));
+	}
+	else if (Row && Row->Role == EVCNpcRole::OfficerExchange)
+	{
+		Lines.Add(TEXT("Tauscht Offizierskarten."));
+		Lines.Add(TEXT("Offiziere und ihre Werte sind noch UNKNOWN; Dienst folgt später."));
+	}
+	if (Row)
+	{
+		Lines.Add(FString::Printf(TEXT("Beleg: %s"), *Row->ReconId));
+	}
+
+	const float Width = 420.f;
+	const float LineHeight = 18.f;
+	const float Height = 16.f + LineHeight * Lines.Num();
+	const float X = (Canvas->ClipX - Width) * 0.5f;
+	const float Y = Canvas->ClipY * 0.35f;
+	DrawRect(Panel, X, Y, Width, Height);
+	for (int32 Index = 0; Index < Lines.Num(); ++Index)
+	{
+		DrawText(Lines[Index], Index == 0 ? FLinearColor::Yellow : FLinearColor::White, X + 10.f, Y + 8.f + Index * LineHeight, SmallFont());
+	}
 }

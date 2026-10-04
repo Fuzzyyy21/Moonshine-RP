@@ -1,0 +1,9 @@
+{
+  "_comment": "ENTWICKLUNGSWERTE (Priorität 6). Entdeckungspunkte des Originals (Inseln, Ruinen, Wracks) sind UNKNOWN; die GDD-Idee 'Entdeckungen geben Erkundungsschiff-XP' braucht Schiffe (Phase 5). Bis dahin geben diese technischen Punkte Charakter-XP, damit Ablauf und Einmaligkeit testbar sind.",
+  "source": "SRC-DESIGN",
+  "discoveries": [
+    { "code": "DEV_DISC_TESTZONE_RUIN", "zone": "DEV_TESTZONE", "name_de": "Übungsruine", "xp_reward": 50 },
+    { "code": "DEV_DISC_LONDON_LOOKOUT", "zone": "CITY_LONDON", "name_de": "Aussichtspunkt (Test)", "xp_reward": 30 },
+    { "code": "DEV_DISC_SEA_WRECK", "zone": "SEA_DEV", "name_de": "Wrack (Test)", "xp_reward": 80 }
+  ]
+}

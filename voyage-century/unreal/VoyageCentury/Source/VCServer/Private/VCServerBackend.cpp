@@ -120,6 +120,17 @@ void FVCServerBackend::ReleaseCharacter(int64 CharacterId)
 	});
 }
 
+void FVCServerBackend::ReportDiscovery(int64 CharacterId, int64 AccountId, const FString& DiscoveryCode, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("characterId"), static_cast<double>(CharacterId));
+	Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
+	Body->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
+	Body->SetStringField(TEXT("discoveryCode"), DiscoveryCode);
+	FVCHttp::Send(TEXT("POST"), UVCBackendSettings::GetGameDataBaseUrl() + TEXT("/internal/v1/world/discoveries"),
+		Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::RequestTransfer(int64 CharacterId, int64 AccountId, const FString& ExitCode, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
@@ -220,6 +231,7 @@ void FVCServerBackend::Heartbeat(const FString&, int32, FVCHttpCallback Callback
 void FVCServerBackend::ClaimCharacter(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReleaseCharacter(int64) {}
 void FVCServerBackend::RequestTransfer(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ReportDiscovery(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }

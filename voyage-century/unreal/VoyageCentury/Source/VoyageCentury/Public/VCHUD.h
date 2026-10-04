@@ -8,7 +8,8 @@
 
 /**
  * Einfaches Kampf-HUD ohne Assets (Canvas): eigene Leben/Ausdauer und Statuseffekte, Zielrahmen,
- * Hotbar mit Abklingzeiten, Kampftexte über den Köpfen und Hinweise, warum eine Fähigkeit nicht ging.
+ * Hotbar mit Abklingzeiten, Kampftexte über den Köpfen, Hinweise (abgelehnte Fähigkeit, Entdeckung) und
+ * das Fenster eines angesprochenen NPCs.
  * Platzhalter, bis das UI nach der Screenshot-Analyse mit UMG gebaut wird (siehe GDD, UI).
  * Zeigt nur an, was der Server repliziert; nichts davon ist spielentscheidend.
  */
@@ -37,9 +38,15 @@ private:
 	FDelegateHandle CombatTextHandle;
 	FDelegateHandle BlockedHandle;
 	TWeakObjectPtr<UVCAbilityStateComponent> BoundAbilityState;
+	bool bBoundController = false;
+	FName DialogNpc;
+	double DialogUntil = 0.0;
 
 	void OnCombatText(AActor* Target, EVCCombatText Kind, int32 Amount);
 	void OnAbilityBlocked(FName Code, EVCAbilityBlock Reason);
+	void OnNpcDialog(FName NpcCode);
+	void OnDiscovered(FName DiscoveryCode, int64 XpAwarded);
+	void DrawNpcDialog();
 
 	double LocalNow() const;
 	double ServerNow() const;

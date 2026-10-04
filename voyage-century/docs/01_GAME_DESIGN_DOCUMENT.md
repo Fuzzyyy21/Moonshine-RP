@@ -236,7 +236,9 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 
 **Design**: jeder Hafen bekommt Dienste als Flags (`ports.has_*`) und NPCs mit Rolle (`npcs.npc_role`). Regionale Wirtschaftsunterschiede über Warenangebot und Preise je Hafen (`markets`).
 
-**Umgesetzt (Phase 4, Iteration 1)**: Häfen aus der Reconstruction Database – Werft, wo Schiffsumbau belegt ist (Athen, Genua, Algier, Sevilla, Hamburg, Maskat, Seoul, Zhigu), Offizierskarten-Tausch in London. Alle anderen Dienste sind NULL (UNKNOWN), nicht „gibt es nicht“. NPCs folgen in Iteration 2.
+**Umgesetzt (Phase 4, Iteration 1)**: Häfen aus der Reconstruction Database – Werft, wo Schiffsumbau belegt ist (Athen, Genua, Algier, Sevilla, Hamburg, Maskat, Seoul, Zhigu), Offizierskarten-Tausch in London. Alle anderen Dienste sind NULL (UNKNOWN), nicht „gibt es nicht“.
+
+**Umgesetzt (Phase 4, Iteration 2)**: NPCs nur mit belegter Rolle und belegtem Ort – Werftmeister (船老板, `SHIP-ACQUISITION`) in jeder Stadt mit belegtem Schiffsumbau, Offizierskarten-Tauscher (副官卡片兑换员) in London. Name = Rollentitel der Quelle. Ansprechen mit E (Abstand prüft der Server, 3 m `[DESIGN]`); das Fenster nennt Aufgabe und Beleg, die Dienste folgen mit Schiffen bzw. Offizieren. Der Hafenarbeiter fehlt, weil sein Ort nicht belegt ist.
 
 ---
 
@@ -286,6 +288,7 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Questtypen wie im Master-Prompt; Questdaten mit QuestID, Title, Description, NPC, Objectives, Requirements, Rewards, NextQuest, Unlocks.
 * Questfortschritt wird nur vom Server über Gameplay-Events (Kill, Collect, Reach …) erhöht.
 * Exploration: Entdeckungspunkte (Inseln, Ruinen, Wracks) als Trigger-Volumen; Schatzkarten als Item mit Zielkoordinate; Entdeckungen geben Erkundungsschiff-XP.
+* **Umgesetzt (Phase 4, Iteration 2)** `[DESIGN]`: Entdeckungspunkte zählen je Charakter einmal, nur in ihrer Zone und nur vom zuständigen Server; die Belohnung kommt aus den Daten. Bis es Schiffe gibt, geben die drei technischen Punkte (`design_data/dev_discoveries.json`) Charakter-XP. Originale Entdeckungspunkte sind UNKNOWN.
 * Dungeons als eigene Server-Instanzen (Land und See). Raids und Weltbosse nur, wenn im Original belegt oder hier bewusst als neu markiert.
 
 ---

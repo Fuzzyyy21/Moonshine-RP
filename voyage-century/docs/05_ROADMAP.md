@@ -95,7 +95,7 @@ Waffen, Angriffe, Fähigkeiten (GAS), Schaden, NPC-KI, PvE, PvP-Grundregeln.
 
 **Abnahme Iteration 2 (Vorschlag)**: Fähigkeit auf die Hotbar legen, Server und Backend neu starten → Belegung ist noch da; Fähigkeit kostet Ausdauer und startet die Abklingzeit, zweiter Einsatz vorher wird mit Hinweis abgelehnt; ohne passende Waffe oder Skillstufe keine Wirkung; Blutung tickt und ein Kill durch Blutung zählt für den Verursacher; Betäubung stoppt Bewegung und Angriffe auch bei Gegnern; der Client kann nur einen Hotbar-Platz und ein Ziel nennen.
 
-## Phase 4 – Welt (Iteration 1 fertig)
+## Phase 4 – Welt (Iteration 2 fertig)
 
 Erste Seezone und zwei Häfen (Kandidaten: London, Athen, weil am besten belegt), NPCs, ein Land-Dungeon, Entdeckungen.
 
@@ -105,9 +105,13 @@ Erste Seezone und zwei Häfen (Kandidaten: London, Athen, weil am besten belegt)
 | Seegebiete/Regionen | ❌ blockiert | einzige Liste mit Vermischungsgefahr (`REGION-LIST-17173`) |
 | World Directory: Server-Anmeldung und Lebenszeichen, eine Anwesenheit je Charakter, Zonenwechsel über Ausgänge, Server-Suche für Clients, Speichern nur vom zuständigen Server | ✅ It. 1 | `WorldTests` (13 Tests) |
 | UE: Modul `VCWorld` mit `AVCZoneExit`; GameMode meldet sich an, holt den Charakter, setzt ihn am Ankunftspunkt ab, wechselt die Zone, gibt beim Ausloggen frei; Client `VCPlay` und automatische Server-Suche | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal, braucht Karten |
-| NPCs (Werftmeister, Hafenarbeiter, Offizierskarten-Tauscher) mit Interaktion | ❌ Iteration 2 | |
-| Entdeckungen (Punkte, einmalig je Charakter, Belohnung) | ❌ Iteration 2 | |
+| NPC-Daten: Werftmeister in Städten mit belegtem Schiffsumbau, Offizierskarten-Tauscher in London (Hafenarbeiter: Ort nicht belegt) | ✅ It. 2 | Export `--check`, Schematest |
+| Entdeckungen: `V0009`, einmal je Charakter, nur in der eigenen Zone vom zuständigen Server, Belohnung aus Daten | ✅ It. 2 | `DiscoveryTests` (3 Tests) |
+| UE: `AVCNpc` (Ansprechen mit E, Server prüft Abstand, NPC-Fenster im HUD), `AVCDiscoveryPoint`, Meldung „Entdeckt“ | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal, braucht Karten |
+| NPC-Dienste (Werft, Offizierskarten) | ❌ mit Phase 5 bzw. Offizieren | |
 | Land-Dungeon als Instanz | ❌ Iteration 3 | Dungeons des Originals ohne Details (`DUNGEON-*`) |
+
+**Abnahme Iteration 2 (Vorschlag)**: In London spricht man den Offizierskarten-Tauscher mit E an und sieht Rolle und Beleg; aus größerer Entfernung passiert nichts; ein Entdeckungspunkt gibt einmal XP, ein zweites Mal nichts, auch nach Neustart nicht.
 
 **Abnahme Iteration 1 (Vorschlag)**: Drei Server (Testzone, London, Seezone) und Backend laufen; Client verbindet ohne Adresse über das World Directory; Ausgang in London führt auf die Seezone an den Ankunftspunkt LONDON; derselbe Charakter kann sich nicht gleichzeitig ein zweites Mal einloggen; nach dem Wechsel kann der alte Server den Charakter nicht mehr speichern; ein Neustart von Server und Backend lässt den Charakter in der neuen Zone weiterspielen.
 

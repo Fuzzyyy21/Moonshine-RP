@@ -43,7 +43,7 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | `GameData:MaxCharactersPerAccount` | technisches Limit, kein Originalwert |
 | `Progression:AllowDevCurves` | Entwicklungs-XP-Kurven verwenden (nur Development/Tests) |
 | `Progression:MaxCharacterXpPerGrant`, `MaxSkillXpPerGrant` | Plausibilitätsgrenze je Vergabe |
-| `Content:AllowDevContent` | Entwicklungsinhalte (`is_dev`: DEV_-Waffen, -Gegner und -Fähigkeiten) zulassen (nur Development/Tests) |
+| `Content:AllowDevContent` | Entwicklungsinhalte (`is_dev`: DEV_-Waffen, -Gegner, -Fähigkeiten und -Entdeckungen) zulassen (nur Development/Tests) |
 | `Progression:AdminMinLevel` | Mindest-Adminlevel für `/setlevel`, `/setskill` |
 | `World:StartZoneId` | Zone neuer Charaktere (Development: `DEV_TESTZONE`). Startstadt des Originals UNKNOWN; ohne Wert können neue Charaktere nicht verbinden |
 | `World:ServerTimeoutSeconds` | ohne Lebenszeichen gilt ein Zonen-Server danach als ausgefallen (Standard 30) |
@@ -64,6 +64,7 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | GameData | `POST /internal/v1/world/servers/{serverId}` | `X-Service-Key`; Prozessstart (`zoneId`, `address`, `capacity`), verwirft alte Anwesenheiten → `heartbeatSeconds` |
 | GameData | `PUT /internal/v1/world/servers/{serverId}/heartbeat`, `DELETE …/{serverId}` | `X-Service-Key`; Lebenszeichen bzw. Abmelden |
 | GameData | `POST /internal/v1/world/characters/{id}/claim`, `DELETE …/claim?serverId=` | `X-Service-Key`; Charakter auf diesem Server ONLINE setzen (409, wenn anderswo online oder in anderer Zone) bzw. freigeben |
+| GameData | `POST /internal/v1/world/discoveries` | `X-Service-Key`; Entdeckung (`discoveryCode`) einmal je Charakter, nur vom Server mit Anwesenheit in der Zone des Punktes; XP aus `discoveries.xp_reward`; `GET …/state` liefert `discoveries` |
 | GameData | `POST /internal/v1/world/transfers` | `X-Service-Key`; Zonenwechsel über Ausgang (`exitCode`) → Zielserver, Ankunftspunkt |
 | GameData | `POST /internal/v1/admin-audit` | `X-Service-Key`, Konto braucht `admin_level > 0` |
 | GameData | `POST /internal/v1/characters/{id}/experience` | `X-Service-Key`; `amount`, `source`, `idempotencyKey`, `serverId` |

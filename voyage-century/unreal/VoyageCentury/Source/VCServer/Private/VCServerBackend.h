@@ -34,6 +34,9 @@ public:
 	/** Anwesenheit freigeben, wenn kein letzter Speicherstand folgt (z. B. Abbruch vor dem Spawn). */
 	static void ReleaseCharacter(int64 CharacterId);
 
+	/** Entdeckung melden. Antwort: firstTime, xpAwarded, progress (Belohnung legt das Backend fest). */
+	static void ReportDiscovery(int64 CharacterId, int64 AccountId, const FString& DiscoveryCode, FVCHttpCallback Callback);
+
 	/** Zonenwechsel über einen Ausgang. Antwort: zoneId, address, arrivalTag. */
 	static void RequestTransfer(int64 CharacterId, int64 AccountId, const FString& ExitCode, FVCHttpCallback Callback);
 	static void WriteAdminAudit(const TSharedRef<FJsonObject>& Entry, FVCHttpCallback Callback);

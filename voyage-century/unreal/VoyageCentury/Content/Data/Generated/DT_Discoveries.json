@@ -1,0 +1,23 @@
+[
+  {
+    "Name": "DEV_DISC_LONDON_LOOKOUT",
+    "NameDe": "Aussichtspunkt (Test)",
+    "ZoneId": "CITY_LONDON",
+    "XpReward": 30,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_DISC_SEA_WRECK",
+    "NameDe": "Wrack (Test)",
+    "ZoneId": "SEA_DEV",
+    "XpReward": 80,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_DISC_TESTZONE_RUIN",
+    "NameDe": "Übungsruine",
+    "ZoneId": "DEV_TESTZONE",
+    "XpReward": 50,
+    "bIsDev": true
+  }
+]

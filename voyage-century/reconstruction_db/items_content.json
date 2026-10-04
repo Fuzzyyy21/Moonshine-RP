@@ -76,6 +76,7 @@
       "data": {
         "exchange_npc": "副官卡片兑换员 im Hafen von London",
         "exchange_city": "CITY-LONDON",
+        "exchange_npc_title_zh": "副官卡片兑换员",
         "example_officer": "贾斯丁 (Justin), empfohlen ab Stufe 160",
         "officer_roles": "UNKNOWN",
         "officer_stats": "UNKNOWN",

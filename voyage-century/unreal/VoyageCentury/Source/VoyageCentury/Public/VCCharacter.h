@@ -10,6 +10,7 @@
 class UCameraComponent;
 class UInputAction;
 class UVCCombatStateComponent;
+class AVCNpc;
 class UInputMappingContext;
 class USpringArmComponent;
 class UStaticMeshComponent;
@@ -21,7 +22,7 @@ struct FInputActionValue;
  *
  * Steuerung (Enhanced Input, zur Laufzeit erzeugt, damit keine Binär-Assets nötig sind):
  *   WASD bewegen, Maus umsehen, Leertaste springen, Tab Ziel wechseln, linke Maustaste angreifen,
- *   1–0 Hotbar-Fähigkeiten.
+ *   1–0 Hotbar-Fähigkeiten, E NPC ansprechen.
  * Laufgeschwindigkeit und Sprunghöhe des Originals sind UNKNOWN; es gelten die Engine-Standardwerte.
  */
 UCLASS()
@@ -98,6 +99,9 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> AttackAction;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> InteractAction;
+
 	/** Eine Aktion für alle Hotbar-Tasten; der Wert (1–10) sagt, welche Taste gedrückt wurde. */
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> HotbarAction;
@@ -112,6 +116,11 @@ private:
 	void CycleTarget();
 	void Attack();
 	void UseHotbar(const FInputActionValue& Value);
+	void Interact();
+
+	/** Der Client nennt den NPC; Abstand und Zustand prüft der Server. */
+	UFUNCTION(Server, Reliable)
+	void ServerInteract(AVCNpc* Npc);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestAttack(AActor* Target);

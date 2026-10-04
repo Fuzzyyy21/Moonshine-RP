@@ -4,6 +4,9 @@
 #include "GameFramework/PlayerController.h"
 #include "VCPlayerController.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnVCNpcDialog, FName /*NpcCode*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, int64 /*XpAwarded*/);
+
 /**
  * PlayerController für Client und Server.
  *
@@ -49,6 +52,18 @@ public:
 
 	UFUNCTION(Exec)
 	void VCPlay(const FString& CharacterId);
+
+	/** Server → Client: NPC wurde angesprochen (Abstand geprüft). */
+	UFUNCTION(Client, Reliable)
+	void ClientShowNpcDialog(FName NpcCode);
+
+	/** Server → Client: neue Entdeckung, vom Backend bestätigt. */
+	UFUNCTION(Client, Reliable)
+	void ClientDiscovered(FName DiscoveryCode, int64 XpAwarded);
+
+	/** Für das HUD (nur auf dem eigenen Client). */
+	FOnVCNpcDialog OnNpcDialog;
+	FOnVCDiscovered OnDiscovered;
 
 	/** Server → Client: Zonenwechsel ist bestätigt, mit eigenem Ticket zum Zielserver reisen. */
 	UFUNCTION(Client, Reliable)
