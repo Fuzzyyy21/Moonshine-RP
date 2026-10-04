@@ -22,6 +22,24 @@
     "ProvisionsPerSailorPerMinute": 0.1,
     "NoProvisionsFactor": 0.5,
     "ArcHalfWidthDeg": 45,
-    "DeathShare": 0.3
+    "DeathShare": 0.3,
+    "RamDamagePerMps": 8,
+    "RamSelfDamageShare": 0.25,
+    "RamFrontArcDeg": 30,
+    "RamMinSpeedMps": 3,
+    "GrappleRangeCm": 800,
+    "GrappleMaxSpeedMps": 4,
+    "GrappleDurationSeconds": 30,
+    "GrappleCooldownSeconds": 45,
+    "BoardingLossFactor": 0.15,
+    "BoardingRaiderStrength": 1.5,
+    "BoardingRoundSeconds": 2,
+    "MineDamage": 120,
+    "MineCrewHits": 3,
+    "MineTriggerRadiusCm": 400,
+    "MineLifetimeSeconds": 120,
+    "MineCooldownSeconds": 30,
+    "MineDropDistanceCm": 600,
+    "MineArmSeconds": 3
   }
 ]

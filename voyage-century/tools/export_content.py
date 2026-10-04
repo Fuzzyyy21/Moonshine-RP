@@ -465,6 +465,13 @@ def check_ships(ships: dict, class_codes: set[str], zone_ids: set[str]) -> None:
             problems.append("Rangfolge Ladung: Handelsschiff hat die größte")
         if not (b["cannon_slots"] > r["cannon_slots"] and b["cannon_slots"] > m["cannon_slots"]):
             problems.append("Rangfolge Kanonen: Kriegsschiff hat die meisten")
+    na = ships["naval_abilities"]
+    if na["boarding"]["raider_strength"] <= 1:
+        problems.append("Entern: Erkundungsschiff muss stärker entern als andere Klassen (SHIPCLASS-RAIDER)")
+    if not 0 <= na["ram"]["self_damage_share"] <= 1 or not 0 < na["ram"]["front_arc_deg"] <= 90:
+        problems.append("Rammen: Eigenschaden 0 … 1, Bugwinkel 0 … 90")
+    if na["mines"]["arm_seconds"] >= na["mines"]["lifetime_seconds"]:
+        problems.append("Minen: Scharfschaltzeit muss unter der Lebensdauer liegen")
     cannon_codes = {c["code"] for c in ships["cannons"]}
     for pr in ships["pirates"]:
         if pr["cannon"] not in cannon_codes or pr["zone"] not in zone_ids or pr["ship"]["class"] not in class_codes:
@@ -503,7 +510,10 @@ def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abili
             {"Name": "Default", "PolarAngles": [a for a, _ in t["polar"]], "PolarEfficiencies": [e for _, e in t["polar"]],
              "CrewMinFactor": t["crew_min_factor"], "MinSteerageFactor": t["min_steerage_factor"],
              "ProvisionsPerSailorPerMinute": t["provisions_per_sailor_per_minute"], "NoProvisionsFactor": t["no_provisions_factor"],
-             "ArcHalfWidthDeg": ships["broadside"]["arc_half_width_deg"], "DeathShare": ships["broadside"]["death_share"]}
+             "ArcHalfWidthDeg": ships["broadside"]["arc_half_width_deg"], "DeathShare": ships["broadside"]["death_share"],
+             **{f"{prefix}{camel(k)}": v for prefix, group in (("Ram", "ram"), ("Grapple", "grapple"), ("Boarding", "boarding"),
+                                                               ("Mine", "mines"))
+                for k, v in ships["naval_abilities"][group].items()}}
         ],
         "DT_ZoneWind.json": [
             {"Name": w["zone"], "BaseDirectionDeg": w["base_direction_deg"], "BaseStrength": w["base_strength"],

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "VCNavalAbilityRules.h"
 #include "VCShipRules.h"
 #include "VCShip.generated.h"
 
@@ -34,7 +35,8 @@ DECLARE_MULTICAST_DELEGATE_FourParams(FVCShipHitEvent, AVCShip* /*Ship*/, int32 
  * Keine Client-Vorhersage: Schiffe reagieren träge, die Latenz fällt dadurch kaum auf (in Iteration 2 messen).
  *
  * Steuerung: W/S Segel setzen/reffen (in Vierteln), A/D Ruder, Q/E Breitseite backbord/steuerbord, R Kanone wechseln,
- * Maus Kamera. Treffer, Matrosenverluste und Sinken entscheidet der Server (vc::rules Seekampf).
+ * F Enterhaken, B Entern (nur festgehakt), M Mine legen, Maus Kamera. Treffer, Matrosenverluste, Rammen, Entern und Sinken
+ * entscheidet der Server (vc::rules Seekampf und Seekampf-Fähigkeiten).
  */
 UCLASS()
 class VCNAVAL_API AVCShip : public APawn
@@ -48,6 +50,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void PawnClientRestart() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** Nur Server: Werte aus dem Backend und die Zone (für den Wind) setzen. */
 	void ServerInit(const FVCShipLoadout& Loadout, FName InZoneId);
@@ -76,6 +79,20 @@ public:
 	/** Nur Server: Breitseite empfangen. Killer = Schiff des Angreifers. */
 	void ServerTakeBroadside(const vc::rules::FBroadsideResult& Result, AActor* Attacker);
 
+	/** Nur Server: Schaden aus beliebiger Quelle (Breitseite, Rammen, Mine). Hits nur für die Anzeige. */
+	void ServerTakeDamage(double HullDamage, int32 CrewLosses, int32 Hits, AActor* Attacker);
+
+	/** Darf dieses Schiff Other angreifen? Spieler gegen Piraten immer, Piraten untereinander nie, Spieler gegen Spieler nur in PvP-Zonen. */
+	bool IsHostileTo(const AVCShip* Other) const;
+
+	/** Festgehakt an (repliziert, beide Schiffe); nullptr, wenn frei. */
+	AVCShip* GetGrappledTo() const { return GrappledTo; }
+	/** Entern läuft (als Angreifer oder Verteidiger). */
+	bool IsBoarding() const { return bBoarding; }
+	/** Restliche Abklingzeit (Anzeige; Server-Weltzeit). */
+	double GetGrappleCooldown() const;
+	double GetMineCooldown() const;
+
 	static FVCShipHitEvent OnShipHit;
 
 protected:
@@ -88,6 +105,13 @@ protected:
 
 	/** Gesunken: Server meldet es (Spieler: GameMode, Pirat: Belohnung) und das Schiff bleibt reglos. */
 	virtual void HandleSunk(AActor* Killer);
+
+	/** Nur Server: nächstes feindliches Schiff festhaken (Reichweite, beide langsam genug, Abklingzeit). */
+	bool TryGrapple();
+	/** Nur Server: das festgehakte Schiff entern (Runden-Timer bis eine Seite keine Matrosen mehr hat). */
+	bool TryBoard();
+	/** Nur Server: Mine hinter dem Heck legen. */
+	bool TryDropMine();
 
 	UPROPERTY(Replicated) FName CannonCode;
 	UPROPERTY(Replicated) float SailLevel = 0.f;
@@ -116,6 +140,9 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UInputAction> FirePortAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> FireStarboardAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> CannonAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> GrappleAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> BoardAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> MineAction;
 
 	UPROPERTY(Replicated) FName ShipCode;
 	UPROPERTY(Replicated) FName ZoneId;
@@ -129,6 +156,16 @@ private:
 	UPROPERTY(Replicated) double LastFirePort = -1.0;
 	UPROPERTY(Replicated) double LastFireStarboard = -1.0;
 	int32 Dead = 0;
+
+	UPROPERTY(Replicated) TObjectPtr<AVCShip> GrappledTo;
+	UPROPERTY(Replicated) bool bBoarding = false;
+	/** Server-Weltzeit des letzten Enterhakens / der letzten Mine (Anzeige der Abklingzeit). */
+	UPROPERTY(Replicated) double LastGrapple = -1.0;
+	UPROPERTY(Replicated) double LastMine = -1.0;
+	double GrappleUntil = 0.0;
+	/** Nur beim Angreifer: wen er entert. */
+	TWeakObjectPtr<AVCShip> BoardingDefender;
+	FTimerHandle BoardingTimer;
 
 	int64 InstanceId = 0;
 	double ProvisionCarry = 0.0;
@@ -145,12 +182,36 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerToggleCannon();
 
+	UFUNCTION(Server, Reliable)
+	void ServerGrapple();
+
+	UFUNCTION(Server, Reliable)
+	void ServerBoard();
+
+	UFUNCTION(Server, Reliable)
+	void ServerDropMine();
+
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastHit(int32 Hits, int32 HullDamage, int32 CrewLosses);
+
+	/** Nur Server: an Ziel festhaken (beide Seiten). */
+	void Grapple(AVCShip* Other, double Now);
+	/** Nur Server: Haken lösen (beide Seiten); beendet auch ein laufendes Entern. */
+	void ReleaseGrapple();
+	void BoardingRound();
+	void EndBoarding();
+	/** Nur Server: Schiff verloren (versenkt oder genommen). */
+	void Sink(AActor* Killer);
+	void TryRam(const FHitResult& Hit, double SpeedCmPerSecond);
+	double ServerNow() const;
+	double BoardingStrength() const;
 
 	void FirePort(const FInputActionValue& Value);
 	void FireStarboard(const FInputActionValue& Value);
 	void ToggleCannon(const FInputActionValue& Value);
+	void GrappleInput(const FInputActionValue& Value);
+	void BoardInput(const FInputActionValue& Value);
+	void MineInput(const FInputActionValue& Value);
 	void CreateInputObjects();
 	void ChangeSail(const FInputActionValue& Value);
 	void Steer(const FInputActionValue& Value);

@@ -184,6 +184,21 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Rammen, Enterhaken, Entern, Minen (Phase 5, Iteration 3)
+
+Keine neue Tabelle: die Werte stehen in `DT_ShipTuning` (Zeile `Default`, Kategorien Rammen/Enterhaken/Entern/Minen) –
+neu importieren. Fehlen sie, sind die Fähigkeiten wirkungslos (alles 0), nie Ersatzwerte.
+
+| Taste | Wirkung |
+|---|---|
+| (Fahrt) | Auflaufen auf ein feindliches Schiff vor dem Bug ab 3 m/s rammt es |
+| F | Enterhaken auf das nächste feindliche Schiff (≤ 8 m, beide ≤ 4 m/s) |
+| B | Entern, solange festgehakt; Runden alle 2 s, HUD zeigt „ENTERN“ |
+| M | Mine hinter dem Heck (`VCMine`, Platzhalter-Kugel) |
+
+Testen: neben dem Piraten Segel reffen, F, B → mit genug Matrosen ist der Pirat genommen (+XP). Mit weniger Matrosen
+als der Pirat hakt er selbst an und entert. Mine legen und den Piraten hinterherfahren lassen.
+
 ## NPCs und Entdeckungen (Phase 4, Iteration 2)
 
 | Data Table | Row-Struktur | Pfad |

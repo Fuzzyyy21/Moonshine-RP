@@ -126,6 +126,35 @@
     "arc_half_width_deg": 45,
     "death_share": 0.3
   },
+  "naval_abilities": {
+    "_comment": "Rammen, Enterhaken, Entern, Minen: belegt nur als Fähigkeiten (SHIP-SPECIAL-ABILITIES) und Erkundungsschiff stark beim Entern (SHIPCLASS-RAIDER). Alle Zahlen sind Entwicklungswerte (P6).",
+    "ram": {
+      "damage_per_mps": 8,
+      "self_damage_share": 0.25,
+      "front_arc_deg": 30,
+      "min_speed_mps": 3
+    },
+    "grapple": {
+      "range_cm": 800,
+      "max_speed_mps": 4,
+      "duration_seconds": 30,
+      "cooldown_seconds": 45
+    },
+    "boarding": {
+      "loss_factor": 0.15,
+      "raider_strength": 1.5,
+      "round_seconds": 2
+    },
+    "mines": {
+      "damage": 120,
+      "crew_hits": 3,
+      "trigger_radius_cm": 400,
+      "lifetime_seconds": 120,
+      "cooldown_seconds": 30,
+      "drop_distance_cm": 600,
+      "arm_seconds": 3
+    }
+  },
   "cannons": [
     {
       "code": "DEV_CANNON_NEAR",

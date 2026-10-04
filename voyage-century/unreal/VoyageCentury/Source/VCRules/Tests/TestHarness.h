@@ -28,6 +28,7 @@ namespace vctest
 	const std::vector<FCase>& AbilityRulesCases();
 	const std::vector<FCase>& ShipRulesCases();
 	const std::vector<FCase>& NavalCombatRulesCases();
+	const std::vector<FCase>& NavalAbilityRulesCases();
 }
 
 #define CHECK(Expr) ::vctest::Check((Expr), #Expr, __FILE__, __LINE__)

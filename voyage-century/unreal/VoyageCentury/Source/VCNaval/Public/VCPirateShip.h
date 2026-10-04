@@ -8,7 +8,8 @@
 /**
  * Piratenschiff als Gegner (DT_PirateShips → Schiffswerte aus DT_Ships). Gleiche Fahrt- und Kampfregeln wie Spielerschiffe;
  * die KI stellt nur Segel und Ruder und feuert: Ziel im Aggro-Radius suchen, quer zum Ziel auf etwa 70 % der Kanonenreichweite
- * gehen, feuern, sobald das Ziel im Feuerwinkel liegt; zu weit vom Startpunkt (Leine) → zurück. Läuft nur auf dem Server.
+ * gehen, feuern, sobald das Ziel im Feuerwinkel liegt; mit mehr Matrosen als das Ziel heranfahren, Haken werfen und entern;
+ * zu weit vom Startpunkt (Leine) → zurück. Läuft nur auf dem Server.
  */
 UCLASS()
 class VCNAVAL_API AVCPirateShip : public AVCShip

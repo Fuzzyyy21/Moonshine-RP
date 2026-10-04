@@ -22,6 +22,10 @@ namespace
 		UDataTable* Pirates = nullptr;
 		vc::rules::FSailTuning Tuning;
 		vc::rules::FBroadsideTuning Broadside;
+		vc::rules::FRamTuning Ram;
+		vc::rules::FGrappleTuning Grapple;
+		vc::rules::FBoardingTuning Boarding;
+		vc::rules::FMineTuning Mines;
 		bool bValid = false;
 	};
 
@@ -49,6 +53,11 @@ namespace
 				C.Tuning.NoProvisionsFactor = Row->NoProvisionsFactor;
 				C.Broadside.ArcHalfWidthDeg = Row->ArcHalfWidthDeg;
 				C.Broadside.DeathShare = Row->DeathShare;
+				C.Ram = { Row->RamDamagePerMps, Row->RamSelfDamageShare, Row->RamFrontArcDeg, Row->RamMinSpeedMps };
+				C.Grapple = { Row->GrappleRangeCm, Row->GrappleMaxSpeedMps, Row->GrappleDurationSeconds, Row->GrappleCooldownSeconds };
+				C.Boarding = { Row->BoardingLossFactor, Row->BoardingRaiderStrength, Row->BoardingRoundSeconds };
+				C.Mines = { Row->MineDamage, Row->MineCrewHits, Row->MineTriggerRadiusCm, Row->MineLifetimeSeconds,
+					Row->MineCooldownSeconds, Row->MineDropDistanceCm, Row->MineArmSeconds };
 			}
 			C.bValid = C.Ships && vc::rules::IsValidSailTuning(C.Tuning);
 			if (!C.bValid)
@@ -133,4 +142,24 @@ vc::rules::FCannonDef FVCNavalData::ToRules(const FVCCannonRow& Row)
 const vc::rules::FBroadsideTuning& FVCNavalData::BroadsideTuning()
 {
 	return Cache().Broadside;
+}
+
+const vc::rules::FRamTuning& FVCNavalData::RamTuning()
+{
+	return Cache().Ram;
+}
+
+const vc::rules::FGrappleTuning& FVCNavalData::GrappleTuning()
+{
+	return Cache().Grapple;
+}
+
+const vc::rules::FBoardingTuning& FVCNavalData::BoardingTuning()
+{
+	return Cache().Boarding;
+}
+
+const vc::rules::FMineTuning& FVCNavalData::MineTuning()
+{
+	return Cache().Mines;
 }

@@ -387,6 +387,19 @@ void AVCHUD::DrawShipPanel()
 		Cannon ? *Cannon->NameDe : TEXT("keine Kanone"), Cannon ? Cannon->RangeCm / 100.0 : 0.0,
 		PortReload > 0.0 ? *FString::Printf(TEXT("%.0f s"), FMath::CeilToDouble(PortReload)) : TEXT("bereit"),
 		StarboardReload > 0.0 ? *FString::Printf(TEXT("%.0f s"), FMath::CeilToDouble(StarboardReload)) : TEXT("bereit")));
+	const double GrappleCooldown = Ship->GetGrappleCooldown();
+	const double MineCooldown = Ship->GetMineCooldown();
+	const FString GrappleText = GrappleCooldown > 0.0 ? FString::Printf(TEXT("%.0f s"), FMath::CeilToDouble(GrappleCooldown)) : FString(TEXT("bereit"));
+	const FString MineText = MineCooldown > 0.0 ? FString::Printf(TEXT("%.0f s"), FMath::CeilToDouble(MineCooldown)) : FString(TEXT("bereit"));
+	Lines.Add(FString::Printf(TEXT("F Haken %s   M Mine %s"), *GrappleText, *MineText));
+	if (Ship->IsBoarding())
+	{
+		Lines.Add(TEXT("ENTERN – Kampf an Deck"));
+	}
+	else if (Ship->GetGrappledTo())
+	{
+		Lines.Add(TEXT("Festgehakt – B zum Entern"));
+	}
 	if (Ship->IsSunk())
 	{
 		Lines.Add(TEXT("GESUNKEN"));

@@ -17,6 +17,8 @@
 #include "UObject/ConstructorHelpers.h"
 #include "VCCore.h"
 #include "EngineUtils.h"
+#include "TimerManager.h"
+#include "VCMine.h"
 #include "VCNavalData.h"
 #include "VCServerHooks.h"
 
@@ -84,6 +86,38 @@ void AVCShip::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	DOREPLIFETIME(AVCShip, CannonCode);
 	DOREPLIFETIME(AVCShip, bPirate);
 	DOREPLIFETIME(AVCShip, bSunk);
+	DOREPLIFETIME(AVCShip, GrappledTo);
+	DOREPLIFETIME(AVCShip, bBoarding);
+	DOREPLIFETIME_CONDITION(AVCShip, LastGrapple, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AVCShip, LastMine, COND_OwnerOnly);
+}
+
+void AVCShip::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (HasAuthority())
+	{
+		ReleaseGrapple(); // Gegner nicht festgehakt an einem verschwundenen Schiff zurücklassen
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
+double AVCShip::ServerNow() const
+{
+	const UWorld* World = GetWorld();
+	const AGameStateBase* GameState = World ? World->GetGameState() : nullptr;
+	return GameState ? GameState->GetServerWorldTimeSeconds() : (World ? World->GetTimeSeconds() : 0.0);
+}
+
+bool AVCShip::IsHostileTo(const AVCShip* Other) const
+{
+	if (!Other || Other == this)
+	{
+		return false;
+	}
+	const UWorld* World = GetWorld();
+	const IVCServerHooks* Hooks = World ? Cast<IVCServerHooks>(World->GetAuthGameMode()) : nullptr;
+	const bool bPvP = Hooks && Hooks->IsPvPAllowed();
+	return Other->bPirate != bPirate || (!bPirate && !Other->bPirate && bPvP);
 }
 
 void AVCShip::ServerInit(const FVCShipLoadout& Loadout, FName InZoneId)
@@ -122,10 +156,7 @@ FVCShipLoadout AVCShip::GetLoadout() const
 
 vc::rules::FWind AVCShip::GetWind() const
 {
-	const UWorld* World = GetWorld();
-	const AGameStateBase* GameState = World ? World->GetGameState() : nullptr;
-	const double Now = GameState ? GameState->GetServerWorldTimeSeconds() : (World ? World->GetTimeSeconds() : 0.0);
-	return vc::rules::WindAt(FVCNavalData::WindFor(ZoneId), Now);
+	return vc::rules::WindAt(FVCNavalData::WindFor(ZoneId), ServerNow());
 }
 
 void AVCShip::Tick(float DeltaSeconds)
@@ -145,19 +176,34 @@ void AVCShip::ServerSimulate(float DeltaSeconds)
 		Speed = 0.f;
 		return;
 	}
-	const vc::rules::FShipDef Def = FVCNavalData::ToRules(*Row);
+	// Festgehakt: Haken lösen, wenn die Zeit um ist (außer beim Entern) oder der Gegner weg ist; sonst liegen beide still.
+	if (GrappledTo && (!IsValid(GrappledTo) || GrappledTo->bSunk || (!bBoarding && ServerNow() >= GrappleUntil)))
+	{
+		ReleaseGrapple();
+	}
 	const vc::rules::FSailTuning& Tuning = FVCNavalData::SailTuning();
+	if (GrappledTo)
+	{
+		Speed = 0.f;
+	}
+	else
+	{
+		const vc::rules::FShipDef Def = FVCNavalData::ToRules(*Row);
+		vc::rules::FShipMotion Motion{ Speed, GetActorRotation().Yaw };
+		const double Target = vc::rules::TargetSpeed(Def, Tuning, SailLevel, Motion.HeadingDeg, GetWind(), Crew, Provisions > 0);
+		Motion = vc::rules::StepShip(Motion, vc::rules::FHelm{ SailLevel, Rudder }, Target, Def, Tuning, DeltaSeconds);
 
-	vc::rules::FShipMotion Motion{ Speed, GetActorRotation().Yaw };
-	const double Target = vc::rules::TargetSpeed(Def, Tuning, SailLevel, Motion.HeadingDeg, GetWind(), Crew, Provisions > 0);
-	Motion = vc::rules::StepShip(Motion, vc::rules::FHelm{ SailLevel, Rudder }, Target, Def, Tuning, DeltaSeconds);
-
-	const FRotator NewRotation(0.f, static_cast<float>(Motion.HeadingDeg), 0.f);
-	const FVector Delta = NewRotation.Vector() * Motion.Speed * DeltaSeconds;
-	FHitResult Hit;
-	SetActorLocationAndRotation(GetActorLocation() + Delta, NewRotation, true, &Hit);
-	// Auflaufen (Land, andere Schiffe): stehen bleiben. Schaden durch Rammen folgt mit dem Seekampf.
-	Speed = Hit.bBlockingHit ? 0.f : static_cast<float>(Motion.Speed);
+		const FRotator NewRotation(0.f, static_cast<float>(Motion.HeadingDeg), 0.f);
+		const FVector Delta = NewRotation.Vector() * Motion.Speed * DeltaSeconds;
+		FHitResult Hit;
+		SetActorLocationAndRotation(GetActorLocation() + Delta, NewRotation, true, &Hit);
+		// Auflaufen (Land, andere Schiffe): stehen bleiben; ein feindliches Schiff vor dem Bug wird dabei gerammt.
+		if (Hit.bBlockingHit)
+		{
+			TryRam(Hit, Motion.Speed);
+		}
+		Speed = Hit.bBlockingHit ? 0.f : static_cast<float>(Motion.Speed);
+	}
 
 	const vc::rules::FProvisions Used = vc::rules::ConsumeProvisions(vc::rules::FProvisions{ Provisions, ProvisionCarry }, Crew, DeltaSeconds, Tuning);
 	Provisions = Used.Amount;
@@ -218,17 +264,13 @@ bool AVCShip::FireBroadside(vc::rules::EBroadside Side)
 	}
 
 	// Nächstes feindliches Schiff im Feuerwinkel dieser Seite und in Reichweite.
-	const IVCServerHooks* Hooks = Cast<IVCServerHooks>(GetWorld()->GetAuthGameMode());
-	const bool bPvP = Hooks && Hooks->IsPvPAllowed();
 	AVCShip* Target = nullptr;
 	double BestDistance = Cannon.RangeCm;
 	const FVector Here = GetActorLocation();
 	for (TActorIterator<AVCShip> It(GetWorld()); It; ++It)
 	{
 		AVCShip* Other = *It;
-		// Spieler gegen Piraten immer; Piraten untereinander nie; Spieler gegen Spieler nur in PvP-Zonen.
-		const bool bHostile = Other->bPirate != bPirate || (!bPirate && !Other->bPirate && bPvP);
-		if (Other == this || Other->bSunk || !bHostile)
+		if (Other->bSunk || !IsHostileTo(Other))
 		{
 			continue;
 		}
@@ -258,24 +300,234 @@ bool AVCShip::FireBroadside(vc::rules::EBroadside Side)
 
 void AVCShip::ServerTakeBroadside(const vc::rules::FBroadsideResult& Result, AActor* Attacker)
 {
+	ServerTakeDamage(Result.HullDamage, Result.CrewLosses, Result.Hits, Attacker);
+}
+
+void AVCShip::ServerTakeDamage(double HullDamage, int32 CrewLosses, int32 Hits, AActor* Attacker)
+{
 	if (!HasAuthority() || bSunk)
 	{
 		return;
 	}
-	HullHp = static_cast<int32>(vc::rules::ApplyHullDamage(HullHp, Result.HullDamage));
-	const vc::rules::FCrew After = vc::rules::ApplyCrewLosses(vc::rules::FCrew{ Crew, Injured, Dead }, Result.CrewLosses,
+	HullHp = static_cast<int32>(vc::rules::ApplyHullDamage(HullHp, HullDamage));
+	const vc::rules::FCrew After = vc::rules::ApplyCrewLosses(vc::rules::FCrew{ Crew, Injured, Dead }, CrewLosses,
 		FVCNavalData::BroadsideTuning());
 	Crew = After.Healthy;
 	Injured = After.Injured;
 	Dead = After.Dead;
-	MulticastHit(Result.Hits, FMath::RoundToInt(Result.HullDamage), Result.CrewLosses);
+	MulticastHit(Hits, FMath::RoundToInt(HullDamage), CrewLosses);
 	if (HullHp <= 0)
 	{
-		bSunk = true;
-		Speed = 0.f;
-		SailLevel = 0.f;
-		HandleSunk(Attacker);
+		Sink(Attacker);
 	}
+}
+
+void AVCShip::Sink(AActor* Killer)
+{
+	if (bSunk)
+	{
+		return;
+	}
+	bSunk = true;
+	Speed = 0.f;
+	SailLevel = 0.f;
+	ReleaseGrapple();
+	HandleSunk(Killer);
+}
+
+void AVCShip::TryRam(const FHitResult& Hit, double SpeedCmPerSecond)
+{
+	AVCShip* Other = Cast<AVCShip>(Hit.GetActor());
+	const FVCShipRow* Row = FVCNavalData::FindShip(ShipCode);
+	if (!Other || Other->bSunk || !Row || !IsHostileTo(Other))
+	{
+		return; // Land oder befreundetes Schiff: nur stehen bleiben
+	}
+	const vc::rules::FRamTuning& Tuning = FVCNavalData::RamTuning();
+	const FVector Here = GetActorLocation();
+	const FVector There = Other->GetActorLocation();
+	const bool bAhead = vc::rules::IsAhead(GetActorRotation().Yaw, Here.X, Here.Y, There.X, There.Y, Tuning.FrontArcDeg);
+	const vc::rules::FRamResult Ram = vc::rules::ResolveRam(SpeedCmPerSecond / 100.0, Row->HullHp, bAhead, Tuning);
+	if (!Ram.bRammed)
+	{
+		return;
+	}
+	// Danach steht das Schiff (Speed 0): ein neuer Rammstoß braucht wieder Fahrt, kein Treffer je Tick.
+	Other->ServerTakeDamage(Ram.TargetDamage, 0, 1, this);
+	ServerTakeDamage(Ram.SelfDamage, 0, 1, Other);
+}
+
+double AVCShip::GetGrappleCooldown() const
+{
+	const double Cooldown = FVCNavalData::GrappleTuning().CooldownSeconds;
+	return LastGrapple < 0.0 ? 0.0 : FMath::Max(0.0, LastGrapple + Cooldown - ServerNow());
+}
+
+double AVCShip::GetMineCooldown() const
+{
+	const double Cooldown = FVCNavalData::MineTuning().CooldownSeconds;
+	return LastMine < 0.0 ? 0.0 : FMath::Max(0.0, LastMine + Cooldown - ServerNow());
+}
+
+bool AVCShip::TryGrapple()
+{
+	const vc::rules::FGrappleTuning& Tuning = FVCNavalData::GrappleTuning();
+	const FVCShipRow* Row = FVCNavalData::FindShip(ShipCode);
+	const double Now = ServerNow();
+	if (!HasAuthority() || bSunk || GrappledTo || !Row || Crew < Row->CrewMin || GetGrappleCooldown() > 0.0)
+	{
+		return false;
+	}
+	AVCShip* Target = nullptr;
+	double BestDistance = Tuning.RangeCm;
+	const FVector Here = GetActorLocation();
+	for (TActorIterator<AVCShip> It(GetWorld()); It; ++It)
+	{
+		AVCShip* Other = *It;
+		const double Distance = FVector::Dist2D(Here, Other->GetActorLocation());
+		if (!Other->bSunk && !Other->GrappledTo && IsHostileTo(Other) && Distance <= BestDistance
+			&& vc::rules::CanGrapple(Distance, FMath::Abs(Speed) / 100.0, FMath::Abs(Other->Speed) / 100.0, Tuning))
+		{
+			BestDistance = Distance;
+			Target = Other;
+		}
+	}
+	LastGrapple = Now; // auch ein Fehlwurf kostet die Abklingzeit
+	if (!Target)
+	{
+		return false;
+	}
+	Grapple(Target, Now);
+	return true;
+}
+
+void AVCShip::Grapple(AVCShip* Other, double Now)
+{
+	const double Until = Now + FVCNavalData::GrappleTuning().DurationSeconds;
+	GrappledTo = Other;
+	GrappleUntil = Until;
+	Speed = 0.f;
+	Other->GrappledTo = this;
+	Other->GrappleUntil = Until;
+	Other->Speed = 0.f;
+}
+
+void AVCShip::ReleaseGrapple()
+{
+	EndBoarding();
+	AVCShip* Other = GrappledTo;
+	GrappledTo = nullptr;
+	if (IsValid(Other) && Other->GrappledTo == this)
+	{
+		Other->EndBoarding();
+		Other->GrappledTo = nullptr;
+	}
+}
+
+double AVCShip::BoardingStrength() const
+{
+	const FVCShipRow* Row = FVCNavalData::FindShip(ShipCode);
+	// Belegt: das Erkundungsschiff ist stark beim Entern (SHIPCLASS-RAIDER); wie stark, ist ein Entwicklungswert.
+	return Row && Row->ShipClass == EVCShipClass::Raider ? FVCNavalData::BoardingTuning().RaiderStrength : 1.0;
+}
+
+bool AVCShip::TryBoard()
+{
+	const vc::rules::FBoardingTuning& Tuning = FVCNavalData::BoardingTuning();
+	if (!HasAuthority() || bSunk || bBoarding || !IsValid(GrappledTo) || GrappledTo->bBoarding || Crew <= 0
+		|| Tuning.RoundSeconds <= 0.0)
+	{
+		return false;
+	}
+	BoardingDefender = GrappledTo;
+	bBoarding = true;
+	GrappledTo->bBoarding = true;
+	GetWorldTimerManager().SetTimer(BoardingTimer, this, &AVCShip::BoardingRound, static_cast<float>(Tuning.RoundSeconds), true);
+	return true;
+}
+
+void AVCShip::BoardingRound()
+{
+	AVCShip* Defender = BoardingDefender.Get();
+	if (!Defender || Defender->bSunk || bSunk)
+	{
+		EndBoarding();
+		return;
+	}
+	const vc::rules::FBoardingRound Round = vc::rules::ResolveBoardingRound(Crew, Defender->Crew, BoardingStrength(),
+		Defender->BoardingStrength(), FMath::FRand(), FMath::FRand(), FVCNavalData::BoardingTuning());
+	ServerTakeDamage(0.0, Round.AttackerLosses, 0, Defender);
+	Defender->ServerTakeDamage(0.0, Round.DefenderLosses, 0, this);
+	switch (vc::rules::BoardingOutcome(Crew, Defender->Crew))
+	{
+	case vc::rules::EBoardingOutcome::AttackerWins:
+		// Genommen: für den Verlierer wie Versenken [DESIGN] – Pirat bringt die Belohnung, Spieler kommt an Land zurück.
+		Defender->Sink(this);
+		break;
+	case vc::rules::EBoardingOutcome::DefenderWins:
+		ReleaseGrapple();
+		break;
+	case vc::rules::EBoardingOutcome::Ongoing:
+		break;
+	}
+}
+
+void AVCShip::EndBoarding()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(BoardingTimer);
+	}
+	AVCShip* Defender = BoardingDefender.Get();
+	BoardingDefender.Reset();
+	if (bBoarding)
+	{
+		bBoarding = false;
+		if (Defender)
+		{
+			Defender->bBoarding = false;
+		}
+		else if (IsValid(GrappledTo) && GrappledTo->BoardingDefender.Get() == this)
+		{
+			GrappledTo->EndBoarding(); // Verteidiger-Seite: der Angreifer hält den Timer
+		}
+	}
+}
+
+bool AVCShip::TryDropMine()
+{
+	const vc::rules::FMineTuning& Tuning = FVCNavalData::MineTuning();
+	if (!HasAuthority() || bSunk || GetMineCooldown() > 0.0 || Tuning.LifetimeSeconds <= 0.0)
+	{
+		return false;
+	}
+	FVector Location = GetActorLocation() - GetActorForwardVector() * Tuning.DropDistanceCm;
+	Location.Z = GetDefault<UVCNavalSettings>()->SeaLevelZ;
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AVCMine* Mine = GetWorld()->SpawnActor<AVCMine>(AVCMine::StaticClass(), Location, FRotator::ZeroRotator, Params);
+	if (!Mine)
+	{
+		return false;
+	}
+	LastMine = ServerNow();
+	Mine->Arm(this, LastMine);
+	return true;
+}
+
+void AVCShip::ServerGrapple_Implementation()
+{
+	TryGrapple();
+}
+
+void AVCShip::ServerBoard_Implementation()
+{
+	TryBoard();
+}
+
+void AVCShip::ServerDropMine_Implementation()
+{
+	TryDropMine();
 }
 
 void AVCShip::HandleSunk(AActor* Killer)
@@ -307,6 +559,21 @@ void AVCShip::FireStarboard(const FInputActionValue& Value)
 void AVCShip::ToggleCannon(const FInputActionValue& Value)
 {
 	ServerToggleCannon();
+}
+
+void AVCShip::GrappleInput(const FInputActionValue& Value)
+{
+	ServerGrapple();
+}
+
+void AVCShip::BoardInput(const FInputActionValue& Value)
+{
+	ServerBoard();
+}
+
+void AVCShip::MineInput(const FInputActionValue& Value)
+{
+	ServerDropMine();
 }
 
 void AVCShip::CreateInputObjects()
@@ -342,6 +609,15 @@ void AVCShip::CreateInputObjects()
 	CannonAction = NewObject<UInputAction>(this, TEXT("IA_Cannon"));
 	CannonAction->ValueType = EInputActionValueType::Boolean;
 	InputContext->MapKey(CannonAction, EKeys::R);
+	GrappleAction = NewObject<UInputAction>(this, TEXT("IA_Grapple"));
+	GrappleAction->ValueType = EInputActionValueType::Boolean;
+	InputContext->MapKey(GrappleAction, EKeys::F);
+	BoardAction = NewObject<UInputAction>(this, TEXT("IA_Board"));
+	BoardAction->ValueType = EInputActionValueType::Boolean;
+	InputContext->MapKey(BoardAction, EKeys::B);
+	MineAction = NewObject<UInputAction>(this, TEXT("IA_Mine"));
+	MineAction->ValueType = EInputActionValueType::Boolean;
+	InputContext->MapKey(MineAction, EKeys::M);
 }
 
 void AVCShip::PawnClientRestart()
@@ -369,6 +645,9 @@ void AVCShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		Input->BindAction(FirePortAction, ETriggerEvent::Started, this, &AVCShip::FirePort);
 		Input->BindAction(FireStarboardAction, ETriggerEvent::Started, this, &AVCShip::FireStarboard);
 		Input->BindAction(CannonAction, ETriggerEvent::Started, this, &AVCShip::ToggleCannon);
+		Input->BindAction(GrappleAction, ETriggerEvent::Started, this, &AVCShip::GrappleInput);
+		Input->BindAction(BoardAction, ETriggerEvent::Started, this, &AVCShip::BoardInput);
+		Input->BindAction(MineAction, ETriggerEvent::Started, this, &AVCShip::MineInput);
 	}
 }
 

@@ -352,6 +352,25 @@ struct VCDATA_API FVCShipTuningRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kampf") double ArcHalfWidthDeg = 45.0;
 	/** Anteil der Matrosenverluste, die sterben (Rest verletzt). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kampf") double DeathShare = 0.3;
+	// Seekampf-Fähigkeiten (P6-Entwicklungswerte, siehe VCNavalAbilityRules.h)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rammen") double RamDamagePerMps = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rammen") double RamSelfDamageShare = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rammen") double RamFrontArcDeg = 30.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rammen") double RamMinSpeedMps = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enterhaken") double GrappleRangeCm = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enterhaken") double GrappleMaxSpeedMps = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enterhaken") double GrappleDurationSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enterhaken") double GrappleCooldownSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Entern") double BoardingLossFactor = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Entern") double BoardingRaiderStrength = 1.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Entern") double BoardingRoundSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minen") double MineDamage = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minen") double MineCrewHits = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minen") double MineTriggerRadiusCm = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minen") double MineLifetimeSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minen") double MineCooldownSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minen") double MineDropDistanceCm = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minen") double MineArmSeconds = 0.0;
 };
 
 /** Kanonentyp (DT_Cannons). Belegt sind Nah- und Fernkanonen; Werte UNKNOWN. */

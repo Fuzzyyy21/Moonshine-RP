@@ -102,10 +102,30 @@ void AVCPirateShip::Think()
 		return;
 	}
 
-	// Quer zum Ziel legen (die näher liegende Seite) und Abstand halten.
 	const FVector There = Target->GetActorLocation();
 	const double Bearing = (There - Here).Rotation().Yaw;
 	const double Distance = FVector::Dist2D(Here, There);
+
+	// Festgehakt: mit Überzahl entern, sonst abwarten, bis der Haken sich löst.
+	const bool bOutnumbers = GetCrew() > Target->GetCrew();
+	if (GetGrappledTo())
+	{
+		if (bOutnumbers && GetGrappledTo() == Target.Get())
+		{
+			TryBoard();
+		}
+		return;
+	}
+	// Mit Überzahl [DESIGN]: nah heran, Segel reffen (der Haken hält nur bei langsamer Fahrt) und Haken werfen.
+	const double GrappleRange = FVCNavalData::GrappleTuning().RangeCm;
+	if (bOutnumbers && GrappleRange > 0.0 && Distance <= GrappleRange * 2.0)
+	{
+		SteerTowards(Bearing, 0.f);
+		TryGrapple();
+		return;
+	}
+
+	// Quer zum Ziel legen (die näher liegende Seite) und Abstand halten.
 	const double Preferred = Cannon->RangeCm * PreferredRangeShare;
 	const double Relative = vc::rules::NormalizeDeg(Bearing - GetActorRotation().Yaw);
 	const double Broadside = Relative < 180.0 ? Bearing - 90.0 : Bearing + 90.0;

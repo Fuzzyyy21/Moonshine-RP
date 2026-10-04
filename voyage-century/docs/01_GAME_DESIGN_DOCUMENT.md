@@ -208,6 +208,14 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Piratenschiff als Gegner: legt sich quer zum Ziel, hält Abstand, feuert; XP für das Versenken legt das Backend fest (wie bei Landgegnern).
 * PvP auf See nur in Zonen mit `pvp_mode = FREE`.
 
+**Umgesetzt (Phase 5, Iteration 3)** `[DESIGN]`, Regeln in `VCNavalAbilityRules` (getestet), Werte in `design_data/dev_ships.json` (`naval_abilities`)
+* Belegt sind nur die Fähigkeiten selbst und dass das Erkundungsschiff stark beim Entern ist (`SHIPCLASS-RAIDER`); alle Zahlen sind Entwicklungswerte.
+* Rammen: Läuft ein Schiff mit mindestens 3 m/s auf ein feindliches Schiff, das innerhalb ±30° vor dem Bug liegt, nimmt das Ziel Tempo × 8 × Rumpf/1000 Schaden, der Rammende ein Viertel davon. Danach stehen beide.
+* Enterhaken (F): nächstes feindliches Schiff bis 8 m, beide höchstens 4 m/s; beide liegen 30 s fest. Abklingzeit 45 s, auch bei Fehlwurf.
+* Entern (B, nur festgehakt): alle 2 s eine Runde; Verluste je Seite = Gegner × Stärke × 0,15 × Wurf (0,5 … 1,5), Erkundungsschiff Stärke 1,5, sonst 1. Verluste wie bei Treffern verletzt oder tot. Ohne Matrosen verliert die Seite: Verteidiger genommen (für ihn wie Sinken; Pirat → XP), Angreifer abgewehrt (Haken löst sich). Offiziere und Entern-Skill folgen später.
+* Minen (M): 6 m hinter dem Heck, nach 3 s scharf, Radius 4 m, 120 Rumpf und 3 Matrosen, 120 s Lebensdauer, Abklingzeit 30 s. Treffen feindliche Schiffe und nach dem Scharfschalten auch den Leger; verschwinden, wenn der Leger die Zone verlässt.
+* Pirat: hat er mehr Matrosen als das Ziel, fährt er heran, refft, wirft den Haken und entert.
+
 ---
 
 ## 9. Crew und Offiziere

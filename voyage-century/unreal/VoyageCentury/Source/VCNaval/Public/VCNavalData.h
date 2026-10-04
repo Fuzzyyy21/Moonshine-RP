@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
 #include "VCDataRows.h"
+#include "VCNavalAbilityRules.h"
 #include "VCNavalCombatRules.h"
 #include "VCShipRules.h"
 #include "VCNavalData.generated.h"
@@ -61,4 +62,9 @@ public:
 	static const FVCPirateShipRow* FindPirate(FName Code);
 	static vc::rules::FCannonDef ToRules(const FVCCannonRow& Row);
 	static const vc::rules::FBroadsideTuning& BroadsideTuning();
+	/** Fähigkeiten-Tuning; alle 0 (= Fähigkeit wirkungslos), wenn die Zeile fehlt. */
+	static const vc::rules::FRamTuning& RamTuning();
+	static const vc::rules::FGrappleTuning& GrappleTuning();
+	static const vc::rules::FBoardingTuning& BoardingTuning();
+	static const vc::rules::FMineTuning& MineTuning();
 };

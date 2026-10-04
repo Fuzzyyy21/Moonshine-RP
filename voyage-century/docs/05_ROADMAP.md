@@ -115,7 +115,7 @@ Erste Seezone und zwei Häfen (Kandidaten: London, Athen, weil am besten belegt)
 
 **Abnahme Iteration 1 (Vorschlag)**: Drei Server (Testzone, London, Seezone) und Backend laufen; Client verbindet ohne Adresse über das World Directory; Ausgang in London führt auf die Seezone an den Ankunftspunkt LONDON; derselbe Charakter kann sich nicht gleichzeitig ein zweites Mal einloggen; nach dem Wechsel kann der alte Server den Charakter nicht mehr speichern; ein Neustart von Server und Backend lässt den Charakter in der neuen Zone weiterspielen.
 
-## Phase 5 – Schiffe (Iteration 2 fertig)
+## Phase 5 – Schiffe (Iteration 3 fertig)
 
 Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Matrosen, Seekampf, Entern. Lasttest für große Seeschlachten.
 
@@ -129,9 +129,13 @@ Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Ma
 | Daten: Nah- und Fernkanone, Kanonenplätze (Rangfolge geprüft), Hafenpreise, Piratenschiff; `V0011` | ✅ It. 2 | Export `--check`, Schematest |
 | Backend: Hafendienste beim Werftmeister (Reparatur, Heilen, Anheuern, Proviant) über den Ledger, Obergrenzen, idempotent; verletzte Matrosen im Schiffszustand | ✅ It. 2 | `ShipTests` (+2 Tests) |
 | UE: Breitseiten Q/E, Kanonenwahl R, Treffer und Sinken auf dem Server, Piratenschiff mit KI und Spawner, XP für versenkte Piraten, Sinken → zurück an Land, HUD | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
-| Entern, Rammen, Enterhaken, Minen | ❌ Iteration 3 | belegt als Fähigkeiten, Mechanik UNKNOWN |
+| Fähigkeiten-Regeln (`VCNavalAbilityRules`): Rammen (Bugwinkel, Tempo, Eigenschaden), Enterhaken (Reichweite, Tempo), Entern in Runden (Erkundungsschiff stärker), Minen (Scharfschalten, Radius, Lebensdauer) | ✅ It. 3 | `tools/test_rules.sh` (4 weitere Fälle) |
+| Daten: Fähigkeiten-Tuning in `dev_ships.json` → `DT_ShipTuning` (Erkundungsschiff muss stärker entern, geprüft); kein Backend-Bedarf | ✅ It. 3 | Export `--check` |
+| UE: Rammen beim Auflaufen, F Enterhaken, B Entern, M Mine (`AVCMine`), Pirat hakt und entert mit Überzahl, HUD-Abklingzeiten | ⚠️ It. 3, geschrieben, nicht kompiliert | lokal |
 | Wasser-Optik, Strömung, Wetter | ❌ | braucht Assets |
 | Lasttest große Seeschlachten | ❌ | |
+
+**Abnahme Iteration 3 (Vorschlag)**: Mit Fahrt auf einen Piraten zuhalten → Rammstoß kostet ihn Rumpf und das eigene Schiff einen Teil davon; langsam neben den Piraten, F → beide liegen fest; B → Kampf an Deck in Runden, die Seite ohne Matrosen verliert (Pirat genommen → XP; eigenes Schiff genommen → an Land wie beim Sinken); M legt eine Mine hinter dem Heck, die ein folgendes Schiff trifft und nach Ablauf verschwindet; mit Erkundungsschiff gewinnt man Enterkämpfe bei gleicher Matrosenzahl häufiger.
 
 **Abnahme Iteration 2 (Vorschlag)**: Auf der Seezone greift ein Piratenschiff an; Breitseiten treffen nur quer ab und in Reichweite; Treffer kosten Rumpf und Matrosen (verletzt oder tot), weniger Matrosen machen langsamer; ein versenkter Pirat gibt die XP aus dem Backend; das eigene Schiff sinkt bei Rumpf 0, man landet an Land und repariert, heilt, heuert an und kauft Proviant beim Werftmeister gegen Gold; alles ist nach Neustart gespeichert.
 
