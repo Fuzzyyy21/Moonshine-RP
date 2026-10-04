@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -113,6 +114,25 @@ def build_rows(records: dict[str, dict], ui_groups: dict[str, str]) -> dict[str,
         for r in by_entity.get("EQUIPMENT_SET", [])
     ]
 
+    # Häfen: belegt durch Schiffsumbau in der Stadt (macht der Werftmeister, SHIP-ACQUISITION) oder durch
+    # einen Dienst im Hafen (Offizierskarten-Tausch). Alle anderen Dienste bleiben NULL = UNKNOWN.
+    ports: dict[str, dict] = {}
+
+    def port(city_id: str, rec: dict) -> dict:
+        if city_id not in records or records[city_id]["entity"] != "CITY":
+            raise SystemExit(f"{rec['id']}: Hafen verweist auf unbekannte Stadt {city_id}")
+        return ports.setdefault(city_id, {"city": strip_prefix(city_id), "has_shipyard": None, "services": {},
+                                          "recon_id": rec["id"], "confidence": rec["confidence"]})
+
+    for r in by_entity.get("SHIP_MOD_TIER", []):
+        if isinstance(r["data"].get("cities"), list):
+            for city_id in r["data"]["cities"]:
+                port(city_id, r)["has_shipyard"] = True
+    officer_cards = records.get("SYS-OFFICER-CARDS")
+    if officer_cards and known(officer_cards["data"].get("exchange_city")):
+        port(officer_cards["data"]["exchange_city"], officer_cards)["services"]["officer_card_exchange"] = True
+    rows["ports"] = list(ports.values())
+
     total_cap = records.get("SKILL-TOTAL-CAP")
     rows["game_rules"] = [
         {"rule_key": "SKILL_TOTAL_CAP", "int_value": total_cap["data"]["total_cap"],
@@ -120,7 +140,7 @@ def build_rows(records: dict[str, dict], ui_groups: dict[str, str]) -> dict[str,
     ] if total_cap and isinstance(known(total_cap["data"].get("total_cap")), int) else []
 
     for key, value in rows.items():
-        value.sort(key=lambda row: row.get("code", row.get("stage_no", row.get("rule_key"))))
+        value.sort(key=lambda row: row.get("code", row.get("stage_no", row.get("rule_key", row.get("city")))))
     return rows
 
 
@@ -183,6 +203,37 @@ def check_abilities(abilities: dict, skill_codes: set[str]) -> None:
         raise SystemExit("design_data/dev_abilities.json:\n  " + "\n  ".join(problems))
 
 
+ZONE_KINDS = {"SEA", "CITY", "LAND", "DUNGEON", "BATTLEFIELD"}
+# Zonen, die eine Migration anlegt (nicht im Layout, aber als Ziel von Übergängen erlaubt).
+MIGRATION_ZONES = {"DEV_TESTZONE"}
+TAG_RE = re.compile(r"^[A-Z0-9_]{1,32}$")
+
+
+def check_world(layout: dict, records: dict[str, dict]) -> None:
+    problems = []
+    zone_ids = {z["zone_id"] for z in layout["zones"]}
+    for z in layout["zones"]:
+        if z["kind"] not in ZONE_KINDS:
+            problems.append(f"{z['zone_id']}: unbekannte Zonenart {z['kind']}")
+        if z["city"] is not None and (z["city"] not in records or records[z["city"]]["entity"] != "CITY"):
+            problems.append(f"{z['zone_id']}: Stadt {z['city']} nicht in der Reconstruction Database")
+        if z["pvp_mode"] not in ("NONE", "FREE"):
+            problems.append(f"{z['zone_id']}: pvp_mode {z['pvp_mode']}")
+    seen = set()
+    for link in layout["links"]:
+        where = f"{link['from']}/{link['exit']}"
+        for end in (link["from"], link["to"]):
+            if end not in zone_ids | MIGRATION_ZONES:
+                problems.append(f"{where}: unbekannte Zone {end}")
+        if not TAG_RE.match(link["exit"]) or not TAG_RE.match(link["arrival"]):
+            problems.append(f"{where}: Ausgang und Ankunft nur A-Z, 0-9, _ (max. 32)")
+        if (link["from"], link["exit"]) in seen:
+            problems.append(f"{where}: Ausgang doppelt")
+        seen.add((link["from"], link["exit"]))
+    if problems:
+        raise SystemExit("design_data/world_layout.json:\n  " + "\n  ".join(problems))
+
+
 def camel(key: str) -> str:
     return "".join(part.capitalize() for part in key.split("_"))
 
@@ -205,7 +256,7 @@ def sql_literal(value) -> str:
     return "'" + str(value).replace("'", "''") + "'"
 
 
-def upsert(table: str, key: str, columns: list[str], rows: list[dict]) -> str:
+def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: list[dict]) -> str:
     if not rows:
         return f"-- {table}: keine Datensätze\n"
     values = []
@@ -217,16 +268,19 @@ def upsert(table: str, key: str, columns: list[str], rows: list[dict]) -> str:
                 lit += "::confidence_level"
             cells.append(lit)
         values.append("    (" + ", ".join(cells) + ")")
-    updates = ",\n    ".join(f"{c} = EXCLUDED.{c}" for c in columns if c != key)
+    keys = (key,) if isinstance(key, str) else key
+    updates = ",\n    ".join(f"{c} = EXCLUDED.{c}" for c in columns if c not in keys)
     return (
         f"INSERT INTO {table} ({', '.join(columns)}) VALUES\n"
         + ",\n".join(values)
-        + f"\nON CONFLICT ({key}) DO UPDATE SET\n    {updates};\n"
+        + f"\nON CONFLICT ({', '.join(keys)}) DO UPDATE SET\n    {updates};\n"
     )
 
 
-def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict) -> str:
+def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict,
+               world: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
+    city_zones = {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]}
 
     def renamed(table_rows):
         return [{**{k: v for k, v in r.items() if k not in ("zh", "en", "de")},
@@ -243,8 +297,19 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
         upsert("skill_stages", "stage_no", ["stage_no", "max_level", "recon_id", "confidence"], rows["skill_stages"]),
         upsert("ship_classes", "code", ["code", *name_cols, "leveled_by", "recon_id", "confidence"],
                renamed(rows["ship_classes"])),
-        upsert("cities", "code", ["code", *name_cols, "coord_as_given", "recon_id", "confidence"],
-               renamed(rows["cities"])),
+        "-- Zonen und Übergänge (design_data/world_layout.json, Designentscheidung). Zonen vor Städten wegen cities.zone_id.\n",
+        upsert("zones", "zone_id", ["zone_id", "zone_kind", "map_asset", "max_players", "pvp_mode", "is_dev"],
+               [{"zone_id": z["zone_id"], "zone_kind": z["kind"], "map_asset": z["map_asset"], "max_players": z["max_players"],
+                 "pvp_mode": z["pvp_mode"], "is_dev": z["is_dev"]} for z in sorted(world["zones"], key=lambda z: z["zone_id"])]),
+        upsert("cities", "code", ["code", *name_cols, "coord_as_given", "zone_id", "recon_id", "confidence"],
+               [{**c, "zone_id": city_zones.get(c["code"])} for c in renamed(rows["cities"])]),
+        upsert("ports", "city_id", ["city_id", "has_shipyard", "services", "recon_id", "confidence"],
+               [{"city_id": SqlExpr(f"(SELECT city_id FROM cities WHERE code = {sql_literal(p['city'])})"),
+                 "has_shipyard": p["has_shipyard"], "services": p["services"], "recon_id": p["recon_id"],
+                 "confidence": p["confidence"]} for p in rows["ports"]]),
+        upsert("zone_links", ("from_zone_id", "exit_code"), ["from_zone_id", "exit_code", "to_zone_id", "arrival_tag"],
+               [{"from_zone_id": link["from"], "exit_code": link["exit"], "to_zone_id": link["to"], "arrival_tag": link["arrival"]}
+                for link in sorted(world["links"], key=lambda link: (link["from"], link["exit"]))]),
         upsert("item_sets", "code", ["code", *name_cols, "level", "recon_id", "confidence"],
                renamed(rows["item_sets"])),
         upsert("game_rules", "rule_key", ["rule_key", "int_value", "recon_id", "confidence"], rows["game_rules"]),
@@ -368,7 +433,9 @@ def outputs() -> dict[Path, str]:
     combat["tuning"], combat["tuning_origins"] = resolve_tuning(combat["tuning"], load_records())
     abilities = json.loads((DESIGN_DIR / "dev_abilities.json").read_text(encoding="utf-8"))
     check_abilities(abilities, {r["code"] for r in rows["skills"]})
-    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities)}
+    world = json.loads((DESIGN_DIR / "world_layout.json").read_text(encoding="utf-8"))
+    check_world(world, load_records())
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world)}
     for name, table in render_ue(rows, appearance, combat, abilities).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files

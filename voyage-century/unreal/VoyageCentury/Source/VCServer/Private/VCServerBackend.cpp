@@ -3,6 +3,7 @@
 #include "HAL/PlatformMisc.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "VCBackendSettings.h"
+#include "VCCore.h"
 #include "VCServerSettings.h"
 
 #if WITH_SERVER_CODE
@@ -43,11 +44,13 @@ void FVCServerBackend::LoadCharacter(int64 CharacterId, int64 AccountId, FVCHttp
 }
 
 void FVCServerBackend::SaveCharacter(int64 CharacterId, int64 AccountId, const FString& ZoneId,
-	const FVector& Location, float Yaw, const FIntVector4& Vitals, FVCHttpCallback Callback)
+	const FVector& Location, float Yaw, const FIntVector4& Vitals, bool bReleasePresence, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
 	Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
 	Body->SetStringField(TEXT("zoneId"), ZoneId);
+	Body->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
+	Body->SetBoolField(TEXT("releasePresence"), bReleasePresence);
 	Body->SetNumberField(TEXT("x"), Location.X);
 	Body->SetNumberField(TEXT("y"), Location.Y);
 	Body->SetNumberField(TEXT("z"), Location.Z);
@@ -62,6 +65,70 @@ void FVCServerBackend::SaveCharacter(int64 CharacterId, int64 AccountId, const F
 	const FString Url = FString::Printf(TEXT("%s/internal/v1/characters/%lld/state"),
 		*UVCBackendSettings::GetGameDataBaseUrl(), CharacterId);
 	FVCHttp::Send(TEXT("PUT"), Url, Body, Headers(), MoveTemp(Callback));
+}
+
+namespace
+{
+	FString ServerUrl()
+	{
+		return FString::Printf(TEXT("%s/internal/v1/world/servers/%s"), *UVCBackendSettings::GetGameDataBaseUrl(),
+			*FGenericPlatformHttp::UrlEncode(UVCServerSettings::GetServerId()));
+	}
+
+	TSharedRef<FJsonObject> ServerBody(const FString& Address, int32 Capacity)
+	{
+		const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+		Body->SetStringField(TEXT("zoneId"), UVCServerSettings::GetZoneId());
+		Body->SetStringField(TEXT("address"), Address);
+		Body->SetNumberField(TEXT("capacity"), Capacity);
+		return Body;
+	}
+
+	FString ClaimUrl(int64 CharacterId)
+	{
+		return FString::Printf(TEXT("%s/internal/v1/world/characters/%lld/claim"), *UVCBackendSettings::GetGameDataBaseUrl(), CharacterId);
+	}
+}
+
+void FVCServerBackend::StartServer(const FString& Address, int32 Capacity, FVCHttpCallback Callback)
+{
+	FVCHttp::Send(TEXT("POST"), ServerUrl(), ServerBody(Address, Capacity), Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::Heartbeat(const FString& Address, int32 Capacity, FVCHttpCallback Callback)
+{
+	FVCHttp::Send(TEXT("PUT"), ServerUrl() + TEXT("/heartbeat"), ServerBody(Address, Capacity), Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::ClaimCharacter(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
+	Body->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
+	FVCHttp::Send(TEXT("POST"), ClaimUrl(CharacterId), Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::ReleaseCharacter(int64 CharacterId)
+{
+	const FString Url = ClaimUrl(CharacterId) + TEXT("?serverId=") + FGenericPlatformHttp::UrlEncode(UVCServerSettings::GetServerId());
+	FVCHttp::Send(TEXT("DELETE"), Url, nullptr, Headers(), [CharacterId](const FVCHttpResult& Result)
+	{
+		if (!Result.IsOk())
+		{
+			UE_LOG(LogVC, Warning, TEXT("Freigabe von Charakter %lld fehlgeschlagen: %s"), CharacterId, *Result.ErrorMessage());
+		}
+	});
+}
+
+void FVCServerBackend::RequestTransfer(int64 CharacterId, int64 AccountId, const FString& ExitCode, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("characterId"), static_cast<double>(CharacterId));
+	Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
+	Body->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
+	Body->SetStringField(TEXT("exitCode"), ExitCode);
+	FVCHttp::Send(TEXT("POST"), UVCBackendSettings::GetGameDataBaseUrl() + TEXT("/internal/v1/world/transfers"),
+		Body, Headers(), MoveTemp(Callback));
 }
 
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>& Entry, FVCHttpCallback Callback)
@@ -147,7 +214,12 @@ namespace
 bool FVCServerBackend::IsConfigured() { return false; }
 void FVCServerBackend::ValidateTicket(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadCharacter(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
-void FVCServerBackend::SaveCharacter(int64, int64, const FString&, const FVector&, float, const FIntVector4&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::SaveCharacter(int64, int64, const FString&, const FVector&, float, const FIntVector4&, bool, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::StartServer(const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::Heartbeat(const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ClaimCharacter(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ReleaseCharacter(int64) {}
+void FVCServerBackend::RequestTransfer(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }

@@ -66,6 +66,9 @@ public:
 	/** Reist zu "host:port" und übergibt Ticket und Charakter als URL-Optionen. */
 	void ConnectToZone(const FString& ServerAddress, int64 CharacterId);
 
+	/** Fragt das World Directory, welcher Server für den Charakter zuständig ist, und verbindet dorthin. */
+	void PlayCharacter(int64 CharacterId);
+
 	bool HasTicket() const { return !Ticket.IsEmpty(); }
 
 private:

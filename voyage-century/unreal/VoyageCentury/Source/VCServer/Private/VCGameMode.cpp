@@ -1,8 +1,11 @@
 #include "VCGameMode.h"
 #include "Engine/NetConnection.h"
 #include "Engine/World.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameSession.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -160,6 +163,11 @@ void AVCGameMode::BeginPlay()
 	GetWorldTimerManager().SetTimer(AuthTimeoutTimer, this, &AVCGameMode::DisconnectTimedOutPlayers, 1.f, true);
 	UE_LOG(LogVC, Display, TEXT("Zone %s gestartet als %s"), *UVCServerSettings::GetZoneId(), *UVCServerSettings::GetServerId());
 
+	if (IsAuthRequired() && GetNetMode() == NM_DedicatedServer)
+	{
+		RegisterWithDirectory();
+	}
+
 	if (IsAuthRequired())
 	{
 		TWeakObjectPtr<AVCGameMode> WeakThis(this);
@@ -280,6 +288,41 @@ void AVCGameMode::OnTicketValidated(APlayerController* PC, const FVCHttpResult& 
 	// Das Ticket wird nach der Prüfung nicht mehr gebraucht und nicht im Speicher gehalten.
 	Session->Ticket.Empty();
 
+	// Erst die Anwesenheit sichern (ein Charakter, eine Zone), dann laden.
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(PC);
+	const int64 CharacterId = Session->CharacterId;
+	FVCServerBackend::ClaimCharacter(CharacterId, Session->AccountId, [WeakThis, WeakPC, CharacterId](const FVCHttpResult& R)
+	{
+		if (WeakThis.IsValid() && WeakPC.IsValid())
+		{
+			WeakThis->OnCharacterClaimed(WeakPC.Get(), R);
+		}
+		else if (R.IsOk())
+		{
+			FVCServerBackend::ReleaseCharacter(CharacterId); // Spieler ist inzwischen weg
+		}
+	});
+}
+
+void AVCGameMode::OnCharacterClaimed(APlayerController* PC, const FVCHttpResult& Result)
+{
+	FPlayerSession* Session = Sessions.Find(PC);
+	if (!Session)
+	{
+		return;
+	}
+	if (!Result.IsOk())
+	{
+		Reject(PC, Result.ErrorMessage()); // z. B. "Charakter ist bereits online" oder falsche Zone
+		return;
+	}
+	Session->bClaimed = true;
+	if (Result.Json.IsValid())
+	{
+		Result.Json->TryGetStringField(TEXT("arrivalTag"), Session->ArrivalTag);
+	}
+
 	TWeakObjectPtr<AVCGameMode> WeakThis(this);
 	TWeakObjectPtr<APlayerController> WeakPC(PC);
 	FVCServerBackend::LoadCharacter(Session->CharacterId, Session->AccountId, [WeakThis, WeakPC](const FVCHttpResult& R)
@@ -399,6 +442,22 @@ void AVCGameMode::SpawnAuthenticatedPlayer(APlayerController* PC, const TOptiona
 	{
 		RestartPlayerAtTransform(PC, SavedTransform.GetValue());
 	}
+	if (!PC->GetPawn() && !Session->ArrivalTag.IsEmpty())
+	{
+		// Ankunft nach einem Zonenwechsel: PlayerStart mit passendem Tag in dieser Karte.
+		AActor* Start = FindPlayerStart(PC, Session->ArrivalTag);
+		const APlayerStart* Tagged = Cast<APlayerStart>(Start);
+		if (!Tagged || Tagged->PlayerStartTag != FName(*Session->ArrivalTag))
+		{
+			UE_LOG(LogVC, Warning, TEXT("Kein PlayerStart mit Tag %s in Zone %s – Standard-Startpunkt"),
+				*Session->ArrivalTag, *UVCServerSettings::GetZoneId());
+		}
+		if (Start)
+		{
+			RestartPlayerAtPlayerStart(PC, Start);
+		}
+	}
+	Session->ArrivalTag.Empty();
 	if (!PC->GetPawn())
 	{
 		// Keine gespeicherte Position oder Spawn dort blockiert: PlayerStart der Zone.
@@ -421,6 +480,10 @@ void AVCGameMode::SpawnAuthenticatedPlayer(APlayerController* PC, const TOptiona
 void AVCGameMode::Reject(APlayerController* PC, const FString& Reason)
 {
 	UE_LOG(LogVC, Warning, TEXT("Spieler getrennt (%s): %s"), *RemoteAddress(PC), *Reason);
+	if (const FPlayerSession* Session = Sessions.Find(PC); Session && Session->bClaimed && !Session->bFinalSaveSent)
+	{
+		FVCServerBackend::ReleaseCharacter(Session->CharacterId); // wirkt nur, solange er hier ONLINE ist
+	}
 	Sessions.Remove(PC);
 	if (GameSession)
 	{
@@ -430,9 +493,14 @@ void AVCGameMode::Reject(APlayerController* PC, const FString& Reason)
 
 void AVCGameMode::Logout(AController* Exiting)
 {
-	// Die Position wurde bereits in OnPlayerPawnDestroyed gespeichert (der Pawn ist hier schon weg).
+	// Die Position wurde bereits in OnPlayerPawnDestroyed gespeichert (der Pawn ist hier schon weg); dieser letzte
+	// Stand gibt die Anwesenheit frei. Ohne ihn (kein Pawn, abgebrochener Wechsel) hier freigeben.
 	if (APlayerController* PC = Cast<APlayerController>(Exiting))
 	{
+		if (const FPlayerSession* Session = Sessions.Find(PC); Session && Session->bClaimed && !Session->bFinalSaveSent)
+		{
+			FVCServerBackend::ReleaseCharacter(Session->CharacterId);
+		}
 		Sessions.Remove(PC);
 	}
 	Super::Logout(Exiting);
@@ -440,21 +508,32 @@ void AVCGameMode::Logout(AController* Exiting)
 
 void AVCGameMode::OnPlayerPawnDestroyed(AActor* DestroyedActor)
 {
-	for (const TPair<TObjectKey<APlayerController>, FPlayerSession>& Entry : Sessions)
+	for (TPair<TObjectKey<APlayerController>, FPlayerSession>& Entry : Sessions)
 	{
 		if (Entry.Value.bAuthenticated && Entry.Value.Pawn.Get() == DestroyedActor)
 		{
-			SaveSession(Entry.Key.ResolveObjectPtr(), Entry.Value, *CastChecked<APawn>(DestroyedActor));
+			// Beim Verlassen des Spiels wird der Pawn zusammen mit dem Controller zerstört; beim Respawn nicht.
+			const APlayerController* PC = Entry.Key.ResolveObjectPtr();
+			const bool bLeaving = !PC || PC->IsActorBeingDestroyed();
+			if (bLeaving && !Entry.Value.bTransferring)
+			{
+				Entry.Value.bFinalSaveSent = true;
+			}
+			SaveSession(PC, Entry.Value, *CastChecked<APawn>(DestroyedActor), bLeaving);
 			return;
 		}
 	}
 }
 
-void AVCGameMode::SaveSession(const APlayerController* PC, const FPlayerSession& Session, const APawn& Pawn) const
+void AVCGameMode::SaveSession(const APlayerController* PC, const FPlayerSession& Session, const APawn& Pawn, bool bFinal) const
 {
+	if (Session.bTransferring)
+	{
+		return; // Anwesenheit liegt beim Zielserver; das Backend würde ohnehin ablehnen
+	}
 	const int64 CharacterId = Session.CharacterId;
 	FVCServerBackend::SaveCharacter(CharacterId, Session.AccountId, UVCServerSettings::GetZoneId(),
-		Pawn.GetActorLocation(), Pawn.GetActorRotation().Yaw, CurrentVitals(PC), [CharacterId](const FVCHttpResult& Result)
+		Pawn.GetActorLocation(), Pawn.GetActorRotation().Yaw, CurrentVitals(PC), bFinal, [CharacterId](const FVCHttpResult& Result)
 		{
 			if (!Result.IsOk())
 			{
@@ -470,7 +549,7 @@ void AVCGameMode::SaveAllPlayers()
 	{
 		if (Entry.Value.bAuthenticated && Entry.Value.Pawn.IsValid())
 		{
-			SaveSession(Entry.Key.ResolveObjectPtr(), Entry.Value, *Entry.Value.Pawn.Get());
+			SaveSession(Entry.Key.ResolveObjectPtr(), Entry.Value, *Entry.Value.Pawn.Get(), false);
 		}
 	}
 }
@@ -603,7 +682,7 @@ void AVCGameMode::AdminTeleport(APlayerController* Issuer, const FPlayerSession&
 			}
 			if (const FPlayerSession* S = WeakThis.IsValid() ? WeakThis->Sessions.Find(PC) : nullptr)
 			{
-				WeakThis->SaveSession(PC, *S, *P);
+				WeakThis->SaveSession(PC, *S, *P, false);
 			}
 		});
 }
@@ -940,4 +1019,141 @@ void AVCGameMode::RespawnPlayer(APlayerController* PC)
 			ASC->GetNumericAttribute(UVCAttributeSet::GetMaxStaminaAttribute()));
 	}
 	SpawnAuthenticatedPlayer(PC, TOptional<FTransform>());
+}
+
+void AVCGameMode::RegisterWithDirectory()
+{
+	const FString Address = UVCServerSettings::GetPublicAddress(GetWorld());
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	FVCServerBackend::StartServer(Address, GetDefault<UVCServerSettings>()->Capacity, [WeakThis, Address](const FVCHttpResult& Result)
+	{
+		AVCGameMode* Self = WeakThis.Get();
+		if (!Self)
+		{
+			return;
+		}
+		double Interval = 0.0;
+		if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetNumberField(TEXT("heartbeatSeconds"), Interval))
+		{
+			// Ohne Anmeldung lehnt das Backend jeden Spieler ab; also weiter versuchen.
+			UE_LOG(LogVC, Error, TEXT("Anmeldung beim World Directory fehlgeschlagen (%s) – neuer Versuch in 10 s"), *Result.ErrorMessage());
+			Self->GetWorldTimerManager().SetTimer(Self->DirectoryTimer, Self, &AVCGameMode::RegisterWithDirectory, 10.f, false);
+			return;
+		}
+		UE_LOG(LogVC, Display, TEXT("Im World Directory angemeldet: %s unter %s"), *UVCServerSettings::GetServerId(), *Address);
+		Self->GetWorldTimerManager().SetTimer(Self->DirectoryTimer, Self, &AVCGameMode::SendHeartbeat,
+			static_cast<float>(FMath::Max(1.0, Interval)), true);
+	});
+}
+
+void AVCGameMode::SendHeartbeat()
+{
+	FVCServerBackend::Heartbeat(UVCServerSettings::GetPublicAddress(GetWorld()), GetDefault<UVCServerSettings>()->Capacity,
+		[](const FVCHttpResult& Result)
+		{
+			if (!Result.IsOk())
+			{
+				UE_LOG(LogVC, Warning, TEXT("Lebenszeichen an das World Directory fehlgeschlagen: %s"), *Result.ErrorMessage());
+			}
+		});
+}
+
+void AVCGameMode::HandleZoneExit(APawn* Pawn, FName ExitCode)
+{
+	APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
+	if (!PC)
+	{
+		return;
+	}
+	if (!IsAuthRequired())
+	{
+		PC->ClientMessage(FString::Printf(TEXT("Ausgang %s: Zonenwechsel braucht Backend und Dedicated Server"), *ExitCode.ToString()));
+		return;
+	}
+	FPlayerSession* Session = Sessions.Find(PC);
+	const IVCCombatant* Combatant = Cast<IVCCombatant>(Pawn);
+	if (!Session || !Session->bAuthenticated || !Session->bClaimed || Session->bTransferring || (Combatant && !Combatant->IsAlive()))
+	{
+		return;
+	}
+	// Schutz gegen Pendeln: wer gerade erst erschienen ist (z. B. Ankunftspunkt zu nah am Ausgang), wechselt nicht sofort zurück.
+	if (Pawn->GetGameTimeSinceCreation() < 2.f)
+	{
+		return;
+	}
+	// Ab hier keine periodischen Speicherungen und keine weiteren Ausgänge für diesen Spieler.
+	Session->bTransferring = true;
+
+	const int64 CharacterId = Session->CharacterId;
+	const int64 AccountId = Session->AccountId;
+	const FString Exit = ExitCode.ToString();
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(PC);
+
+	// 1. Letzten Stand dieser Zone speichern (Leben, Ausdauer), solange die Anwesenheit noch hier liegt.
+	FVCServerBackend::SaveCharacter(CharacterId, AccountId, UVCServerSettings::GetZoneId(), Pawn->GetActorLocation(),
+		Pawn->GetActorRotation().Yaw, CurrentVitals(PC), false,
+		[WeakThis, WeakPC, CharacterId, AccountId, Exit](const FVCHttpResult& Saved)
+		{
+			AVCGameMode* Self = WeakThis.Get();
+			APlayerController* Player = WeakPC.Get();
+			if (!Self || !Player)
+			{
+				return;
+			}
+			if (!Saved.IsOk())
+			{
+				Self->CancelTransfer(Player, Saved.ErrorMessage());
+				return;
+			}
+			// 2. Wechsel anfordern: das Backend kennt den Übergang, wählt den Zielserver und reserviert den Platz.
+			FVCServerBackend::RequestTransfer(CharacterId, AccountId, Exit, [WeakThis, WeakPC, CharacterId](const FVCHttpResult& Result)
+			{
+				AVCGameMode* GameMode = WeakThis.Get();
+				APlayerController* Traveller = WeakPC.Get();
+				if (!GameMode || !Traveller)
+				{
+					return; // Spieler ist weg; eine Reservierung läuft von selbst ab
+				}
+				FString Address;
+				if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetStringField(TEXT("address"), Address))
+				{
+					GameMode->CancelTransfer(Traveller, Result.ErrorMessage());
+					return;
+				}
+				GameMode->CompleteTransfer(Traveller, CharacterId, Address);
+			});
+		});
+}
+
+void AVCGameMode::CompleteTransfer(APlayerController* PC, int64 CharacterId, const FString& Address)
+{
+	UE_LOG(LogVC, Display, TEXT("Charakter %lld wechselt zu %s"), CharacterId, *Address);
+	if (ACharacter* Character = Cast<ACharacter>(PC->GetPawn()))
+	{
+		Character->GetCharacterMovement()->DisableMovement(); // gehört schon zur Zielzone
+	}
+	if (AVCPlayerController* VCPC = Cast<AVCPlayerController>(PC))
+	{
+		VCPC->ClientTravelToZone(Address, CharacterId);
+	}
+	// Reist der Client nicht (alter Client, Fehler), wird er getrennt; sein Platz liegt bereits auf dem Zielserver.
+	TWeakObjectPtr<APlayerController> WeakPC(PC);
+	FTimerHandle KickTimer;
+	GetWorldTimerManager().SetTimer(KickTimer, FTimerDelegate::CreateWeakLambda(this, [this, WeakPC]()
+	{
+		if (APlayerController* Stuck = WeakPC.Get())
+		{
+			Reject(Stuck, TEXT("Zonenwechsel nicht abgeschlossen"));
+		}
+	}), GetDefault<UVCServerSettings>()->TransferKickSeconds, false);
+}
+
+void AVCGameMode::CancelTransfer(APlayerController* PC, const FString& Reason)
+{
+	if (FPlayerSession* Session = Sessions.Find(PC))
+	{
+		Session->bTransferring = false;
+	}
+	PC->ClientMessage(FString::Printf(TEXT("Zonenwechsel nicht möglich: %s"), *Reason));
 }

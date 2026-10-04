@@ -198,6 +198,35 @@ void UVCSessionSubsystem::ConnectToZone(const FString& ServerAddress, int64 Char
 	PC->ClientTravel(Url, TRAVEL_Absolute);
 }
 
+void UVCSessionSubsystem::PlayCharacter(int64 CharacterId)
+{
+	if (!HasTicket() || CharacterId <= 0)
+	{
+		Report(false, TEXT("Erst einloggen und einen Charakter wählen."));
+		return;
+	}
+	TWeakObjectPtr<UVCSessionSubsystem> WeakThis(this);
+	const FString Url = FString::Printf(TEXT("%s/v1/characters/%lld/server"), *UVCBackendSettings::GetGameDataBaseUrl(), CharacterId);
+	FVCHttp::Send(TEXT("GET"), Url, nullptr, AuthHeader(), [WeakThis, CharacterId](const FVCHttpResult& Result)
+	{
+		UVCSessionSubsystem* Self = WeakThis.Get();
+		if (!Self)
+		{
+			return;
+		}
+		FString Address;
+		FString Zone;
+		if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetStringField(TEXT("address"), Address))
+		{
+			Self->Report(false, FString::Printf(TEXT("Kein Server gefunden: %s"), *Result.ErrorMessage()));
+			return;
+		}
+		Result.Json->TryGetStringField(TEXT("zoneId"), Zone);
+		Self->Report(true, FString::Printf(TEXT("Zone %s"), *Zone));
+		Self->ConnectToZone(Address, CharacterId);
+	});
+}
+
 TMap<FString, FString> UVCSessionSubsystem::AuthHeader() const
 {
 	return { { TEXT("Authorization"), TEXT("Bearer ") + Ticket } };

@@ -106,8 +106,10 @@ public sealed class CombatTests(PostgresFixture db)
     {
         await using var backend = await TestBackend.StartAsync(db);
         var p = await NewCharacter(backend);
+        var serverId = await backend.EnterZoneAsync(p.CharacterId, p.AccountId);
         var save = await backend.GameInternal.PutAsJsonAsync($"/internal/v1/characters/{p.CharacterId}/state",
-            new SaveStateRequest(p.AccountId, "DEV_TESTZONE", 0, 0, 100, 0, Health: 37, MaxHealth: 120, Stamina: 50, MaxStamina: 60));
+            new SaveStateRequest(p.AccountId, "DEV_TESTZONE", 0, 0, 100, 0, Health: 37, MaxHealth: 120, Stamina: 50, MaxStamina: 60,
+                ServerId: serverId));
         Assert.Equal(HttpStatusCode.NoContent, save.StatusCode);
 
         var state = await backend.GameInternal.GetFromJsonAsync<CharacterState>(
@@ -124,8 +126,9 @@ public sealed class CombatTests(PostgresFixture db)
     {
         await using var backend = await TestBackend.StartAsync(db);
         var p = await NewCharacter(backend);
+        var serverId = await backend.EnterZoneAsync(p.CharacterId, p.AccountId);
         var save = await backend.GameInternal.PutAsJsonAsync($"/internal/v1/characters/{p.CharacterId}/state",
-            new SaveStateRequest(p.AccountId, "DEV_TESTZONE", 0, 0, 100, 0, hp, maxHp, sp, maxSp));
+            new SaveStateRequest(p.AccountId, "DEV_TESTZONE", 0, 0, 100, 0, hp, maxHp, sp, maxSp, serverId));
         Assert.Equal(HttpStatusCode.BadRequest, save.StatusCode);
     }
 

@@ -29,9 +29,15 @@ public sealed record CharacterState(
     long CharacterId, long AccountId, string Name, short Level, long Experience, string ProfessionCode, string? ZoneId,
     Position? Position, IReadOnlyList<SkillState> Skills, string Gender, IReadOnlyDictionary<string, int> Appearance,
     Vitals? Vitals = null, IReadOnlyList<HotbarSlot>? Hotbar = null);
+/// <summary>
+/// ServerId: nur der Server, auf dem der Charakter laut World Directory ONLINE ist, darf speichern.
+/// ReleasePresence: letzter Speicherstand beim Ausloggen; gibt die Anwesenheit in derselben Transaktion frei,
+/// damit eine Freigabe nie vor dem Speichern ankommt.
+/// </summary>
 public sealed record SaveStateRequest(
     long AccountId, string? ZoneId, double X, double Y, double Z, float Yaw,
-    int? Health = null, int? MaxHealth = null, int? Stamina = null, int? MaxStamina = null);
+    int? Health = null, int? MaxHealth = null, int? Stamina = null, int? MaxStamina = null, string? ServerId = null,
+    bool ReleasePresence = false);
 
 /// <summary>Aktuelle Lebens- und Ausdauerpunkte; null, solange der Charakter noch nie gespeichert wurde.</summary>
 public sealed record Vitals(int Health, int MaxHealth, int Stamina, int MaxStamina);
@@ -61,6 +67,8 @@ public static partial class GameDataApp
         builder.Services.AddOptions<ContentOptions>().Bind(builder.Configuration.GetSection(ContentOptions.Section));
         builder.Services.AddOptions<ProgressionOptions>()
             .Bind(builder.Configuration.GetSection(ProgressionOptions.Section)).ValidateDataAnnotations().ValidateOnStart();
+        builder.Services.AddOptions<WorldOptions>()
+            .Bind(builder.Configuration.GetSection(WorldOptions.Section)).ValidateDataAnnotations().ValidateOnStart();
         return builder;
     }
 
@@ -80,6 +88,7 @@ public static partial class GameDataApp
         ProgressionEndpoints.Map(internalApi);
         CombatEndpoints.Map(internalApi);
         HotbarEndpoints.Map(internalApi);
+        WorldEndpoints.Map(internalApi, client);
         return app;
     }
 
@@ -232,9 +241,9 @@ public static partial class GameDataApp
 
     private static async Task<IResult> SaveState(long characterId, SaveStateRequest req, NpgsqlDataSource db, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(req.ZoneId) || req.ZoneId.Length > 64)
+        if (string.IsNullOrEmpty(req.ZoneId) || req.ZoneId.Length > 64 || string.IsNullOrEmpty(req.ServerId) || req.ServerId.Length > 64)
         {
-            return BadRequest("zoneId ist erforderlich");
+            return BadRequest("zoneId und serverId sind erforderlich");
         }
         if (!ValidCoordinate(req.X) || !ValidCoordinate(req.Y) || !ValidCoordinate(req.Z) || !float.IsFinite(req.Yaw))
         {
@@ -250,29 +259,29 @@ public static partial class GameDataApp
 
         await using var conn = await db.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
-        try
+        if (await ProgressionEndpoints.LockCharacter(conn, tx, characterId, req.AccountId, ct) is null)
         {
-            await using var cmd = new NpgsqlCommand(
-                """
-                UPDATE characters
-                SET zone_id = @zone, pos_x = @x, pos_y = @y, pos_z = @z, yaw = @yaw, last_saved_at = now()
-                WHERE character_id = @chr AND account_id = @acc AND deleted_at IS NULL
-                """, conn, tx);
+            return Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Charakter nicht gefunden");
+        }
+        // Nach einem Zonenwechsel oder einem Login anderswo darf der alte Server nichts mehr überschreiben.
+        if (!await WorldEndpoints.HoldsPresence(conn, tx, characterId, req.ServerId, req.ZoneId, ct))
+        {
+            return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "Charakter ist nicht (mehr) auf diesem Server");
+        }
+        await using (var cmd = new NpgsqlCommand(
+            """
+            UPDATE characters
+            SET zone_id = @zone, pos_x = @x, pos_y = @y, pos_z = @z, yaw = @yaw, last_saved_at = now()
+            WHERE character_id = @chr
+            """, conn, tx))
+        {
             cmd.Parameters.AddWithValue("zone", req.ZoneId);
             cmd.Parameters.AddWithValue("x", req.X);
             cmd.Parameters.AddWithValue("y", req.Y);
             cmd.Parameters.AddWithValue("z", req.Z);
             cmd.Parameters.AddWithValue("yaw", req.Yaw);
             cmd.Parameters.AddWithValue("chr", characterId);
-            cmd.Parameters.AddWithValue("acc", req.AccountId);
-            if (await cmd.ExecuteNonQueryAsync(ct) != 1)
-            {
-                return Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Charakter nicht gefunden");
-            }
-        }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation)
-        {
-            return BadRequest("Unbekannte Zone");
+            await cmd.ExecuteNonQueryAsync(ct);
         }
 
         if (hasVitals)
@@ -289,6 +298,14 @@ public static partial class GameDataApp
             stats.Parameters.AddWithValue("sp", req.Stamina!.Value);
             stats.Parameters.AddWithValue("spMax", req.MaxStamina!.Value);
             await stats.ExecuteNonQueryAsync(ct);
+        }
+        if (req.ReleasePresence)
+        {
+            await using var release = new NpgsqlCommand(
+                "DELETE FROM character_presence WHERE character_id = @chr AND server_id = @s AND state = 'ONLINE'", conn, tx);
+            release.Parameters.AddWithValue("chr", characterId);
+            release.Parameters.AddWithValue("s", req.ServerId);
+            await release.ExecuteNonQueryAsync(ct);
         }
         await tx.CommitAsync(ct);
         return Results.NoContent();

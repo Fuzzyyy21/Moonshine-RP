@@ -64,24 +64,65 @@ ON CONFLICT (code) DO UPDATE SET
     recon_id = EXCLUDED.recon_id,
     confidence = EXCLUDED.confidence;
 
-INSERT INTO cities (code, name_zh, name_en, name_de, coord_as_given, recon_id, confidence) VALUES
-    ('ALGIERS', '阿尔及尔', 'Algiers', 'Algier', NULL, 'CITY-ALGIERS', 'UNCERTAIN'::confidence_level),
-    ('ATHENS', '雅典', 'Athens', 'Athen', 'N38E23', 'CITY-ATHENS', 'LIKELY'::confidence_level),
-    ('GENOA', '热那亚', 'Genoa', 'Genua', 'N40E5', 'CITY-GENOA', 'LIKELY'::confidence_level),
-    ('HAMBURG', '汉堡', 'Hamburg', 'Hamburg', NULL, 'CITY-HAMBURG', 'LIKELY'::confidence_level),
-    ('LONDON', '伦敦', 'London', 'London', 'N52E0', 'CITY-LONDON', 'LIKELY'::confidence_level),
-    ('MUSCAT', '马斯喀特', 'Muscat', 'Maskat', NULL, 'CITY-MUSCAT', 'UNCERTAIN'::confidence_level),
-    ('QUANZHOU', '泉州', 'Quanzhou', 'Quanzhou', NULL, 'CITY-QUANZHOU', 'LIKELY'::confidence_level),
-    ('SEOUL', '汉城', 'Seoul (Hanseong)', 'Seoul (Hanseong)', NULL, 'CITY-SEOUL', 'LIKELY'::confidence_level),
-    ('SEVILLE', '塞维利亚', 'Seville', 'Sevilla', 'N37W6', 'CITY-SEVILLE', 'LIKELY'::confidence_level),
-    ('ZHIGU', '直沽', 'Zhigu (Tianjin)', 'Zhigu (Tianjin)', NULL, 'CITY-ZHIGU', 'UNCERTAIN'::confidence_level)
+-- Zonen und Übergänge (design_data/world_layout.json, Designentscheidung). Zonen vor Städten wegen cities.zone_id.
+
+INSERT INTO zones (zone_id, zone_kind, map_asset, max_players, pvp_mode, is_dev) VALUES
+    ('CITY_ATHENS', 'CITY', '/Game/Maps/L_Athens', 150, 'NONE', FALSE),
+    ('CITY_LONDON', 'CITY', '/Game/Maps/L_London', 150, 'NONE', FALSE),
+    ('SEA_DEV', 'SEA', '/Game/Maps/L_SeaDev', 150, 'NONE', TRUE)
+ON CONFLICT (zone_id) DO UPDATE SET
+    zone_kind = EXCLUDED.zone_kind,
+    map_asset = EXCLUDED.map_asset,
+    max_players = EXCLUDED.max_players,
+    pvp_mode = EXCLUDED.pvp_mode,
+    is_dev = EXCLUDED.is_dev;
+
+INSERT INTO cities (code, name_zh, name_en, name_de, coord_as_given, zone_id, recon_id, confidence) VALUES
+    ('ALGIERS', '阿尔及尔', 'Algiers', 'Algier', NULL, NULL, 'CITY-ALGIERS', 'UNCERTAIN'::confidence_level),
+    ('ATHENS', '雅典', 'Athens', 'Athen', 'N38E23', 'CITY_ATHENS', 'CITY-ATHENS', 'LIKELY'::confidence_level),
+    ('GENOA', '热那亚', 'Genoa', 'Genua', 'N40E5', NULL, 'CITY-GENOA', 'LIKELY'::confidence_level),
+    ('HAMBURG', '汉堡', 'Hamburg', 'Hamburg', NULL, NULL, 'CITY-HAMBURG', 'LIKELY'::confidence_level),
+    ('LONDON', '伦敦', 'London', 'London', 'N52E0', 'CITY_LONDON', 'CITY-LONDON', 'LIKELY'::confidence_level),
+    ('MUSCAT', '马斯喀特', 'Muscat', 'Maskat', NULL, NULL, 'CITY-MUSCAT', 'UNCERTAIN'::confidence_level),
+    ('QUANZHOU', '泉州', 'Quanzhou', 'Quanzhou', NULL, NULL, 'CITY-QUANZHOU', 'LIKELY'::confidence_level),
+    ('SEOUL', '汉城', 'Seoul (Hanseong)', 'Seoul (Hanseong)', NULL, NULL, 'CITY-SEOUL', 'LIKELY'::confidence_level),
+    ('SEVILLE', '塞维利亚', 'Seville', 'Sevilla', 'N37W6', NULL, 'CITY-SEVILLE', 'LIKELY'::confidence_level),
+    ('ZHIGU', '直沽', 'Zhigu (Tianjin)', 'Zhigu (Tianjin)', NULL, NULL, 'CITY-ZHIGU', 'UNCERTAIN'::confidence_level)
 ON CONFLICT (code) DO UPDATE SET
     name_zh = EXCLUDED.name_zh,
     name_en = EXCLUDED.name_en,
     name_de = EXCLUDED.name_de,
     coord_as_given = EXCLUDED.coord_as_given,
+    zone_id = EXCLUDED.zone_id,
     recon_id = EXCLUDED.recon_id,
     confidence = EXCLUDED.confidence;
+
+INSERT INTO ports (city_id, has_shipyard, services, recon_id, confidence) VALUES
+    ((SELECT city_id FROM cities WHERE code = 'ALGIERS'), TRUE, '{}'::jsonb, 'SHIPMOD-T03_04', 'UNCERTAIN'::confidence_level),
+    ((SELECT city_id FROM cities WHERE code = 'ATHENS'), TRUE, '{}'::jsonb, 'SHIPMOD-T01', 'UNCERTAIN'::confidence_level),
+    ((SELECT city_id FROM cities WHERE code = 'GENOA'), TRUE, '{}'::jsonb, 'SHIPMOD-T02', 'UNCERTAIN'::confidence_level),
+    ((SELECT city_id FROM cities WHERE code = 'HAMBURG'), TRUE, '{}'::jsonb, 'SHIPMOD-T07_08', 'UNCERTAIN'::confidence_level),
+    ((SELECT city_id FROM cities WHERE code = 'LONDON'), NULL, '{"officer_card_exchange": true}'::jsonb, 'SYS-OFFICER-CARDS', 'UNCERTAIN'::confidence_level),
+    ((SELECT city_id FROM cities WHERE code = 'MUSCAT'), TRUE, '{}'::jsonb, 'SHIPMOD-T09', 'UNCERTAIN'::confidence_level),
+    ((SELECT city_id FROM cities WHERE code = 'SEOUL'), TRUE, '{}'::jsonb, 'SHIPMOD-T10', 'UNCERTAIN'::confidence_level),
+    ((SELECT city_id FROM cities WHERE code = 'SEVILLE'), TRUE, '{}'::jsonb, 'SHIPMOD-T05_06', 'UNCERTAIN'::confidence_level),
+    ((SELECT city_id FROM cities WHERE code = 'ZHIGU'), TRUE, '{}'::jsonb, 'SHIPMOD-T10', 'UNCERTAIN'::confidence_level)
+ON CONFLICT (city_id) DO UPDATE SET
+    has_shipyard = EXCLUDED.has_shipyard,
+    services = EXCLUDED.services,
+    recon_id = EXCLUDED.recon_id,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO zone_links (from_zone_id, exit_code, to_zone_id, arrival_tag) VALUES
+    ('CITY_ATHENS', 'HARBOR', 'SEA_DEV', 'ATHENS'),
+    ('CITY_LONDON', 'HARBOR', 'SEA_DEV', 'LONDON'),
+    ('CITY_LONDON', 'TO_TESTZONE', 'DEV_TESTZONE', 'FROM_LONDON'),
+    ('DEV_TESTZONE', 'TO_LONDON', 'CITY_LONDON', 'FROM_TESTZONE'),
+    ('SEA_DEV', 'ATHENS', 'CITY_ATHENS', 'HARBOR'),
+    ('SEA_DEV', 'LONDON', 'CITY_LONDON', 'HARBOR')
+ON CONFLICT (from_zone_id, exit_code) DO UPDATE SET
+    to_zone_id = EXCLUDED.to_zone_id,
+    arrival_tag = EXCLUDED.arrival_tag;
 
 INSERT INTO item_sets (code, name_zh, name_en, name_de, level, recon_id, confidence) VALUES
     ('230-TRADE', NULL, NULL, '230er-Set mit Handels-Buff', 230, 'SET-230-TRADE', 'UNCERTAIN'::confidence_level),

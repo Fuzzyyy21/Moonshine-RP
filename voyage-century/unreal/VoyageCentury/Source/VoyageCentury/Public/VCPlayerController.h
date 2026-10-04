@@ -11,7 +11,8 @@
  *   VCLogin <login> <passwort>
  *   VCCharacters
  *   VCCreateCharacter <name> <MALE|FEMALE> <BERUF>      z. B. ROYAL_OFFICER
- *   VCConnect <host:port> <characterId>
+ *   VCPlay <characterId>                                 Server über das World Directory finden und verbinden
+ *   VCConnect <host:port> <characterId>                  direkt verbinden (der Server prüft trotzdem die Zone)
  *   VCCharacterScreen                                    Login-/Erstellungsoberfläche öffnen (startet offline automatisch)
  *   VCStatus                                             eigenes Level, XP und Skills (Anzeige-Kopie vom Server)
  *   VCAdmin "teleport <x> <y> <z>"                       nur mit Adminrecht, wird protokolliert
@@ -45,6 +46,13 @@ public:
 
 	UFUNCTION(Exec)
 	void VCConnect(const FString& Address, const FString& CharacterId);
+
+	UFUNCTION(Exec)
+	void VCPlay(const FString& CharacterId);
+
+	/** Server → Client: Zonenwechsel ist bestätigt, mit eigenem Ticket zum Zielserver reisen. */
+	UFUNCTION(Client, Reliable)
+	void ClientTravelToZone(const FString& Address, int64 CharacterId);
 
 	/** Zeigt den replizierten Fortschritt. Ändern kann ihn nur der Server. */
 	UFUNCTION(Exec)

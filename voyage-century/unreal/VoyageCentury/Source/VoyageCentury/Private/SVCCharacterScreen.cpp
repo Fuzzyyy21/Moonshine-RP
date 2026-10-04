@@ -108,7 +108,7 @@ TSharedRef<SWidget> SVCCharacterScreen::MakeCharacterPanel()
 			]
 			+ SHorizontalBox::Slot().FillWidth(1.f)
 			[
-				SAssignNew(ServerBox, SEditableTextBox).Text(FText::FromString(TEXT("127.0.0.1:7777")))
+				SAssignNew(ServerBox, SEditableTextBox).HintText(LOCTEXT("ServerHint", "leer = automatisch (World Directory)"))
 			]
 		]
 		+ SVerticalBox::Slot().AutoHeight().MaxHeight(220.f)
@@ -278,7 +278,15 @@ FReply SVCCharacterScreen::OnPlayClicked(int64 CharacterId)
 {
 	if (UVCSessionSubsystem* S = Session.Get())
 	{
-		S->ConnectToZone(ServerBox->GetText().ToString(), CharacterId);
+		const FString Address = ServerBox->GetText().ToString().TrimStartAndEnd();
+		if (Address.IsEmpty())
+		{
+			S->PlayCharacter(CharacterId);
+		}
+		else
+		{
+			S->ConnectToZone(Address, CharacterId);
+		}
 	}
 	return FReply::Handled();
 }

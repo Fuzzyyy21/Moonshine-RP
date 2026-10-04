@@ -20,6 +20,7 @@ nutzen `BuildSettingsVersion.Latest`, damit kein versionsspezifischer Wert festg
 | `VCRules` | Kampfformeln ohne Engine-Abhängigkeit |
 | `VCAbilities` | Attribute, Kampfablauf (`FVCCombat`), Grundangriff, Fähigkeiten, Statuseffekte, Hotbar, Kampfdaten (`UVCCombatSettings`) |
 | `VCAI` | `AVCMonster`, `AVCMonsterAIController`, `AVCMonsterSpawner` |
+| `VCWorld` | Objekte in Karten: `AVCZoneExit` (Zonenausgang) |
 
 Targets: `VoyageCentury` (Game), `VoyageCenturyEditor`, `VoyageCenturyServer`, `VoyageCenturyClient`.
 
@@ -101,6 +102,40 @@ können sich in der Testzone bekämpfen (PvP-Zone); nach dem Tod Respawn nach 5 
 Hinweis: In älteren Engine-Versionen muss `UAbilitySystemGlobals::Get().InitGlobalData()` beim Start
 aufgerufen werden; in 5.6 sollte das nicht nötig sein – bei Fehlermeldungen zu Target Data bitte melden.
 
+## Welt und Zonenwechsel (Phase 4, Iteration 1)
+
+Jede Zone ist ein eigener Server-Prozess mit eigener Karte. Karten sind Binär-Assets und müssen im Editor
+angelegt werden (Vorlage *Basic*, Inhalt Platzhalter – Stadtpläne des Originals sind UNKNOWN):
+
+| Karte | Zone | PlayerStarts (Feld *Player Start Tag*) | `VCZoneExit` (Feld *Exit Code*) |
+|---|---|---|---|
+| `L_DevTestZone` (vorhanden) | `DEV_TESTZONE` | einer ohne Tag, `FROM_LONDON` | `TO_LONDON` |
+| `L_London` | `CITY_LONDON` | einer ohne Tag, `FROM_TESTZONE`, `HARBOR` | `TO_TESTZONE`, `HARBOR` |
+| `L_SeaDev` | `SEA_DEV` | `LONDON`, `ATHENS` (auf einem Anleger) | `LONDON`, `ATHENS` |
+| `L_Athens` | `CITY_ATHENS` | einer ohne Tag, `HARBOR` | `HARBOR` |
+
+Wohin ein Ausgang führt, steht in `design_data/world_layout.json` (nicht in der Karte). Ankunftspunkte nicht
+in ein Ausgangsvolumen stellen; zur Sicherheit wechselt eine Figur in den ersten 2 s nach dem Erscheinen nicht.
+
+Starten (Backend wie oben, `World:StartZoneId` = `DEV_TESTZONE` in Development):
+
+```bash
+export VC_SERVICE_KEY=dev-only-service-key-0000000000000000
+VoyageCenturyServer /Game/Maps/L_DevTestZone -log -port=7777 -VCZone=DEV_TESTZONE -VCServerId=dev-1
+VoyageCenturyServer /Game/Maps/L_London      -log -port=7778 -VCZone=CITY_LONDON  -VCServerId=london-1
+VoyageCenturyServer /Game/Maps/L_SeaDev      -log -port=7779 -VCZone=SEA_DEV      -VCServerId=sea-1
+VoyageCenturyServer /Game/Maps/L_Athens      -log -port=7780 -VCZone=CITY_ATHENS  -VCServerId=athens-1
+```
+
+Jeder Server meldet sich beim World Directory an (Log: „Im World Directory angemeldet“). Andere Rechner:
+`-VCPublicAddress=<ip>:<port>` setzen. Client: in der Oberfläche das Serverfeld **leer** lassen und *Spielen*,
+oder in der Konsole `VCPlay <characterId>`. Dann zum Ausgang `TO_LONDON` laufen → London, weiter über
+`HARBOR` auf die Seezone und über `ATHENS` nach Athen.
+
+Was der Server verhindert: zweites Einloggen desselben Charakters (Meldung „Charakter ist bereits online“),
+direktes Verbinden in eine Zone, in der der Charakter nicht steht, und Speichern durch den alten Server nach
+einem Wechsel.
+
 ## Fähigkeiten, Statuseffekte, Hotbar (Phase 3, Iteration 2)
 
 Zusätzliche Data Tables (Pfade in `DefaultGame.ini`):
@@ -177,10 +212,12 @@ Server an und nur aus Backend-Antworten; `CheckAuthority` verwirft alle anderen 
 * Im Editor (PIE) dürfen Spieler ohne Backend spielen (`bAllowUnauthenticatedInEditor`);
   in gepackten Builds ist das wirkungslos.
 
-## Bekannte Grenzen von Phase 1
+## Bekannte Grenzen
 
 * Laufgeschwindigkeit, Sprunghöhe usw. sind Engine-Standardwerte (Originalwerte UNKNOWN).
 * Platzhalterfigur ohne Animation, bis Modell und AnimBP eingehängt sind; Gesicht und Kleidung werden gespeichert, aber noch nicht dargestellt.
 * Konsolenbefehle statt Login-Oberfläche; Passwort steht in der Konsolen-Historie.
 * Das Ticket steht in der Verbindungs-URL und kann in ausführlichen Engine-Logs auftauchen.
-* Keine Sperre gegen gleichzeitiges Einloggen desselben Charakters auf zwei Zonen (World Directory folgt).
+* Fällt ein Zonen-Server aus, kann der Charakter erst nach `World:ServerTimeoutSeconds` (30 s) wieder einloggen.
+* Zonen-Server weisen sich nur über den gemeinsamen Service-Key aus; ein Server könnte sich als anderer ausgeben (Vertrauensgrenze: Serverbetrieb).
+* Nur Speichern prüft die Anwesenheit; XP-Vergaben und Kill-Meldungen eines alten Servers würden noch angenommen (idempotent, aber nicht an die Zone gebunden).

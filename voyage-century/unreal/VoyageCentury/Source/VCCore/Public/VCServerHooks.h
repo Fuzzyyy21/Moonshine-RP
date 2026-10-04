@@ -5,6 +5,7 @@
 #include "VCServerHooks.generated.h"
 
 class AActor;
+class APawn;
 class APlayerController;
 
 UINTERFACE(MinimalAPI)
@@ -37,4 +38,7 @@ public:
 
 	/** Ein Spieler will einen Hotbar-Platz belegen (Code None = leeren). Prüfen, speichern, dann übernehmen. */
 	virtual void HandleHotbarChange(APlayerController* Player, int32 Slot, FName AbilityCode) = 0;
+
+	/** Eine Spielfigur hat einen Zonenausgang betreten (AVCZoneExit). Wechsel nur, wenn das Backend ihn erlaubt. */
+	virtual void HandleZoneExit(APawn* Pawn, FName ExitCode) = 0;
 };

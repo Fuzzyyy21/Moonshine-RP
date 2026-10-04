@@ -53,6 +53,7 @@ public sealed class TestBackend : IAsyncDisposable
             ["PasswordHash:Parallelism"] = "1",
             ["Progression:AllowDevCurves"] = "true",
             ["Content:AllowDevContent"] = "true",
+            ["World:StartZoneId"] = "DEV_TESTZONE",
         };
         foreach (var (k, v) in overrides ?? new Dictionary<string, string?>())
         {
@@ -119,6 +120,25 @@ public sealed class TestBackend : IAsyncDisposable
             new { name, gender = "FEMALE", professionCode = profession }));
         res.EnsureSuccessStatusCode();
         return (await res.Content.ReadFromJsonAsync<CharacterSummary>())!;
+    }
+
+    /// <summary>Meldet einen Zonen-Server mit eindeutiger ID an, wie es der Server beim Start tut.</summary>
+    public async Task<string> StartZoneServerAsync(string zoneId, string address = "127.0.0.1:7777", int capacity = 100)
+    {
+        var serverId = "test-" + Guid.NewGuid().ToString("N")[..12];
+        var res = await GameInternal.PostAsJsonAsync($"/internal/v1/world/servers/{serverId}", new ServerRequest(zoneId, address, capacity));
+        res.EnsureSuccessStatusCode();
+        return serverId;
+    }
+
+    /// <summary>Wie ein Zonen-Server beim Betreten: Server anmelden und den Charakter dort ONLINE setzen.</summary>
+    public async Task<string> EnterZoneAsync(long characterId, long accountId, string zoneId = "DEV_TESTZONE")
+    {
+        var serverId = await StartZoneServerAsync(zoneId);
+        var res = await GameInternal.PostAsJsonAsync($"/internal/v1/world/characters/{characterId}/claim",
+            new ClaimRequest(accountId, serverId));
+        res.EnsureSuccessStatusCode();
+        return serverId;
     }
 
     public async ValueTask DisposeAsync()

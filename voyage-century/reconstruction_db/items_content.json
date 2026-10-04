@@ -75,6 +75,7 @@
     { "id": "SYS-OFFICER-CARDS", "entity": "MECHANIC", "names": { "zh": "副官卡片", "en": "Officer cards", "de": "Offiziers-/Adjutantenkarten" },
       "data": {
         "exchange_npc": "副官卡片兑换员 im Hafen von London",
+        "exchange_city": "CITY-LONDON",
         "example_officer": "贾斯丁 (Justin), empfohlen ab Stufe 160",
         "officer_roles": "UNKNOWN",
         "officer_stats": "UNKNOWN",

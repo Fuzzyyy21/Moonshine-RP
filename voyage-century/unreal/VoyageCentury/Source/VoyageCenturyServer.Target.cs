@@ -7,6 +7,6 @@ public class VoyageCenturyServerTarget : TargetRules
 		Type = TargetType.Server;
 		DefaultBuildSettings = BuildSettingsVersion.Latest;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
-		ExtraModuleNames.AddRange(new string[] { "VoyageCentury", "VCServer", "VCAI" });
+		ExtraModuleNames.AddRange(new string[] { "VoyageCentury", "VCServer", "VCAI", "VCWorld" });
 	}
 }

@@ -95,9 +95,21 @@ Waffen, Angriffe, Fähigkeiten (GAS), Schaden, NPC-KI, PvE, PvP-Grundregeln.
 
 **Abnahme Iteration 2 (Vorschlag)**: Fähigkeit auf die Hotbar legen, Server und Backend neu starten → Belegung ist noch da; Fähigkeit kostet Ausdauer und startet die Abklingzeit, zweiter Einsatz vorher wird mit Hinweis abgelehnt; ohne passende Waffe oder Skillstufe keine Wirkung; Blutung tickt und ein Kill durch Blutung zählt für den Verursacher; Betäubung stoppt Bewegung und Angriffe auch bei Gegnern; der Client kann nur einen Hotbar-Platz und ein Ziel nennen.
 
-## Phase 4 – Welt
+## Phase 4 – Welt (Iteration 1 fertig)
 
 Erste Seezone und zwei Häfen (Kandidaten: London, Athen, weil am besten belegt), NPCs, ein Land-Dungeon, Entdeckungen.
+
+| Schritt | Status | Prüfung |
+|---|---|---|
+| Weltdaten: Zonen London, Athen, technische Seezone; Übergänge; Häfen mit belegten Diensten (Rest NULL); `V0008` | ✅ It. 1 | Export `--check` (prüft Zonen, Städte, Codes), Schematest |
+| Seegebiete/Regionen | ❌ blockiert | einzige Liste mit Vermischungsgefahr (`REGION-LIST-17173`) |
+| World Directory: Server-Anmeldung und Lebenszeichen, eine Anwesenheit je Charakter, Zonenwechsel über Ausgänge, Server-Suche für Clients, Speichern nur vom zuständigen Server | ✅ It. 1 | `WorldTests` (13 Tests) |
+| UE: Modul `VCWorld` mit `AVCZoneExit`; GameMode meldet sich an, holt den Charakter, setzt ihn am Ankunftspunkt ab, wechselt die Zone, gibt beim Ausloggen frei; Client `VCPlay` und automatische Server-Suche | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal, braucht Karten |
+| NPCs (Werftmeister, Hafenarbeiter, Offizierskarten-Tauscher) mit Interaktion | ❌ Iteration 2 | |
+| Entdeckungen (Punkte, einmalig je Charakter, Belohnung) | ❌ Iteration 2 | |
+| Land-Dungeon als Instanz | ❌ Iteration 3 | Dungeons des Originals ohne Details (`DUNGEON-*`) |
+
+**Abnahme Iteration 1 (Vorschlag)**: Drei Server (Testzone, London, Seezone) und Backend laufen; Client verbindet ohne Adresse über das World Directory; Ausgang in London führt auf die Seezone an den Ankunftspunkt LONDON; derselbe Charakter kann sich nicht gleichzeitig ein zweites Mal einloggen; nach dem Wechsel kann der alte Server den Charakter nicht mehr speichern; ein Neustart von Server und Backend lässt den Charakter in der neuen Zone weiterspielen.
 
 ## Phase 5 – Schiffe
 

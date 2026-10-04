@@ -25,7 +25,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | Bereich | Statisch (aus Reconstruction DB) | Laufzeit |
 |---|---|---|
 | Accounts | – | **accounts**, account_sessions |
-| Welt | continents, regions, zones, **cities**, **ports** | – |
+| Welt | continents, regions, zones, zone_links, **cities**, **ports** | zone_servers, character_presence |
 | Charakter | professions, level_table, titles, achievements | **characters**, **character_stats**, character_titles, character_reputation, character_achievements |
 | Skills | **skills**, skill_stages, abilities | **skill_progress**, character_abilities, character_hotbar |
 | Geld | currencies | character_wallets, currency_ledger |
@@ -68,6 +68,8 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 * `character_stats.attributes` ist JSON, weil die Originalattribute UNKNOWN sind. Sobald sie bekannt sind, werden sie zu Spalten.
 * `items.rarity` ist Freitext ohne CHECK, weil die Originalstufen UNKNOWN sind.
 * `officer_instances.role` ist Freitext aus demselben Grund.
+* `regions` und `continents` bleiben leer: Die einzige Seegebiet-Liste (`REGION-LIST-17173`) ist wegen Vermischungsgefahr mit 大航海时代 Online nicht übernommen; Zonen haben deshalb noch keine Region.
+* `ports.has_*`: TRUE nur bei Beleg (Schiffsumbau in der Stadt → Werft), sonst NULL; „kein Dienst“ ist nie belegt.
 * Statuseffekte haben keine Tabelle: Sie leben nur auf dem Zonen-Server (`DT_StatusEffects`) und enden mit Tod oder Ausloggen.
 
 ## Migrationen
@@ -81,7 +83,8 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0005__appearance.sql` | `appearance_slots` (Merkmale der Charaktererstellung und Anzahl Optionen, Designdaten) |
 | `V0006__land_combat.sql` | `items.is_dev`, `monsters.is_dev`/`xp_reward`, `zones.pvp_mode` (Testzone = FREE), `combat_kills` (Kill-Protokoll, Idempotenz) |
 | `V0007__abilities_hotbar.sql` | `abilities.is_dev`, `character_hotbar` (Platz 0–9, jede Fähigkeit einmal), entfernt die nie benutzte Spalte `character_abilities.hotbar_slot` |
-| `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten) |
+| `V0008__world_directory.sql` | `zones.is_dev`, Hafendienste nullable (NULL = UNKNOWN), `zone_links` (Ausgang → Zielzone, Ankunftspunkt), `zone_servers`, `character_presence` (eine Anwesenheit je Charakter) |
+| `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Häfen, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten, Zonen und Übergänge) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);
 Änderungen kommen als neue Datei. `R__content.sql` wird nur über `tools/export_content.py`

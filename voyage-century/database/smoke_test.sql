@@ -118,7 +118,31 @@ DO $$ BEGIN
     ASSERT (SELECT count(*) FROM abilities WHERE code LIKE 'DEV_%' AND NOT is_dev) = 0, 'DEV-Fähigkeit ohne is_dev';
 END $$;
 
--- 10. Partitionierte Logs nehmen Zeilen an.
+-- 10. Welt: Übergänge zeigen auf echte Zonen, ein Charakter ist höchstens einmal anwesend.
+DO $$ BEGIN
+    ASSERT (SELECT count(*) FROM zone_links WHERE from_zone_id = 'CITY_LONDON') >= 1, 'London hat keinen Ausgang';
+    ASSERT (SELECT zone_id FROM cities WHERE code = 'LONDON') IN ('CITY_LONDON') OR NOT EXISTS (SELECT 1 FROM cities WHERE code = 'LONDON'),
+        'London ist keiner Zone zugeordnet';
+    ASSERT (SELECT is_dev FROM zones WHERE zone_id = 'DEV_TESTZONE'), 'Testzone muss is_dev sein';
+END $$;
+INSERT INTO zone_servers (server_id, zone_id, address, capacity) VALUES ('smoke-1', 'DEV_TESTZONE', '127.0.0.1:7777', 10);
+INSERT INTO character_presence (character_id, server_id, zone_id, state) VALUES (1, 'smoke-1', 'DEV_TESTZONE', 'ONLINE');
+DO $$ BEGIN
+    INSERT INTO character_presence (character_id, server_id, zone_id, state) VALUES (1, 'smoke-1', 'DEV_TESTZONE', 'ONLINE');
+    RAISE EXCEPTION 'FEHLT: doppelte Anwesenheit wurde akzeptiert';
+EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'ok: ein Charakter, eine Anwesenheit';
+END $$;
+DO $$ BEGIN
+    UPDATE character_presence SET state = 'TRANSFER' WHERE character_id = 1;
+    RAISE EXCEPTION 'FEHLT: Transfer ohne Ablaufzeit wurde akzeptiert';
+EXCEPTION WHEN check_violation THEN RAISE NOTICE 'ok: Transfer braucht Ablaufzeit';
+END $$;
+DELETE FROM zone_servers WHERE server_id = 'smoke-1';
+DO $$ BEGIN
+    ASSERT NOT EXISTS (SELECT 1 FROM character_presence WHERE character_id = 1), 'Anwesenheit überlebt das Abmelden des Servers';
+END $$;
+
+-- 11. Partitionierte Logs nehmen Zeilen an.
 INSERT INTO game_event_log (character_id, action, new_value, server_id) VALUES (1, 'LEVEL_UP', '{"level":2}', 'test');
 INSERT INTO chat_log (channel, sender_character_id, message) VALUES ('WORLD', 1, 'Hallo');
 

@@ -129,6 +129,23 @@ void AVCPlayerController::VCConnect(const FString& Address, const FString& Chara
 	}
 }
 
+void AVCPlayerController::VCPlay(const FString& CharacterId)
+{
+	if (UVCSessionSubsystem* S = Session())
+	{
+		S->PlayCharacter(FCString::Atoi64(*CharacterId));
+	}
+}
+
+void AVCPlayerController::ClientTravelToZone_Implementation(const FString& Address, int64 CharacterId)
+{
+	// Das Ticket hat nur der Client; der Server nennt nur das Ziel.
+	if (UVCSessionSubsystem* S = Session())
+	{
+		S->ConnectToZone(Address, CharacterId);
+	}
+}
+
 void AVCPlayerController::VCStatus()
 {
 	const AVCPlayerState* PS = GetPlayerState<AVCPlayerState>();

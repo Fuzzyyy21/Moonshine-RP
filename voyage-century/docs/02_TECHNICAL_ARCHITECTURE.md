@@ -64,8 +64,28 @@ Umsetzungsregeln für UE5:
 | DUNGEON | Instanz pro Gruppe | Gruppengröße |
 | BATTLEFIELD | Seeschlacht / Belagerung | Ziel: große Schlachten, Machbarkeit in Phase 5 messen |
 
-* Zonenwechsel (Hafen verlassen, Regionsgrenze) über **Server Travel mit Ticket**: Server A speichert Zustand → World Directory reserviert Platz auf Server B → Client verbindet mit Ticket → Server B lädt Zustand.
-* Ein Charakter ist immer genau einer Zone zugeordnet (Sperre im World Directory), damit kein Zustand doppelt existiert.
+* Zonenwechsel (Hafen verlassen, Regionsgrenze) über **Server Travel mit Ticket**: Server A speichert Zustand → World Directory reserviert Platz auf Server B → Client verbindet mit seinem Session-Ticket → Server B übernimmt die Reservierung und lädt Zustand. **Umgesetzt in Phase 4** (siehe unten).
+* Ein Charakter ist immer genau einer Zone zugeordnet (Sperre im World Directory), damit kein Zustand doppelt existiert. **Umgesetzt**: `character_presence`, und Speichern nimmt das Backend nur vom Server an, auf dem der Charakter ONLINE ist.
+
+### Zonenwechsel (Phase 4)
+
+```
+Zonen-Server A               GameData / World Directory                  Client            Zonen-Server B
+ Spieler betritt AVCZoneExit
+ PUT …/state (serverId A) ───► gespeichert (A hält die Anwesenheit)
+ POST /world/transfers ──────► Übergang (Zone A, Ausgang) → Zone B, Ankunft
+                               lebender Server B mit Platz; Charakter → Zone B,
+                               Anwesenheit TRANSFER (für B reserviert, 60 s)
+ ClientTravelToZone(B) ──────────────────────────────────────────────────► open B?ticket=…
+                                                                                   PreLogin, Ticket prüfen
+                               POST /world/characters/{id}/claim ◄──────────────── (B)
+                               ONLINE auf B, Ankunftspunkt ──────────────────────► PlayerStart mit Tag
+ Logout von A: Speichern abgelehnt (409), Freigabe wirkungslos
+```
+
+Zonen-Server melden sich beim Start an (`-VCPublicAddress=` oder `PublicHost` + Port) und senden alle
+`heartbeatSeconds` ein Lebenszeichen. Fällt ein Server aus, verfallen seine Anwesenheiten mit dem Timeout;
+startet er neu, verwirft die Anmeldung sie sofort. Der Client fragt beim Spielen `GET /v1/characters/{id}/server`.
 * Ob der Übergang Land/See im Original nahtlos war, ist UNKNOWN. Die Zonengrenzen sind deshalb eine Konfiguration, kein Code.
 * Die beworbenen „hunderte Schiffe“ in einer Schlacht sind ein **Risiko**: UE5-Standard-Replikation trägt das nicht ohne Weiteres. Prototyp in Phase 5 mit Iris-Replikation (sofern in der gewählten Engine-Version produktionsreif, sonst ReplicationGraph), Schiffen als leichtgewichtigen Actors und Projektilen ohne eigene Actors.
 
@@ -194,7 +214,7 @@ Dokumentation aktualisieren → erst dann nächstes System.
 | Migrationen | eigener Migrator (`backend/src/VC.Migrations`): `V0001__*.sql` einmalig, `R__*.sql` bei Änderung, Prüfsummen, Advisory Lock | gleiche Semantik wie Flyway, ohne Java-Abhängigkeit |
 | Logs | JSON auf stdout, quellgenerierte `LoggerMessage`-Methoden, keine Query-Strings/Bodies | sammelbar, schnell, keine Tickets/Passwörter im Log |
 | `VCServer` | Runtime-Modul statt ServerOnly; Service-Key-Pfade hinter `WITH_SERVER_CODE` | Karten und Konfiguration verweisen auf den GameMode; ein im Client fehlendes Modul würde Ladefehler erzeugen |
-| Zonenwahl | in Phase 1 fest per `-VCZone=`; World Directory folgt | erst nötig, wenn mehrere Zonen existieren |
+| Zonenwahl | Server: per `-VCZone=`; Clients: World Directory (seit Phase 4) | ein Prozess je Zone |
 | Kampfregeln (Phase 3) | Formeln in `VCRules` ohne Unreal-Typen; GAS ruft sie auf | Regeln lassen sich ohne Engine testen (CI mit GCC und Clang); Zufall wird übergeben, daher reproduzierbar |
 | Ability System (Phase 3) | Spieler: ASC am PlayerState (Mixed); Gegner: ASC am Gegner (Minimal); Grundangriff nur auf dem Server | Attribute überdauern Tod/Respawn; Clients rechnen nie Schaden |
 | Gegner-KI (Phase 3) | C++-Zustandsautomat statt Behavior Tree | keine Binär-Assets nötig; Umstieg auf StateTree/BT, sobald Asset-Arbeit möglich ist |
@@ -202,6 +222,10 @@ Dokumentation aktualisieren → erst dann nächstes System.
 | Fähigkeiten (Phase 3, It. 2) | Eine Ability-Klasse `UVCAbility_UseSkill` für alle Fähigkeiten, Werte aus `DT_Abilities`; Code reist als Target Data im Event | neue Fähigkeiten nur als Daten; Prüfung in getesteten Regeln |
 | Statuseffekte (Phase 3, It. 2) | Serverzustand in `UVCCombatStateComponent` (Regeln aus `VCRules`), Clients bekommen eine Anzeige-Kopie; keine Gameplay Effects | Stapeln, Ticks, Ablauf und Kill-Zuordnung ohne Engine testbar; Tempo wird auch auf dem Client gesetzt, damit die Bewegungsvorhersage stimmt |
 | Hotbar (Phase 3, It. 2) | Am PlayerState, nur Besitzer sieht sie; Änderung erst nach Bestätigung durch das Backend | Anzeige und Datenbank stimmen immer überein; Client nennt beim Einsatz nur den Platz |
+| World Directory (Phase 4) | Vorerst Teil des GameData-Dienstes statt eigener Dienst; Anwesenheit in PostgreSQL statt Redis | braucht dieselben Tabellen und Transaktionen (Speichern prüft die Anwesenheit); auslagern, sobald Last es verlangt |
+| Zonenwechsel (Phase 4) | Session-Ticket wiederverwenden statt eigenem Transfer-Ticket | Ticket hat nur der Client; die Reservierung im Directory bindet den Charakter an den Zielserver |
+| Zonen betreten (Phase 4) | Ein Server nimmt nur Charaktere an, die in seiner Zone stehen (neue: Startzone) | direktes Verbinden ist sonst ein Teleport an allen Übergängen vorbei |
+| Zonenübergänge (Phase 4) | `zone_links` (Daten) statt Ziel im Kartenobjekt; Ankunft = PlayerStart-Tag | Land/See-Übergang des Originals UNKNOWN; Übergänge änderbar ohne Karten anzufassen |
 
 ### Login-Ablauf
 

@@ -3,7 +3,7 @@
 | Projekt | Zweck | Port (Development) |
 |---|---|---|
 | `src/VC.Auth` | Konten, Login (argon2id), Session-Tickets, Ticketprüfung für Zonen-Server | 5100 |
-| `src/VC.GameData` | Charaktere, Spielzustand laden/speichern, Admin-Audit | 5200 |
+| `src/VC.GameData` | Charaktere, Spielzustand laden/speichern, Admin-Audit, World Directory (Zonen-Server, Anwesenheit, Zonenwechsel) | 5200 |
 | `src/VC.Migrations` | Migrator für `database/migrations` und `database/seed` | – |
 | `src/VC.Common` | Konfiguration, JSON-Logging, Service-Key- und Session-Filter, Passwort-Hash | – |
 | `tests/VC.Tests` | Integrationstests gegen echte PostgreSQL | – |
@@ -45,6 +45,9 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | `Progression:MaxCharacterXpPerGrant`, `MaxSkillXpPerGrant` | Plausibilitätsgrenze je Vergabe |
 | `Content:AllowDevContent` | Entwicklungsinhalte (`is_dev`: DEV_-Waffen, -Gegner und -Fähigkeiten) zulassen (nur Development/Tests) |
 | `Progression:AdminMinLevel` | Mindest-Adminlevel für `/setlevel`, `/setskill` |
+| `World:StartZoneId` | Zone neuer Charaktere (Development: `DEV_TESTZONE`). Startstadt des Originals UNKNOWN; ohne Wert können neue Charaktere nicht verbinden |
+| `World:ServerTimeoutSeconds` | ohne Lebenszeichen gilt ein Zonen-Server danach als ausgefallen (Standard 30) |
+| `World:TransferTimeoutSeconds` | so lange bleibt der Platz eines Zonenwechsels reserviert (Standard 60) |
 
 ## Endpunkte
 
@@ -56,7 +59,12 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | Auth | `POST /internal/v1/sessions/validate` | `X-Service-Key` |
 | GameData | `GET/POST /v1/characters` | `Authorization: Bearer <ticket>`; `appearance` wird gegen `appearance_slots` geprüft |
 | GameData | `GET /v1/character-options` | `Authorization: Bearer <ticket>` → Berufe, Geschlechter, Aussehen-Merkmale |
-| GameData | `GET/PUT /internal/v1/characters/{id}/state` | `X-Service-Key`, mit `accountId` (Besitzprüfung) |
+| GameData | `GET/PUT /internal/v1/characters/{id}/state` | `X-Service-Key`, mit `accountId` (Besitzprüfung); PUT nur vom Server, auf dem der Charakter ONLINE ist (`serverId`), `releasePresence` beim Ausloggen |
+| GameData | `GET /v1/characters/{id}/server` | `Authorization: Bearer <ticket>` → `zoneId`, `address` eines lebenden Servers mit Platz |
+| GameData | `POST /internal/v1/world/servers/{serverId}` | `X-Service-Key`; Prozessstart (`zoneId`, `address`, `capacity`), verwirft alte Anwesenheiten → `heartbeatSeconds` |
+| GameData | `PUT /internal/v1/world/servers/{serverId}/heartbeat`, `DELETE …/{serverId}` | `X-Service-Key`; Lebenszeichen bzw. Abmelden |
+| GameData | `POST /internal/v1/world/characters/{id}/claim`, `DELETE …/claim?serverId=` | `X-Service-Key`; Charakter auf diesem Server ONLINE setzen (409, wenn anderswo online oder in anderer Zone) bzw. freigeben |
+| GameData | `POST /internal/v1/world/transfers` | `X-Service-Key`; Zonenwechsel über Ausgang (`exitCode`) → Zielserver, Ankunftspunkt |
 | GameData | `POST /internal/v1/admin-audit` | `X-Service-Key`, Konto braucht `admin_level > 0` |
 | GameData | `POST /internal/v1/characters/{id}/experience` | `X-Service-Key`; `amount`, `source`, `idempotencyKey`, `serverId` |
 | GameData | `POST /internal/v1/characters/{id}/skills/{code}/experience` | wie oben, für Skill-XP |

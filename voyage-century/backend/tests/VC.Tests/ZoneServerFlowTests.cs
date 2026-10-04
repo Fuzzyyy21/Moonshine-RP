@@ -40,9 +40,12 @@ public sealed class ZoneServerFlowTests(PostgresFixture db)
             Assert.Null(fresh!.Position);
             Assert.Null(fresh.ZoneId);
 
-            // Zonen-Server speichert beim Logout oder periodisch
+            // Zonen-Server meldet den Charakter im World Directory an (neue Charaktere: Startzone) …
+            var serverId = await backend.EnterZoneAsync(characterId, accountId);
+
+            // … und speichert beim Logout oder periodisch
             var save = await backend.GameInternal.PutAsJsonAsync($"/internal/v1/characters/{characterId}/state",
-                new SaveStateRequest(accountId, "DEV_TESTZONE", 100.5, -20.25, 300, 90f));
+                new SaveStateRequest(accountId, "DEV_TESTZONE", 100.5, -20.25, 300, 90f, ServerId: serverId));
             Assert.Equal(HttpStatusCode.NoContent, save.StatusCode);
         }
 
@@ -84,7 +87,7 @@ public sealed class ZoneServerFlowTests(PostgresFixture db)
         // Alle Schritte stehen im Spielereignis-Log
         var actions = await db.ScalarAsync<string[]>(
             "SELECT array_agg(action ORDER BY log_id) FROM game_event_log WHERE account_id = @a", ("a", accountId));
-        Assert.Equal(["ACCOUNT_CREATE", "ACCOUNT_LOGIN", "CHARACTER_CREATE"], actions);
+        Assert.Equal(["ACCOUNT_CREATE", "ACCOUNT_LOGIN", "CHARACTER_CREATE", "ZONE_ENTER"], actions);
     }
 
     [Fact]
@@ -100,12 +103,12 @@ public sealed class ZoneServerFlowTests(PostgresFixture db)
         Assert.Equal(HttpStatusCode.NotFound, read.StatusCode);
 
         var write = await backend.GameInternal.PutAsJsonAsync($"/internal/v1/characters/{character.CharacterId}/state",
-            new SaveStateRequest(other.AccountId, "DEV_TESTZONE", 1, 2, 3, 0));
+            new SaveStateRequest(other.AccountId, "DEV_TESTZONE", 1, 2, 3, 0, ServerId: "zone-other"));
         Assert.Equal(HttpStatusCode.NotFound, write.StatusCode);
     }
 
     [Theory]
-    [InlineData("NO_SUCH_ZONE", 1.0, HttpStatusCode.BadRequest)]
+    [InlineData("NO_SUCH_ZONE", 1.0, HttpStatusCode.Conflict)]   // nicht die Zone, in der der Charakter angemeldet ist
     [InlineData("DEV_TESTZONE", 1e9, HttpStatusCode.BadRequest)]
     [InlineData("", 1.0, HttpStatusCode.BadRequest)]
     public async Task Invalid_positions_are_rejected(string zone, double x, HttpStatusCode expected)
@@ -113,9 +116,10 @@ public sealed class ZoneServerFlowTests(PostgresFixture db)
         await using var backend = await TestBackend.StartAsync(db);
         var login = await backend.RegisterAndLoginAsync();
         var character = await backend.CreateCharacterAsync(login.Ticket);
+        var serverId = await backend.EnterZoneAsync(character.CharacterId, login.AccountId);
 
         var res = await backend.GameInternal.PutAsJsonAsync($"/internal/v1/characters/{character.CharacterId}/state",
-            new SaveStateRequest(login.AccountId, zone, x, 0, 0, 0));
+            new SaveStateRequest(login.AccountId, zone, x, 0, 0, 0, ServerId: serverId));
         Assert.Equal(expected, res.StatusCode);
     }
 

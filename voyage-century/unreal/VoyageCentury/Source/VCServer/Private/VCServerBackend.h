@@ -16,9 +16,26 @@ public:
 
 	static void ValidateTicket(const FString& Ticket, FVCHttpCallback Callback);
 	static void LoadCharacter(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback);
-	/** Position und (falls bekannt) Leben/Ausdauer speichern. Vitals mit MaxHealth <= 0 werden nicht mitgeschickt. */
+	/**
+	 * Position und (falls bekannt) Leben/Ausdauer speichern. Vitals mit MaxHealth <= 0 werden nicht mitgeschickt.
+	 * Das Backend nimmt nur Speicherstände des Servers an, auf dem der Charakter ONLINE ist.
+	 * bReleasePresence: letzter Stand beim Ausloggen, gibt die Anwesenheit in derselben Transaktion frei.
+	 */
 	static void SaveCharacter(int64 CharacterId, int64 AccountId, const FString& ZoneId,
-		const FVector& Location, float Yaw, const FIntVector4& Vitals, FVCHttpCallback Callback);
+		const FVector& Location, float Yaw, const FIntVector4& Vitals, bool bReleasePresence, FVCHttpCallback Callback);
+
+	/** World Directory: Prozessstart melden (verwirft Anwesenheiten eines früheren Laufs). Antwort: heartbeatSeconds. */
+	static void StartServer(const FString& Address, int32 Capacity, FVCHttpCallback Callback);
+	/** Lebenszeichen. Kein Abmelden beim Beenden: ausstehende Speicherstände sollen nicht abgelehnt werden; der Timeout genügt. */
+	static void Heartbeat(const FString& Address, int32 Capacity, FVCHttpCallback Callback);
+
+	/** Charakter auf diesem Server ONLINE setzen. 409, wenn er anderswo online ist oder in einer anderen Zone steht. */
+	static void ClaimCharacter(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback);
+	/** Anwesenheit freigeben, wenn kein letzter Speicherstand folgt (z. B. Abbruch vor dem Spawn). */
+	static void ReleaseCharacter(int64 CharacterId);
+
+	/** Zonenwechsel über einen Ausgang. Antwort: zoneId, address, arrivalTag. */
+	static void RequestTransfer(int64 CharacterId, int64 AccountId, const FString& ExitCode, FVCHttpCallback Callback);
 	static void WriteAdminAudit(const TSharedRef<FJsonObject>& Entry, FVCHttpCallback Callback);
 
 	/** XP-Vergabe; jeder Aufruf bekommt einen neuen Idempotenzschlüssel. SkillCode leer = Charakter-XP. */

@@ -1,0 +1,17 @@
+{
+  "_comment": "DESIGNENTSCHEIDUNG (Priorität 6). Zonenaufteilung, Kartenmaßstab und der Übergang Land/See des Originals sind UNKNOWN (WORLD-STRUCTURE). Die Seegebiete aus REGION-LIST-17173 werden wegen Vermischungsgefahr mit 大航海时代 Online NICHT übernommen; Zonen haben deshalb noch keine Region. SEA_DEV ist eine technische Seezone ohne Geografie, die beide Testhäfen verbindet, bis Seegebiete und Maßstab belegt sind. London und Athen sind gewählt, weil sie am besten belegt sind (CITY-LONDON, CITY-ATHENS).",
+  "source": "SRC-DESIGN",
+  "zones": [
+    { "zone_id": "CITY_LONDON", "kind": "CITY", "city": "CITY-LONDON", "map_asset": "/Game/Maps/L_London", "max_players": 150, "pvp_mode": "NONE", "is_dev": false },
+    { "zone_id": "CITY_ATHENS", "kind": "CITY", "city": "CITY-ATHENS", "map_asset": "/Game/Maps/L_Athens", "max_players": 150, "pvp_mode": "NONE", "is_dev": false },
+    { "zone_id": "SEA_DEV", "kind": "SEA", "city": null, "map_asset": "/Game/Maps/L_SeaDev", "max_players": 150, "pvp_mode": "NONE", "is_dev": true }
+  ],
+  "links": [
+    { "from": "DEV_TESTZONE", "exit": "TO_LONDON", "to": "CITY_LONDON", "arrival": "FROM_TESTZONE" },
+    { "from": "CITY_LONDON", "exit": "TO_TESTZONE", "to": "DEV_TESTZONE", "arrival": "FROM_LONDON" },
+    { "from": "CITY_LONDON", "exit": "HARBOR", "to": "SEA_DEV", "arrival": "LONDON" },
+    { "from": "SEA_DEV", "exit": "LONDON", "to": "CITY_LONDON", "arrival": "HARBOR" },
+    { "from": "SEA_DEV", "exit": "ATHENS", "to": "CITY_ATHENS", "arrival": "HARBOR" },
+    { "from": "CITY_ATHENS", "exit": "HARBOR", "to": "SEA_DEV", "arrival": "ATHENS" }
+  ]
+}

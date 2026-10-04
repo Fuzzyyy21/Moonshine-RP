@@ -221,6 +221,13 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Technisch: jedes Seegebiet ist eine eigene Server-Zone, Städte sind eigene Zonen, Dungeons sind Instanzen (siehe [02_TECHNICAL_ARCHITECTURE.md](02_TECHNICAL_ARCHITECTURE.md)).
 * Maßstab der Karte: verkleinerte reale Geografie; Faktor ist eine offene Designfrage, abhängig von Reisezeiten im Original.
 
+**Umgesetzt (Phase 4, Iteration 1)** `[DESIGN]`, Daten in `design_data/world_layout.json`
+* Zonen: `CITY_LONDON`, `CITY_ATHENS` (die am besten belegten Städte) und die technische Seezone `SEA_DEV`, die beide Häfen verbindet. `SEA_DEV` hat bewusst keine Geografie, bis Seegebiete und Maßstab belegt sind.
+* Übergänge: Hafen London ↔ Seezone ↔ Hafen Athen; Testzone ↔ London für die Entwicklung. Jeder Übergang ist ein Ausgang in der Karte und ein Ankunftspunkt in der Zielkarte.
+* Ein Charakter ist immer in genau einer Zone; er betritt nur die Zone, in der er steht. Neue Charaktere beginnen in der konfigurierten Startzone (Startstadt des Originals UNKNOWN).
+* Seegebiete: nicht übernommen, weil die einzige Liste (`REGION-LIST-17173`) mit 大航海时代 Online vermischt sein kann.
+* Auf See gibt es bis Phase 5 (Schiffe) nur die Zone selbst; man steht dort auf einem Anleger.
+
 ---
 
 ## 12. Städte und Häfen
@@ -228,6 +235,8 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 **Original**: Werftmeister, Hafenarbeiter, Offizierskarten-Tauscher, Schiffsumbau in festen Städten.
 
 **Design**: jeder Hafen bekommt Dienste als Flags (`ports.has_*`) und NPCs mit Rolle (`npcs.npc_role`). Regionale Wirtschaftsunterschiede über Warenangebot und Preise je Hafen (`markets`).
+
+**Umgesetzt (Phase 4, Iteration 1)**: Häfen aus der Reconstruction Database – Werft, wo Schiffsumbau belegt ist (Athen, Genua, Algier, Sevilla, Hamburg, Maskat, Seoul, Zhigu), Offizierskarten-Tausch in London. Alle anderen Dienste sind NULL (UNKNOWN), nicht „gibt es nicht“. NPCs folgen in Iteration 2.
 
 ---
 
