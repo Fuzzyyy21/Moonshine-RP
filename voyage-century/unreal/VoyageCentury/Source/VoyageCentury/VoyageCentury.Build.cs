@@ -6,6 +6,6 @@ public class VoyageCentury : ModuleRules
 	public VoyageCentury(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "NetCore", "EnhancedInput", "VCCore", "VCData", "VCNet" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "NetCore", "EnhancedInput", "InputCore", "AnimGraphRuntime", "Slate", "SlateCore", "DeveloperSettings", "VCCore", "VCData", "VCNet" });
 	}
 }

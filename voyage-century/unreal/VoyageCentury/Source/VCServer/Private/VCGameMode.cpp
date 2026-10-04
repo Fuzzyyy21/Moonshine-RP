@@ -214,6 +214,29 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 	Result.Json->TryGetStringField(TEXT("name"), Name);
 	ChangeName(PC, Name, false);
 
+	// Erscheinungsbild: vom Backend bei der Erstellung geprüft, hier nur übernommen.
+	if (FPlayerSession* Session = Sessions.Find(PC))
+	{
+		FString Gender;
+		Result.Json->TryGetStringField(TEXT("gender"), Gender);
+		Session->Appearance.bFemale = Gender == TEXT("FEMALE");
+		Session->Appearance.Entries.Reset();
+		const TSharedPtr<FJsonObject>* Appearance = nullptr;
+		if (Result.Json->TryGetObjectField(TEXT("appearance"), Appearance) && Appearance && Appearance->IsValid())
+		{
+			for (const TPair<FString, TSharedPtr<FJsonValue>>& Field : (*Appearance)->Values)
+			{
+				double Index = 0.0;
+				if (Field.Value.IsValid() && Field.Value->TryGetNumber(Index))
+				{
+					FVCAppearanceEntry& Entry = Session->Appearance.Entries.AddDefaulted_GetRef();
+					Entry.Slot = FName(*Field.Key);
+					Entry.Index = static_cast<int32>(Index);
+				}
+			}
+		}
+	}
+
 	// Progression aus der Datenbank übernehmen; der Client erhält sie per Replikation.
 	ApplyCharacterProgress(PC, Result.Json);
 	if (UVCProgressionComponent* Progression = ProgressionOf(PC))
@@ -270,6 +293,10 @@ void AVCGameMode::SpawnAuthenticatedPlayer(APlayerController* PC, const TOptiona
 	if (APawn* Pawn = PC->GetPawn())
 	{
 		Session->Pawn = Pawn;
+		if (AVCCharacter* Character = Cast<AVCCharacter>(Pawn))
+		{
+			Character->ServerSetAppearance(Session->Appearance);
+		}
 		Pawn->OnDestroyed.AddDynamic(this, &AVCGameMode::OnPlayerPawnDestroyed);
 	}
 	UE_LOG(LogVC, Display, TEXT("Charakter %lld (Konto %lld) betritt Zone %s"),

@@ -12,6 +12,7 @@
  *   VCCharacters
  *   VCCreateCharacter <name> <MALE|FEMALE> <BERUF>      z. B. ROYAL_OFFICER
  *   VCConnect <host:port> <characterId>
+ *   VCCharacterScreen                                    Login-/Erstellungsoberfläche öffnen (startet offline automatisch)
  *   VCStatus                                             eigenes Level, XP und Skills (Anzeige-Kopie vom Server)
  *   VCAdmin "teleport <x> <y> <z>"                       nur mit Adminrecht, wird protokolliert
  *   VCAdmin "setlevel <stufe>" | "setskill <SKILL> <stufe>"
@@ -25,6 +26,12 @@ class VOYAGECENTURY_API AVCPlayerController : public APlayerController
 	GENERATED_BODY()
 
 public:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	UFUNCTION(Exec)
+	void VCCharacterScreen();
+
 	UFUNCTION(Exec)
 	void VCLogin(const FString& Login, const FString& Password);
 
@@ -51,4 +58,7 @@ protected:
 
 private:
 	class UVCSessionSubsystem* Session() const;
+
+	TSharedPtr<class SWidget> CharacterScreen;
+	void HideCharacterScreen();
 };

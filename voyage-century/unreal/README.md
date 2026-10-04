@@ -65,6 +65,20 @@ Abnahmekriterien:
 | Admin-Kommando im Audit-Log | Konto in der DB zum Admin machen (`UPDATE accounts SET admin_level = 1 WHERE login = '…'`), neu verbinden, dann `VCAdmin "teleport 0 0 300"` → Zeile in `admin_audit_log` mit alter und neuer Position |
 | Ohne Ticket kein Zutritt | `open 127.0.0.1:7777` ohne Login → Verbindung abgelehnt |
 
+## Charaktererstellung (Phase 2, Iteration 2)
+
+Ein gepackter Client startet offline mit der Login-Oberfläche: anmelden, Charakter mit Name,
+Geschlecht, Beruf und Aussehen anlegen, Server-Adresse eintragen, **Spielen**. Im Editor öffnet
+`VCCharacterScreen` dieselbe Oberfläche. Alle Auswahlmöglichkeiten kommen vom Backend.
+
+Echtes Modell einbinden: in den Projekteinstellungen *Voyage Century Appearance* `CharacterMesh`
+und `AnimClass` (ein Animation Blueprint mit Elternklasse `VCAnimInstance`; Variablen `GroundSpeed`,
+`Direction`, `bIsMoving`, `bIsFalling`) setzen. Der Platzhalter wird dann ausgeblendet.
+
+| Data Table zusätzlich | Row-Struktur |
+|---|---|
+| `DT_AppearanceSlots.json` | `VCAppearanceSlotRow` |
+
 ## Phase 2 testen (Progression und Bewegung)
 
 Steuerung: WASD, Maus, Leertaste. Mit Adminkonto (Backend in Development, Entwicklungskurven aktiv):
@@ -96,7 +110,7 @@ Server an und nur aus Backend-Antworten; `CheckAuthority` verwirft alle anderen 
 ## Bekannte Grenzen von Phase 1
 
 * Laufgeschwindigkeit, Sprunghöhe usw. sind Engine-Standardwerte (Originalwerte UNKNOWN).
-* Keine Animation, Platzhalterfigur (Assets fehlen).
+* Platzhalterfigur ohne Animation, bis Modell und AnimBP eingehängt sind; Gesicht und Kleidung werden gespeichert, aber noch nicht dargestellt.
 * Konsolenbefehle statt Login-Oberfläche; Passwort steht in der Konsolen-Historie.
 * Das Ticket steht in der Verbindungs-URL und kann in ausführlichen Engine-Logs auftauchen.
 * Keine Sperre gegen gleichzeitiges Einloggen desselben Charakters auf zwei Zonen (World Directory folgt).

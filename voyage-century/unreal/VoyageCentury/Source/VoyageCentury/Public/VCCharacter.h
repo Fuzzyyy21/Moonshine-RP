@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "VCAppearance.h"
 #include "VCCharacter.generated.h"
 
 class UCameraComponent;
@@ -29,10 +30,22 @@ public:
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void PawnClientRestart() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void BeginPlay() override;
+
+	/** Nur Server: geprüftes Erscheinungsbild aus dem GameData-Dienst setzen. */
+	void ServerSetAppearance(const FVCAppearance& InAppearance);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Visual")
 	TObjectPtr<UStaticMeshComponent> PlaceholderBody;
+
+	/** Platzhalter für Haare; Form je "hair"-Index, Farbe je "hairColor". */
+	UPROPERTY(VisibleAnywhere, Category = "Visual")
+	TObjectPtr<UStaticMeshComponent> PlaceholderHair;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Appearance)
+	FVCAppearance Appearance;
 
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -52,6 +65,11 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> JumpAction;
 
+	UFUNCTION()
+	void OnRep_Appearance();
+
+	void ApplyAppearance();
+	void UseCharacterModelIfConfigured();
 	void CreateInputObjects();
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);

@@ -1,0 +1,12 @@
+{
+  "_comment": "Designdaten (Priorität 6). Merkmale aus dem Master-Prompt (Gesicht, Haare, Haarfarbe, Haut, Körper, Kleidung). Die Anzahl der Optionen im Original ist UNKNOWN; die Zahlen hier entsprechen den Platzhalter-Varianten des Projekts und steigen, sobald Assets existieren.",
+  "source": "SRC-DESIGN",
+  "slots": [
+    { "slot": "face", "option_count": 4 },
+    { "slot": "hair", "option_count": 4 },
+    { "slot": "hairColor", "option_count": 6 },
+    { "slot": "skin", "option_count": 4 },
+    { "slot": "body", "option_count": 3 },
+    { "slot": "outfit", "option_count": 2 }
+  ]
+}

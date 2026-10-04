@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "UObject/ObjectKey.h"
+#include "VCAppearance.h"
 #include "VCServerHooks.h"
 #include "VCGameMode.generated.h"
 
@@ -63,6 +64,7 @@ private:
 		bool bAuthenticated = false;
 		double ConnectedAt = 0.0;
 		TWeakObjectPtr<APawn> Pawn;
+		FVCAppearance Appearance;
 	};
 
 	TMap<TObjectKey<APlayerController>, FPlayerSession> Sessions;

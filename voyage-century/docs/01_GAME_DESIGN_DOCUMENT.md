@@ -51,6 +51,11 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Beruf bestimmt nur **Spezialisierungsboni**, keine harten Sperren, bis das Original geklärt ist. `[DESIGN]`
 * Später: Outfits, Kosmetik, Titel, Pets, Reittiere (Prioritätsstufe 13).
 
+**Umgesetzt (Phase 2, Iteration 2)**
+* Merkmale und Anzahl der Optionen stehen in `design_data/appearance.json` → `appearance_slots`. Der Server lehnt unbekannte Merkmale und Werte außerhalb des Bereichs ab und füllt fehlende Merkmale mit 0.
+* Die Erstellungsoberfläche baut Berufe, Geschlechter und Merkmale aus `/v1/character-options`; Berufe mit unsicherer Quellenlage sind dort gekennzeichnet.
+* Darstellung: Platzhalterfigur mit Haut-, Haarfarbe, Frisurhöhe und Körperbau. Ein echtes Modell wird per Projekteinstellung eingehängt (`UVCAppearanceSettings`), die Animation über ein AnimBP auf `UVCAnimInstance`.
+
 **Offen**: Attributnamen, Startwerte, Startort je Beruf, Kosten des Berufswechsels.
 
 ---

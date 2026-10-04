@@ -44,7 +44,7 @@ Die Engine-Seite steht aus, bis das UE-Projekt lokal gebaut und nach
 Offen für die nächsten Iterationen: World Directory mit Sperre gegen Doppel-Login,
 Redis, TLS-Terminierung, mTLS zwischen Diensten.
 
-## Phase 2 – Charakter (Iteration 1 fertig)
+## Phase 2 – Charakter (Iteration 1 und 2 fertig)
 
 Charaktererstellung, Bewegung, Kamera, Animation, Attribute, Level, XP, Skills (17 Skills, Stufen, Gesamtcap).
 **Abnahme**: Skill-XP und Level werden serverseitig vergeben, überleben Zonenwechsel und Neustart; manipulierte Client-Werte haben keine Wirkung.
@@ -57,8 +57,12 @@ Charaktererstellung, Bewegung, Kamera, Animation, Attribute, Level, XP, Skills (
 | UE: Bewegung + Kamera (Enhanced Input, serverseitig korrigierte Character Movement) | ⚠️ geschrieben, nicht kompiliert | lokal |
 | UE: replizierte Progression (Level für alle, XP/Skills nur für den Besitzer), Übernahme nur von Backend-Werten | ⚠️ geschrieben, nicht kompiliert | lokal |
 | UE: Admin `givexp`, `giveskillxp`, `setlevel`, `setskill`, Client `VCStatus` | ⚠️ geschrieben, nicht kompiliert | lokal |
-| Charaktererstellung mit Oberfläche und Erscheinungsbild-Optionen | ❌ Iteration 2 | |
-| Animation (braucht Modell- und Animations-Assets) | ❌ Iteration 2 | |
+| Erscheinungsbild: Merkmale als Daten (`appearance_slots`), serverseitige Prüfung und Normalisierung, Endpunkt `/v1/character-options` | ✅ | `AppearanceTests` (9 Tests) |
+| UE: Login-/Erstellungsoberfläche (Slate), baut sich aus `/v1/character-options` auf | ⚠️ geschrieben, nicht kompiliert | lokal |
+| UE: Erscheinungsbild repliziert und auf Platzhalterfigur angewendet (Haut, Haare, Haarfarbe, Körperbau) | ⚠️ geschrieben, nicht kompiliert | lokal |
+| UE: Animations-Andockstelle (`UVCAnimInstance`, Modell/AnimBP per Projekteinstellung) | ⚠️ geschrieben, nicht kompiliert | lokal |
+| Echte Modelle und Animationen | ❌ blockiert | brauchen Assets (Erstellung oder Lizenz) |
+| Gesicht und Kleidung sichtbar | ❌ blockiert | Platzhalterform hat keine sinnvolle Darstellung; Werte werden gespeichert |
 | Attribute | ❌ blockiert | Originalattribute UNKNOWN |
 | Beförderung in Skillstufe 2/3 durch Spieler | ❌ blockiert | Bedingungen UNKNOWN; nur per `/setskill` |
 

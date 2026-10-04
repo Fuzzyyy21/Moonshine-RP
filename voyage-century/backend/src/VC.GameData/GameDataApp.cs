@@ -27,7 +27,7 @@ public sealed record CreateCharacterRequest(string? Name, string? Gender, string
 public sealed record Position(double X, double Y, double Z, float Yaw);
 public sealed record CharacterState(
     long CharacterId, long AccountId, string Name, short Level, long Experience, string ProfessionCode, string? ZoneId,
-    Position? Position, IReadOnlyList<SkillState> Skills);
+    Position? Position, IReadOnlyList<SkillState> Skills, string Gender, IReadOnlyDictionary<string, int> Appearance);
 public sealed record SaveStateRequest(long AccountId, string? ZoneId, double X, double Y, double Z, float Yaw);
 
 public sealed record AdminAuditRequest(
@@ -64,6 +64,7 @@ public static partial class GameDataApp
         var client = app.MapGroup("/v1").RequireSession();
         client.MapGet("/characters", ListCharacters);
         client.MapPost("/characters", CreateCharacter);
+        CharacterOptions.Map(client);
 
         var internalApi = app.MapGroup("/internal/v1").RequireServiceKey();
         internalApi.MapGet("/characters/{characterId:long}/state", GetState);
@@ -108,18 +109,14 @@ public static partial class GameDataApp
         {
             return BadRequest("Geschlecht: MALE oder FEMALE");
         }
-        var appearance = "{}";
-        if (req.Appearance is { ValueKind: not (JsonValueKind.Undefined or JsonValueKind.Null) } a)
-        {
-            if (a.ValueKind != JsonValueKind.Object || a.GetRawText().Length > 4096)
-            {
-                return BadRequest("Erscheinungsbild muss ein JSON-Objekt bis 4 KB sein");
-            }
-            appearance = a.GetRawText();
-        }
-
         await using var conn = await db.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
+
+        var (appearance, appearanceError) = CharacterOptions.Normalize(req.Appearance, await CharacterOptions.LoadSlots(conn, tx, ct));
+        if (appearance is null)
+        {
+            return BadRequest(appearanceError!);
+        }
 
         // Kontozeile sperren, damit parallele Anfragen das Charakterlimit nicht überschreiten.
         await using (var lockCmd = new NpgsqlCommand(
@@ -193,7 +190,8 @@ public static partial class GameDataApp
         CharacterState state;
         await using (var cmd = new NpgsqlCommand(
             """
-            SELECT c.character_id, c.account_id, c.name, c.level, c.experience, p.code, c.zone_id, c.pos_x, c.pos_y, c.pos_z, c.yaw
+            SELECT c.character_id, c.account_id, c.name, c.level, c.experience, p.code, c.zone_id, c.pos_x, c.pos_y, c.pos_z, c.yaw,
+                   c.gender, c.appearance::text
             FROM characters c JOIN professions p USING (profession_id)
             WHERE c.character_id = @chr AND c.account_id = @acc AND c.deleted_at IS NULL
             """, conn))
@@ -210,7 +208,8 @@ public static partial class GameDataApp
                 ? null
                 : new Position(reader.GetDouble(7), reader.GetDouble(8), reader.GetDouble(9), reader.IsDBNull(10) ? 0f : reader.GetFloat(10));
             state = new CharacterState(reader.GetInt64(0), reader.GetInt64(1), reader.GetString(2), reader.GetInt16(3),
-                reader.GetInt64(4), reader.GetString(5), reader.IsDBNull(6) ? null : reader.GetString(6), position, []);
+                reader.GetInt64(4), reader.GetString(5), reader.IsDBNull(6) ? null : reader.GetString(6), position, [],
+                reader.GetString(11), JsonSerializer.Deserialize<Dictionary<string, int>>(reader.GetString(12)) ?? []);
         }
         return Results.Ok(state with { Skills = await ProgressionEndpoints.LoadSkills(conn, characterId, ct) });
     }

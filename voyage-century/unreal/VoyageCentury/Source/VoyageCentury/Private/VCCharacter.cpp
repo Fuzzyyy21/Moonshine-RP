@@ -12,6 +12,10 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Net/UnrealNetwork.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
 #include "UObject/ConstructorHelpers.h"
 #include "VCCore.h"
 
@@ -33,6 +37,17 @@ AVCCharacter::AVCCharacter()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	PlaceholderHair = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlaceholderHair"));
+	PlaceholderHair->SetupAttachment(PlaceholderBody);
+	PlaceholderHair->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PlaceholderHair->SetRelativeLocation(FVector(0.f, 0.f, 55.f));
+	PlaceholderHair->SetRelativeScale3D(FVector(0.9f, 0.9f, 0.25f));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Sphere(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	if (Sphere.Succeeded())
+	{
+		PlaceholderHair->SetStaticMesh(Sphere.Object);
+	}
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetCapsuleComponent());
@@ -128,4 +143,76 @@ void AVCCharacter::Look(const FInputActionValue& Value)
 	const FVector2D Axis = Value.Get<FVector2D>();
 	AddControllerYawInput(Axis.X);
 	AddControllerPitchInput(Axis.Y);
+}
+
+void AVCCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AVCCharacter, Appearance);
+}
+
+void AVCCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	UseCharacterModelIfConfigured();
+	ApplyAppearance();
+}
+
+void AVCCharacter::ServerSetAppearance(const FVCAppearance& InAppearance)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	Appearance = InAppearance;
+	ApplyAppearance(); // Server und Listen-Host sehen die Änderung sofort, Clients per OnRep
+}
+
+void AVCCharacter::OnRep_Appearance()
+{
+	ApplyAppearance();
+}
+
+void AVCCharacter::UseCharacterModelIfConfigured()
+{
+	// Andockstelle für echte Modelle: ist ein Mesh konfiguriert, ersetzt es den Platzhalter.
+	const UVCAppearanceSettings* Settings = GetDefault<UVCAppearanceSettings>();
+	USkeletalMesh* Mesh = Settings->CharacterMesh.IsNull() ? nullptr : Settings->CharacterMesh.LoadSynchronous();
+	if (!Mesh)
+	{
+		return;
+	}
+	GetMesh()->SetSkeletalMeshAsset(Mesh);
+	if (UClass* AnimClass = Settings->AnimClass.IsNull() ? nullptr : Settings->AnimClass.LoadSynchronous())
+	{
+		GetMesh()->SetAnimInstanceClass(AnimClass);
+	}
+	PlaceholderBody->SetVisibility(false, true);
+}
+
+void AVCCharacter::ApplyAppearance()
+{
+	if (GetNetMode() == NM_DedicatedServer || !PlaceholderBody->IsVisible())
+	{
+		return; // Keine Darstellung auf dem Server; echte Modelle bekommen später eigene Logik
+	}
+	const UVCAppearanceSettings* Settings = GetDefault<UVCAppearanceSettings>();
+	auto Pick = [](const auto& Array, int32 Index, const auto& Fallback)
+	{
+		return Array.IsValidIndex(Index) ? Array[Index] : Fallback;
+	};
+
+	PlaceholderBody->SetRelativeScale3D(Pick(Settings->BodyScales, Appearance.Get(TEXT("body")), FVector(0.8f, 0.8f, 1.76f)));
+	if (UMaterialInstanceDynamic* Skin = PlaceholderBody->CreateDynamicMaterialInstance(0))
+	{
+		// BasicShapeMaterial der Engine hat den Farbparameter "Color".
+		Skin->SetVectorParameterValue(TEXT("Color"), Pick(Settings->SkinColors, Appearance.Get(TEXT("skin")), FLinearColor::White));
+	}
+	if (UMaterialInstanceDynamic* Hair = PlaceholderHair->CreateDynamicMaterialInstance(0))
+	{
+		Hair->SetVectorParameterValue(TEXT("Color"), Pick(Settings->HairColors, Appearance.Get(TEXT("hairColor")), FLinearColor::Black));
+	}
+	// Haarform: Index 0 = kurz, höhere Indizes = höher aufgebaut (Platzhalter für echte Frisuren).
+	const int32 HairStyle = Appearance.Get(TEXT("hair"));
+	PlaceholderHair->SetRelativeScale3D(FVector(0.9f, 0.9f, 0.25f + 0.15f * HairStyle));
 }

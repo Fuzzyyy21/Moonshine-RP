@@ -107,6 +107,20 @@ ON CONFLICT (rule_key) DO UPDATE SET
 -- Entwicklungskurven (design_data/dev_curves.json). Echte Werte aus der Reconstruction Database
 -- überschreiben einzelne Stufen, sobald sie belegt sind (dann is_dev = FALSE).
 
+INSERT INTO appearance_slots (slot, option_count, sort_order, is_dev, recon_id, confidence) VALUES
+    ('face', 4, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),
+    ('hair', 4, 1, TRUE, NULL, 'UNKNOWN'::confidence_level),
+    ('hairColor', 6, 2, TRUE, NULL, 'UNKNOWN'::confidence_level),
+    ('skin', 4, 3, TRUE, NULL, 'UNKNOWN'::confidence_level),
+    ('body', 3, 4, TRUE, NULL, 'UNKNOWN'::confidence_level),
+    ('outfit', 2, 5, TRUE, NULL, 'UNKNOWN'::confidence_level)
+ON CONFLICT (slot) DO UPDATE SET
+    option_count = EXCLUDED.option_count,
+    sort_order = EXCLUDED.sort_order,
+    is_dev = EXCLUDED.is_dev,
+    recon_id = EXCLUDED.recon_id,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO level_table (level, xp_required, is_dev, recon_id, confidence) VALUES
     (1, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),
     (2, 100, TRUE, NULL, 'UNKNOWN'::confidence_level),

@@ -163,7 +163,7 @@ def upsert(table: str, key: str, columns: list[str], rows: list[dict]) -> str:
     )
 
 
-def render_sql(rows: dict[str, list[dict]], curves: dict) -> str:
+def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
 
     def renamed(table_rows):
@@ -188,6 +188,9 @@ def render_sql(rows: dict[str, list[dict]], curves: dict) -> str:
         upsert("game_rules", "rule_key", ["rule_key", "int_value", "recon_id", "confidence"], rows["game_rules"]),
         "-- Entwicklungskurven (design_data/dev_curves.json). Echte Werte aus der Reconstruction Database\n"
         "-- überschreiben einzelne Stufen, sobald sie belegt sind (dann is_dev = FALSE).\n",
+        upsert("appearance_slots", "slot", ["slot", "option_count", "sort_order", "is_dev", "recon_id", "confidence"],
+               [{"slot": a["slot"], "option_count": a["option_count"], "sort_order": i, "is_dev": True,
+                 "recon_id": None, "confidence": "UNKNOWN"} for i, a in enumerate(appearance["slots"])]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -203,8 +206,11 @@ def ue_common(row: dict) -> dict:
     }
 
 
-def render_ue(rows: dict[str, list[dict]]) -> dict[str, list[dict]]:
+def render_ue(rows: dict[str, list[dict]], appearance: dict) -> dict[str, list[dict]]:
     return {
+        "DT_AppearanceSlots.json": [
+            {"Name": a["slot"], "OptionCount": a["option_count"], "SortOrder": i} for i, a in enumerate(appearance["slots"])
+        ],
         "DT_Professions.json": [{"Name": r["code"], **ue_common(r)} for r in rows["professions"]],
         "DT_Skills.json": [
             {"Name": r["code"], **ue_common(r), "CategoryCn": UE_CATEGORY[r["category_cn"]],
@@ -230,8 +236,9 @@ def outputs() -> dict[Path, str]:
     rows = build_rows(load_records(), design["groups"])
 
     curves = json.loads((DESIGN_DIR / "dev_curves.json").read_text(encoding="utf-8"))
-    files = {SEED_FILE: render_sql(rows, curves)}
-    for name, table in render_ue(rows).items():
+    appearance = json.loads((DESIGN_DIR / "appearance.json").read_text(encoding="utf-8"))
+    files = {SEED_FILE: render_sql(rows, curves, appearance)}
+    for name, table in render_ue(rows, appearance).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files
 

@@ -4,6 +4,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "VCCore.h"
 #include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "SVCCharacterScreen.h"
 #include "VCPlayerState.h"
 #include "VCProgressionComponent.h"
 #include "VCServerHooks.h"
@@ -12,6 +14,56 @@
 namespace
 {
 	constexpr int32 MaxAdminCommandLength = 256;
+}
+
+void AVCPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+	// Offline-Start eines gepackten Clients: noch keine Verbindung, also Login-Oberfläche zeigen.
+	const UWorld* World = GetWorld();
+	if (IsLocalController() && GetNetMode() == NM_Standalone && World && !World->IsPlayInEditor())
+	{
+		VCCharacterScreen();
+	}
+}
+
+void AVCPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// Das Viewport überlebt Map-Wechsel; das Widget muss vor dem Reisen entfernt werden.
+	HideCharacterScreen();
+	Super::EndPlay(EndPlayReason);
+}
+
+void AVCPlayerController::VCCharacterScreen()
+{
+	if (CharacterScreen.IsValid() || !IsLocalController() || !GEngine || !GEngine->GameViewport)
+	{
+		return;
+	}
+	CharacterScreen = SNew(SVCCharacterScreen).Session(Session());
+	GEngine->GameViewport->AddViewportWidgetContent(CharacterScreen.ToSharedRef(), 10);
+	SetShowMouseCursor(true);
+	FInputModeUIOnly Mode;
+	Mode.SetWidgetToFocus(CharacterScreen);
+	SetInputMode(Mode);
+}
+
+void AVCPlayerController::HideCharacterScreen()
+{
+	if (!CharacterScreen.IsValid())
+	{
+		return;
+	}
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(CharacterScreen.ToSharedRef());
+	}
+	CharacterScreen.Reset();
+	if (IsLocalController())
+	{
+		SetShowMouseCursor(false);
+		SetInputMode(FInputModeGameOnly());
+	}
 }
 
 UVCSessionSubsystem* AVCPlayerController::Session() const

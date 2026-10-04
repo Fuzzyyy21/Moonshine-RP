@@ -106,3 +106,16 @@ struct VCDATA_API FVCShipClassRow : public FVCReconRow
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ship")
 	FString LeveledBy;
 };
+
+/** Merkmal der Charaktererstellung (Designdaten, Anzahl Optionen = vorhandene Varianten). */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCAppearanceSlotRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Appearance")
+	int32 OptionCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Appearance")
+	int32 SortOrder = 0;
+};

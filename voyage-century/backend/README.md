@@ -53,7 +53,8 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | Auth | `POST /v1/sessions` | offen, rate-limitiert → `ticket` |
 | Auth | `DELETE /v1/sessions/current` | `Authorization: Bearer <ticket>` |
 | Auth | `POST /internal/v1/sessions/validate` | `X-Service-Key` |
-| GameData | `GET/POST /v1/characters` | `Authorization: Bearer <ticket>` |
+| GameData | `GET/POST /v1/characters` | `Authorization: Bearer <ticket>`; `appearance` wird gegen `appearance_slots` geprüft |
+| GameData | `GET /v1/character-options` | `Authorization: Bearer <ticket>` → Berufe, Geschlechter, Aussehen-Merkmale |
 | GameData | `GET/PUT /internal/v1/characters/{id}/state` | `X-Service-Key`, mit `accountId` (Besitzprüfung) |
 | GameData | `POST /internal/v1/admin-audit` | `X-Service-Key`, Konto braucht `admin_level > 0` |
 | GameData | `POST /internal/v1/characters/{id}/experience` | `X-Service-Key`; `amount`, `source`, `idempotencyKey`, `serverId` |

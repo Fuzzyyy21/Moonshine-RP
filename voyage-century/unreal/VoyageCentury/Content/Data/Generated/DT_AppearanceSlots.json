@@ -1,0 +1,32 @@
+[
+  {
+    "Name": "face",
+    "OptionCount": 4,
+    "SortOrder": 0
+  },
+  {
+    "Name": "hair",
+    "OptionCount": 4,
+    "SortOrder": 1
+  },
+  {
+    "Name": "hairColor",
+    "OptionCount": 6,
+    "SortOrder": 2
+  },
+  {
+    "Name": "skin",
+    "OptionCount": 4,
+    "SortOrder": 3
+  },
+  {
+    "Name": "body",
+    "OptionCount": 3,
+    "SortOrder": 4
+  },
+  {
+    "Name": "outfit",
+    "OptionCount": 2,
+    "SortOrder": 5
+  }
+]
