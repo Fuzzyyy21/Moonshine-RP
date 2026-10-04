@@ -77,6 +77,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0003__dev_test_zone.sql` | technische Zone `DEV_TESTZONE` für Phase 1 |
 | `V0004__progression.sql` | `level_table.is_dev`, `skill_level_table`, `game_rules` (z. B. `SKILL_TOTAL_CAP`), `progression_grants` (Idempotenz jeder XP-Vergabe) |
 | `V0005__appearance.sql` | `appearance_slots` (Merkmale der Charaktererstellung und Anzahl Optionen, Designdaten) |
+| `V0006__land_combat.sql` | `items.is_dev`, `monsters.is_dev`/`xp_reward`, `zones.pvp_mode` (Testzone = FREE), `combat_kills` (Kill-Protokoll, Idempotenz) |
 | `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Sets) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);

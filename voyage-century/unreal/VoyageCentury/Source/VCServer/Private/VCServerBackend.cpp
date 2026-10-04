@@ -42,7 +42,7 @@ void FVCServerBackend::LoadCharacter(int64 CharacterId, int64 AccountId, FVCHttp
 }
 
 void FVCServerBackend::SaveCharacter(int64 CharacterId, int64 AccountId, const FString& ZoneId,
-	const FVector& Location, float Yaw, FVCHttpCallback Callback)
+	const FVector& Location, float Yaw, const FIntVector4& Vitals, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
 	Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
@@ -51,6 +51,13 @@ void FVCServerBackend::SaveCharacter(int64 CharacterId, int64 AccountId, const F
 	Body->SetNumberField(TEXT("y"), Location.Y);
 	Body->SetNumberField(TEXT("z"), Location.Z);
 	Body->SetNumberField(TEXT("yaw"), Yaw);
+	if (Vitals.Y > 0 && Vitals.W > 0) // (Health, MaxHealth, Stamina, MaxStamina)
+	{
+		Body->SetNumberField(TEXT("health"), Vitals.X);
+		Body->SetNumberField(TEXT("maxHealth"), Vitals.Y);
+		Body->SetNumberField(TEXT("stamina"), Vitals.Z);
+		Body->SetNumberField(TEXT("maxStamina"), Vitals.W);
+	}
 	const FString Url = FString::Printf(TEXT("%s/internal/v1/characters/%lld/state"),
 		*UVCBackendSettings::GetGameDataBaseUrl(), CharacterId);
 	FVCHttp::Send(TEXT("PUT"), Url, Body, Headers(), MoveTemp(Callback));
@@ -78,6 +85,21 @@ void FVCServerBackend::GrantExperience(int64 CharacterId, int64 AccountId, const
 	FVCHttp::Send(TEXT("POST"), Url, Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::LoadZone(const FString& ZoneId, FVCHttpCallback Callback)
+{
+	FVCHttp::Send(TEXT("GET"), FString::Printf(TEXT("%s/internal/v1/zones/%s"), *UVCBackendSettings::GetGameDataBaseUrl(),
+		*FGenericPlatformHttp::UrlEncode(ZoneId)), nullptr, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>& Kill, FVCHttpCallback Callback)
+{
+	Kill->SetStringField(TEXT("idempotencyKey"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	Kill->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
+	Kill->SetStringField(TEXT("zoneId"), UVCServerSettings::GetZoneId());
+	FVCHttp::Send(TEXT("POST"), UVCBackendSettings::GetGameDataBaseUrl() + TEXT("/internal/v1/combat/kills"),
+		Kill, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::AdminSetLevel(int64 CharacterId, const FString& SkillCode, int32 Level,
 	const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback)
 {
@@ -102,7 +124,9 @@ namespace
 bool FVCServerBackend::IsConfigured() { return false; }
 void FVCServerBackend::ValidateTicket(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadCharacter(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
-void FVCServerBackend::SaveCharacter(int64, int64, const FString&, const FVector&, float, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::SaveCharacter(int64, int64, const FString&, const FVector&, float, const FIntVector4&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::GrantExperience(int64, int64, const FString&, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminSetLevel(int64, const FString&, int32, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }

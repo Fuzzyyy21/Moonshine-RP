@@ -16,7 +16,10 @@ nutzen `BuildSettingsVersion.Latest`, damit kein versionsspezifischer Wert festg
 | `VCData` | Row-Structs für die generierten Data Tables |
 | `VCNet` | HTTP/JSON-Client `FVCHttp`, Login-Ablauf `UVCSessionSubsystem` |
 | `VoyageCentury` | Primärmodul: `AVCPlayerController` (Konsolenbefehle, Admin-RPC), `AVCCharacter` (Bewegung, Kamera), `AVCPlayerState` + `UVCProgressionComponent` (replizierte Progression) |
-| `VCServer` | `AVCGameMode`: Ticketprüfung, Laden/Speichern, Admin-Audit; `UVCServerSettings` |
+| `VCServer` | `AVCGameMode`: Ticketprüfung, Laden/Speichern, Admin-Audit, Kills, Respawn; `UVCServerSettings` |
+| `VCRules` | Kampfformeln ohne Engine-Abhängigkeit |
+| `VCAbilities` | Attribute, Schadensberechnung, Grundangriff, Kampfdaten (`UVCCombatSettings`) |
+| `VCAI` | `AVCMonster`, `AVCMonsterAIController`, `AVCMonsterSpawner` |
 
 Targets: `VoyageCentury` (Game), `VoyageCenturyEditor`, `VoyageCenturyServer`, `VoyageCenturyClient`.
 
@@ -64,6 +67,39 @@ Abnahmekriterien:
 | Position nach Neustart | Server **und** Backend neu starten, erneut verbinden → Figur an alter Position |
 | Admin-Kommando im Audit-Log | Konto in der DB zum Admin machen (`UPDATE accounts SET admin_level = 1 WHERE login = '…'`), neu verbinden, dann `VCAdmin "teleport 0 0 300"` → Zeile in `admin_audit_log` mit alter und neuer Position |
 | Ohne Ticket kein Zutritt | `open 127.0.0.1:7777` ohne Login → Verbindung abgelehnt |
+
+## Landkampf (Phase 3)
+
+Neue Module: `VCRules` (Kampfformeln, reines C++, getestet mit `tools/test_rules.sh`), `VCAbilities`
+(Gameplay Ability System), `VCAI` (Gegner, KI, Spawner).
+
+Zusätzliche Schritte im Editor:
+
+| Data Table | Row-Struktur | Pfad (siehe `DefaultGame.ini`) |
+|---|---|---|
+| `DT_CombatTuning.json` | `VCCombatTuningRow` | `/Game/Data/DT_CombatTuning` |
+| `DT_Weapons.json` | `VCWeaponRow` | `/Game/Data/DT_Weapons` |
+| `DT_Monsters.json` | `VCMonsterRow` | `/Game/Data/DT_Monsters` |
+
+In `L_DevTestZone`: ein **NavMeshBoundsVolume** über die Fläche ziehen (sonst laufen Gegner nicht)
+und zwei **VCMonsterSpawner** platzieren, `MonsterCode` = `DEV_TRAINING_DUMMY` bzw. `DEV_PIRATE_BRAWLER`.
+Fehlen Tabellen, ist Kampf deaktiviert (Log: „Kampfdaten fehlen“) – es wird nie mit Ersatzwerten gekämpft.
+
+Testen:
+
+```
+Tab                         → Ziel wählen (nächstes lebendes Ziel, erneut drücken wechselt)
+Linke Maustaste             → angreifen (Reichweite und Intervall prüft der Server)
+VCStatus                    → Leben, Stufe, Skills
+VCAdmin "equip DEV_SWORD"   → Waffe ausrüsten (Admin, protokolliert; Inventar folgt in Phase 6)
+```
+
+Erwartung: Übungspuppe besiegen → +20 XP (Wert aus dem Backend), jeder Treffer +5 Skill-XP auf den
+Waffenskill. Der Übungspirat greift im Umkreis von 8 m an und kehrt nach 20 m zurück. Zwei Spieler
+können sich in der Testzone bekämpfen (PvP-Zone); nach dem Tod Respawn nach 5 s.
+
+Hinweis: In älteren Engine-Versionen muss `UAbilitySystemGlobals::Get().InitGlobalData()` beim Start
+aufgerufen werden; in 5.6 sollte das nicht nötig sein – bei Fehlermeldungen zu Target Data bitte melden.
 
 ## Charaktererstellung (Phase 2, Iteration 2)
 

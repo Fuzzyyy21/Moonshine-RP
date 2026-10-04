@@ -12,6 +12,12 @@
 #include "VCPlayerController.h"
 #include "VCPlayerState.h"
 #include "VCProgressionComponent.h"
+#include "AbilitySystemComponent.h"
+#include "VCAttributeSet.h"
+#include "VCCombatData.h"
+#include "VCCombatRules.h"
+#include "VCCombatant.h"
+#include "VCGameplayTags.h"
 #include "VCServerBackend.h"
 #include "VCServerSettings.h"
 
@@ -32,7 +38,38 @@ namespace
 		return PS ? PS->GetProgression() : nullptr;
 	}
 
-	/** Übernimmt {level, experience, levelCap?} aus einer Backend-Antwort. */
+	UAbilitySystemComponent* AbilitySystemOf(const APlayerController* PC)
+	{
+		const AVCPlayerState* PS = PC ? PC->GetPlayerState<AVCPlayerState>() : nullptr;
+		return PS ? PS->GetAbilitySystemComponent() : nullptr;
+	}
+
+	/** Kampfwerte aus Stufe und Kampfregeln neu setzen (nach Laden und Stufenaufstieg). */
+	void ApplyCharacterStats(const APlayerController* PC)
+	{
+		const UVCProgressionComponent* Progression = ProgressionOf(PC);
+		if (Progression && FVCCombatData::IsAvailable())
+		{
+			UVCAttributeSet::ApplyStats(AbilitySystemOf(PC),
+				vc::rules::DeriveCharacterStats(Progression->GetLevel(), FVCCombatData::Tuning()));
+		}
+	}
+
+	FIntVector4 CurrentVitals(const APlayerController* PC)
+	{
+		const UAbilitySystemComponent* ASC = AbilitySystemOf(PC);
+		if (!ASC)
+		{
+			return FIntVector4(0, 0, 0, 0);
+		}
+		return FIntVector4(
+			FMath::RoundToInt(ASC->GetNumericAttribute(UVCAttributeSet::GetHealthAttribute())),
+			FMath::RoundToInt(ASC->GetNumericAttribute(UVCAttributeSet::GetMaxHealthAttribute())),
+			FMath::RoundToInt(ASC->GetNumericAttribute(UVCAttributeSet::GetStaminaAttribute())),
+			FMath::RoundToInt(ASC->GetNumericAttribute(UVCAttributeSet::GetMaxStaminaAttribute())));
+	}
+
+	/** Übernimmt {level, experience, levelCap?} aus einer Backend-Antwort und passt die Kampfwerte an. */
 	void ApplyCharacterProgress(const APlayerController* PC, const TSharedPtr<FJsonObject>& Json)
 	{
 		UVCProgressionComponent* Progression = ProgressionOf(PC);
@@ -42,6 +79,7 @@ namespace
 		{
 			Json->TryGetNumberField(TEXT("levelCap"), Cap);
 			Progression->ServerApplyCharacter(static_cast<int32>(Level), static_cast<int64>(Experience), static_cast<int32>(Cap));
+			ApplyCharacterStats(PC);
 		}
 	}
 
@@ -88,6 +126,24 @@ void AVCGameMode::BeginPlay()
 	GetWorldTimerManager().SetTimer(SaveTimer, this, &AVCGameMode::SaveAllPlayers, Settings->SaveIntervalSeconds, true);
 	GetWorldTimerManager().SetTimer(AuthTimeoutTimer, this, &AVCGameMode::DisconnectTimedOutPlayers, 1.f, true);
 	UE_LOG(LogVC, Display, TEXT("Zone %s gestartet als %s"), *UVCServerSettings::GetZoneId(), *UVCServerSettings::GetServerId());
+
+	if (IsAuthRequired())
+	{
+		TWeakObjectPtr<AVCGameMode> WeakThis(this);
+		FVCServerBackend::LoadZone(UVCServerSettings::GetZoneId(), [WeakThis](const FVCHttpResult& Result)
+		{
+			FString Mode;
+			if (WeakThis.IsValid() && Result.IsOk() && Result.Json.IsValid() && Result.Json->TryGetStringField(TEXT("pvpMode"), Mode))
+			{
+				WeakThis->bPvPAllowed = Mode == TEXT("FREE");
+				UE_LOG(LogVC, Display, TEXT("PvP in dieser Zone: %s"), WeakThis->bPvPAllowed ? TEXT("erlaubt") : TEXT("aus"));
+			}
+			else
+			{
+				UE_LOG(LogVC, Error, TEXT("Zonendaten nicht geladen (%s) – PvP bleibt aus"), *Result.ErrorMessage());
+			}
+		});
+	}
 }
 
 bool AVCGameMode::IsAuthRequired() const
@@ -257,6 +313,26 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 		Progression->ServerSetSkills(Skills);
 	}
 
+	// Leben/Ausdauer: gespeicherten Stand übernehmen, sonst (oder nach Tod) voll.
+	if (FPlayerSession* Session = Sessions.Find(PC))
+	{
+		const TSharedPtr<FJsonObject>* Vitals = nullptr;
+		double Health = 0.0, Stamina = 0.0;
+		if (Result.Json->TryGetObjectField(TEXT("vitals"), Vitals) && Vitals && Vitals->IsValid()
+			&& (*Vitals)->TryGetNumberField(TEXT("health"), Health) && (*Vitals)->TryGetNumberField(TEXT("stamina"), Stamina))
+		{
+			Session->SavedVitals = FIntVector4(FMath::RoundToInt(Health), 1, FMath::RoundToInt(Stamina), 1);
+		}
+		UAbilitySystemComponent* ASC = AbilitySystemOf(PC);
+		const bool bHasSaved = Session->SavedVitals.Y > 0 && Session->SavedVitals.X > 0;
+		if (ASC)
+		{
+			UVCAttributeSet::SetVitals(ASC,
+				bHasSaved ? Session->SavedVitals.X : ASC->GetNumericAttribute(UVCAttributeSet::GetMaxHealthAttribute()),
+				bHasSaved ? Session->SavedVitals.Z : ASC->GetNumericAttribute(UVCAttributeSet::GetMaxStaminaAttribute()));
+		}
+	}
+
 	// Gespeicherte Position nur verwenden, wenn sie zu dieser Zone gehört.
 	TOptional<FTransform> Saved;
 	FString SavedZone;
@@ -296,6 +372,7 @@ void AVCGameMode::SpawnAuthenticatedPlayer(APlayerController* PC, const TOptiona
 		if (AVCCharacter* Character = Cast<AVCCharacter>(Pawn))
 		{
 			Character->ServerSetAppearance(Session->Appearance);
+			Character->ServerSetEquippedWeapon(Session->EquippedWeapon);
 		}
 		Pawn->OnDestroyed.AddDynamic(this, &AVCGameMode::OnPlayerPawnDestroyed);
 	}
@@ -329,17 +406,17 @@ void AVCGameMode::OnPlayerPawnDestroyed(AActor* DestroyedActor)
 	{
 		if (Entry.Value.bAuthenticated && Entry.Value.Pawn.Get() == DestroyedActor)
 		{
-			SaveSession(Entry.Value, *CastChecked<APawn>(DestroyedActor));
+			SaveSession(Entry.Key.ResolveObjectPtr(), Entry.Value, *CastChecked<APawn>(DestroyedActor));
 			return;
 		}
 	}
 }
 
-void AVCGameMode::SaveSession(const FPlayerSession& Session, const APawn& Pawn) const
+void AVCGameMode::SaveSession(const APlayerController* PC, const FPlayerSession& Session, const APawn& Pawn) const
 {
 	const int64 CharacterId = Session.CharacterId;
 	FVCServerBackend::SaveCharacter(CharacterId, Session.AccountId, UVCServerSettings::GetZoneId(),
-		Pawn.GetActorLocation(), Pawn.GetActorRotation().Yaw, [CharacterId](const FVCHttpResult& Result)
+		Pawn.GetActorLocation(), Pawn.GetActorRotation().Yaw, CurrentVitals(PC), [CharacterId](const FVCHttpResult& Result)
 		{
 			if (!Result.IsOk())
 			{
@@ -355,7 +432,7 @@ void AVCGameMode::SaveAllPlayers()
 	{
 		if (Entry.Value.bAuthenticated && Entry.Value.Pawn.IsValid())
 		{
-			SaveSession(Entry.Value, *Entry.Value.Pawn.Get());
+			SaveSession(Entry.Key.ResolveObjectPtr(), Entry.Value, *Entry.Value.Pawn.Get());
 		}
 	}
 }
@@ -420,6 +497,33 @@ void AVCGameMode::HandleAdminCommand(APlayerController* Issuer, const FString& C
 	{
 		AdminGiveXp(Issuer, *Session, Args[0].ToUpper(), Args[1]);
 	}
+	else if (Command == TEXT("equip") && Args.Num() == 1 && Session->AdminLevel >= GetDefault<UVCServerSettings>()->TeleportAdminLevel)
+	{
+		// Bis das Inventar existiert (Phase 6), rüstet nur ein Admin Waffen aus – protokolliert.
+		const FName Weapon(*Args[0].ToUpper());
+		if (!FVCCombatData::FindWeapon(Weapon))
+		{
+			Issuer->ClientMessage(TEXT("Unbekannte Waffe (siehe DT_Weapons)"));
+			return;
+		}
+		const TSharedRef<FJsonObject> Old = MakeShared<FJsonObject>();
+		Old->SetStringField(TEXT("weapon"), Session->EquippedWeapon.ToString());
+		const TSharedRef<FJsonObject> New = MakeShared<FJsonObject>();
+		New->SetStringField(TEXT("weapon"), Weapon.ToString());
+		TWeakObjectPtr<AVCGameMode> WeakThis(this);
+		AuditThenRun(Issuer, *Session, TEXT("/equip"), New, Old, New, [WeakThis, Weapon](APlayerController* PC)
+		{
+			FPlayerSession* S = WeakThis.IsValid() ? WeakThis->Sessions.Find(PC) : nullptr;
+			if (S)
+			{
+				S->EquippedWeapon = Weapon;
+			}
+			if (AVCCharacter* Character = Cast<AVCCharacter>(PC->GetPawn()))
+			{
+				Character->ServerSetEquippedWeapon(Weapon);
+			}
+		});
+	}
 	else
 	{
 		Issuer->ClientMessage(FString::Printf(TEXT("Unbekanntes Admin-Kommando: %s"), *Command));
@@ -461,7 +565,7 @@ void AVCGameMode::AdminTeleport(APlayerController* Issuer, const FPlayerSession&
 			}
 			if (const FPlayerSession* S = WeakThis.IsValid() ? WeakThis->Sessions.Find(PC) : nullptr)
 			{
-				WeakThis->SaveSession(*S, *P);
+				WeakThis->SaveSession(PC, *S, *P);
 			}
 		});
 }
@@ -627,4 +731,114 @@ void AVCGameMode::RequestGrant(APlayerController* PC, const FString& SkillCode, 
 				}
 			}
 		});
+}
+
+void AVCGameMode::HandleWeaponHit(AActor* Attacker, FName SkillCode)
+{
+	const FVCCombatTuningRow* Tuning = FVCCombatData::TuningRow();
+	const APawn* Pawn = Cast<APawn>(Attacker);
+	APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
+	if (PC && Tuning && Tuning->SkillXpPerHit >= 1.0)
+	{
+		GrantSkillExperience(PC, SkillCode, static_cast<int64>(Tuning->SkillXpPerHit), TEXT("hit"));
+	}
+}
+
+void AVCGameMode::HandleKill(AActor* Killer, AActor* Victim)
+{
+	const IVCCombatant* VictimCombatant = Cast<IVCCombatant>(Victim);
+	if (!VictimCombatant)
+	{
+		return;
+	}
+	const APawn* KillerPawn = Cast<APawn>(Killer);
+	APlayerController* KillerPC = KillerPawn ? Cast<APlayerController>(KillerPawn->GetController()) : nullptr;
+	const FPlayerSession* KillerSession = KillerPC ? Sessions.Find(KillerPC) : nullptr;
+	const bool bKillerKnown = KillerSession && KillerSession->bAuthenticated;
+
+	if (!VictimCombatant->IsPlayerCharacter())
+	{
+		if (bKillerKnown)
+		{
+			const TSharedRef<FJsonObject> Kill = MakeShared<FJsonObject>();
+			Kill->SetStringField(TEXT("victimType"), TEXT("MONSTER"));
+			Kill->SetStringField(TEXT("monsterCode"), VictimCombatant->GetMonsterCode().ToString());
+			ReportKill(KillerPC, *KillerSession, Kill);
+		}
+		return;
+	}
+
+	const APawn* VictimPawn = Cast<APawn>(Victim);
+	APlayerController* VictimPC = VictimPawn ? Cast<APlayerController>(VictimPawn->GetController()) : nullptr;
+	const FPlayerSession* VictimSession = VictimPC ? Sessions.Find(VictimPC) : nullptr;
+	if (bKillerKnown && VictimSession && VictimSession->bAuthenticated && KillerPC != VictimPC)
+	{
+		const TSharedRef<FJsonObject> Kill = MakeShared<FJsonObject>();
+		Kill->SetStringField(TEXT("victimType"), TEXT("CHARACTER"));
+		Kill->SetNumberField(TEXT("victimCharacterId"), static_cast<double>(VictimSession->CharacterId));
+		Kill->SetNumberField(TEXT("victimAccountId"), static_cast<double>(VictimSession->AccountId));
+		ReportKill(KillerPC, *KillerSession, Kill);
+	}
+	if (VictimPC)
+	{
+		ScheduleRespawn(VictimPC);
+	}
+}
+
+void AVCGameMode::ReportKill(APlayerController* KillerPC, const FPlayerSession& Killer, const TSharedRef<FJsonObject>& Kill)
+{
+	Kill->SetNumberField(TEXT("killerCharacterId"), static_cast<double>(Killer.CharacterId));
+	Kill->SetNumberField(TEXT("killerAccountId"), static_cast<double>(Killer.AccountId));
+	TWeakObjectPtr<APlayerController> WeakPC(KillerPC);
+	FVCServerBackend::ReportKill(Kill, [WeakPC](const FVCHttpResult& Result)
+	{
+		if (!Result.IsOk())
+		{
+			UE_LOG(LogVC, Error, TEXT("Kill-Meldung abgelehnt: %s"), *Result.ErrorMessage());
+			return;
+		}
+		// Belohnung legt das Backend fest; übernommen wird nur, was es bestätigt.
+		const TSharedPtr<FJsonObject>* Progress = nullptr;
+		if (WeakPC.IsValid() && Result.Json.IsValid() && Result.Json->TryGetObjectField(TEXT("progress"), Progress) && Progress)
+		{
+			ApplyCharacterProgress(WeakPC.Get(), *Progress);
+		}
+	});
+}
+
+void AVCGameMode::ScheduleRespawn(APlayerController* PC)
+{
+	const FVCCombatTuningRow* Tuning = FVCCombatData::TuningRow();
+	const float Delay = FMath::Max(0.5f, Tuning ? static_cast<float>(Tuning->PlayerRespawnSeconds) : 5.f);
+	TWeakObjectPtr<APlayerController> WeakPC(PC);
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, WeakPC]()
+	{
+		if (APlayerController* P = WeakPC.Get())
+		{
+			RespawnPlayer(P);
+		}
+	}), Delay, false);
+}
+
+void AVCGameMode::RespawnPlayer(APlayerController* PC)
+{
+	const FPlayerSession* Session = Sessions.Find(PC);
+	if (!Session || !Session->bAuthenticated)
+	{
+		return;
+	}
+	// Todesstrafen des Originals sind UNKNOWN: Respawn am PlayerStart mit vollem Leben, ohne Verlust. [DESIGN]
+	if (APawn* Old = PC->GetPawn())
+	{
+		PC->UnPossess();
+		Old->Destroy();
+	}
+	if (UAbilitySystemComponent* ASC = AbilitySystemOf(PC))
+	{
+		ASC->RemoveLooseGameplayTag(TAG_VC_State_Dead);
+		UVCAttributeSet::SetVitals(ASC, ASC->GetNumericAttribute(UVCAttributeSet::GetMaxHealthAttribute()),
+			ASC->GetNumericAttribute(UVCAttributeSet::GetMaxStaminaAttribute()));
+	}
+	SpawnAuthenticatedPlayer(PC, TOptional<FTransform>());
 }

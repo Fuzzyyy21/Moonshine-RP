@@ -43,6 +43,7 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | `GameData:MaxCharactersPerAccount` | technisches Limit, kein Originalwert |
 | `Progression:AllowDevCurves` | Entwicklungs-XP-Kurven verwenden (nur Development/Tests) |
 | `Progression:MaxCharacterXpPerGrant`, `MaxSkillXpPerGrant` | Plausibilitätsgrenze je Vergabe |
+| `Content:AllowDevContent` | Entwicklungsinhalte (`is_dev`: DEV_-Waffen und -Gegner) zulassen (nur Development/Tests) |
 | `Progression:AdminMinLevel` | Mindest-Adminlevel für `/setlevel`, `/setskill` |
 
 ## Endpunkte
@@ -60,6 +61,8 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | GameData | `POST /internal/v1/characters/{id}/experience` | `X-Service-Key`; `amount`, `source`, `idempotencyKey`, `serverId` |
 | GameData | `POST /internal/v1/characters/{id}/skills/{code}/experience` | wie oben, für Skill-XP |
 | GameData | `PUT /internal/v1/characters/{id}/level` bzw. `…/skills/{code}/level` | Admin (`Progression:AdminMinLevel`), Audit in derselben Transaktion |
+| GameData | `GET /internal/v1/zones/{zoneId}` | `X-Service-Key` → Zonenart und `pvpMode` |
+| GameData | `POST /internal/v1/combat/kills` | `X-Service-Key`; XP aus `monsters.xp_reward`, PvP nur in `FREE`-Zonen, idempotent |
 | beide | `GET /health` | offen |
 
 Fehler kommen als RFC-7807-ProblemDetails (`title`, `status`).

@@ -1,0 +1,36 @@
+[
+  {
+    "Name": "DEV_TRAINING_DUMMY",
+    "NameDe": "Übungspuppe",
+    "bIsPirate": false,
+    "Level": 1,
+    "MaxHealth": 200,
+    "AttackPower": 0,
+    "Defense": 0,
+    "BaseDamage": 0,
+    "AttackInterval": 1.0,
+    "RangeCm": 0,
+    "AggroRadiusCm": 0,
+    "LeashRadiusCm": 0,
+    "XpReward": 20,
+    "RespawnSeconds": 10,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_PIRATE_BRAWLER",
+    "NameDe": "Übungspirat",
+    "bIsPirate": true,
+    "Level": 3,
+    "MaxHealth": 120,
+    "AttackPower": 2,
+    "Defense": 5,
+    "BaseDamage": 8,
+    "AttackInterval": 1.5,
+    "RangeCm": 180,
+    "AggroRadiusCm": 800,
+    "LeashRadiusCm": 2000,
+    "XpReward": 60,
+    "RespawnSeconds": 30,
+    "bIsDev": true
+  }
+]

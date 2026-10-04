@@ -113,7 +113,16 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * NPC-KI: StateTree je Gegnerprofil (Patrouille, Aggro, Flucht, Rückkehr). Aggro-Liste serverseitig.
 * PvP und PvE nutzen dieselbe Pipeline; PvP-Regeln (Zonen, Strafen) siehe Abschnitt 17.
 
-**Offen**: Kampfmodell, Combo-System (im Original nicht belegt), Spezialwaffen.
+**Umgesetzt (Phase 3, Iteration 1)** `[DESIGN]`, Formeln in `VCRules`, Werte in `design_data/dev_combat.json`
+* Kampfwerte: Leben = Grundwert + **10 je Stufe** (aus `LVL-PER-LEVEL-BONUS`, UNCERTAIN), Ausdauer + 5 je Stufe (ebenso); Angriff und Verteidigung je Stufe sind Entwicklungswerte.
+* Waffenschaden = Grundschaden × (1 + 1 % je Waffenskillstufe über 1).
+* Ablauf je Angriff: Ausweichen (kein Schaden) → Block (halber Schaden, kein Krit) → Krit (×1,5); Verteidigung mindert mit V / (V + 100); mindestens 1 Schaden; ±10 % Streuung. Chancen gedeckelt (Krit 50 %, Block/Ausweichen 40 %).
+* Tab-Target: Tab wählt das nächste Ziel, linke Maustaste greift an. Der Client sendet nur das Ziel; Reichweite, Intervall, Feindschaft und Schaden prüft der Server.
+* Jeder Treffer gibt 5 Skill-XP auf den Waffenskill; ein Kill gibt die XP aus den Gegnerdaten (vom Backend festgelegt).
+* PvP nur in Zonen mit `pvp_mode = FREE` (die Testzone ist FREE). PvP gibt keine XP.
+* Tod: Respawn nach 5 s am PlayerStart mit vollem Leben, ohne Verlust (Todesstrafen des Originals UNKNOWN).
+
+**Offen**: Kampfmodell des Originals, Combo-System (im Original nicht belegt), Spezialwaffen, alle Originalwerte.
 
 ---
 

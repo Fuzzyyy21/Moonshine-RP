@@ -1,0 +1,28 @@
+[
+  {
+    "Name": "Default",
+    "BaseHealth": 100,
+    "HealthPerLevel": 10,
+    "BaseStamina": 50,
+    "StaminaPerLevel": 5,
+    "AttackPerLevel": 2,
+    "DefensePerLevel": 1,
+    "SkillDamageBonusPerLevel": 0.01,
+    "DefenseConstant": 100,
+    "MinDamage": 1,
+    "DamageVariance": 0.1,
+    "BaseCritChance": 0.05,
+    "CritMultiplier": 1.5,
+    "BaseBlockChance": 0.05,
+    "BlockReduction": 0.5,
+    "BaseDodgeChance": 0.05,
+    "MaxCritChance": 0.5,
+    "MaxBlockChance": 0.4,
+    "MaxDodgeChance": 0.4,
+    "RangeToleranceCm": 50,
+    "IntervalTolerance": 0.1,
+    "PlayerRespawnSeconds": 5,
+    "SkillXpPerHit": 5,
+    "ReconSources": "HealthPerLevel=LVL-PER-LEVEL-BONUS, StaminaPerLevel=LVL-PER-LEVEL-BONUS"
+  }
+]

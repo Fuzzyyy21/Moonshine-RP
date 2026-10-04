@@ -1,0 +1,41 @@
+{
+  "_comment": "ENTWICKLUNGSWERTE (Priorität 6) für den Landkampf. Das Kampfsystem des Originals ist UNKNOWN. Felder mit from_recon kommen aus der Reconstruction Database und übernehmen deren Confidence. Waffen und Gegner hier tragen bewusst technische Namen (DEV_…), weil keine Originalnamen belegt sind.",
+  "source": "SRC-DESIGN",
+  "tuning": {
+    "base_health": 100,
+    "health_per_level": { "from_recon": "LVL-PER-LEVEL-BONUS", "field": "hp_per_level" },
+    "base_stamina": 50,
+    "stamina_per_level": { "from_recon": "LVL-PER-LEVEL-BONUS", "field": "sp_per_level" },
+    "attack_per_level": 2,
+    "defense_per_level": 1,
+    "skill_damage_bonus_per_level": 0.01,
+    "defense_constant": 100,
+    "min_damage": 1,
+    "damage_variance": 0.1,
+    "base_crit_chance": 0.05,
+    "crit_multiplier": 1.5,
+    "base_block_chance": 0.05,
+    "block_reduction": 0.5,
+    "base_dodge_chance": 0.05,
+    "max_crit_chance": 0.5,
+    "max_block_chance": 0.4,
+    "max_dodge_chance": 0.4,
+    "range_tolerance_cm": 50,
+    "interval_tolerance": 0.1,
+    "player_respawn_seconds": 5,
+    "skill_xp_per_hit": 5
+  },
+  "weapons": [
+    { "code": "DEV_UNARMED", "class": "UNARMED", "skill": "BAREHAND", "name_de": "Fäuste", "base_damage": 5, "attack_interval": 1.0, "range_cm": 150, "durability": null },
+    { "code": "DEV_SWORD", "class": "SWORD", "skill": "SWORD", "name_de": "Übungsschwert", "base_damage": 12, "attack_interval": 1.2, "range_cm": 200, "durability": 100 },
+    { "code": "DEV_BLADE", "class": "BLADE", "skill": "FALCHION", "name_de": "Übungsklinge", "base_damage": 10, "attack_interval": 1.0, "range_cm": 190, "durability": 100 },
+    { "code": "DEV_AXE", "class": "AXE", "skill": "AXE", "name_de": "Übungsaxt", "base_damage": 18, "attack_interval": 2.0, "range_cm": 180, "durability": 100 },
+    { "code": "DEV_PISTOL", "class": "FIREARM", "skill": "SHOOTING", "name_de": "Übungspistole", "base_damage": 15, "attack_interval": 2.5, "range_cm": 1500, "durability": 100 }
+  ],
+  "monsters": [
+    { "code": "DEV_TRAINING_DUMMY", "name_de": "Übungspuppe", "is_pirate": false, "level": 1, "max_health": 200, "attack_power": 0, "defense": 0,
+      "base_damage": 0, "attack_interval": 1.0, "range_cm": 0, "aggro_radius_cm": 0, "leash_radius_cm": 0, "xp_reward": 20, "respawn_seconds": 10 },
+    { "code": "DEV_PIRATE_BRAWLER", "name_de": "Übungspirat", "is_pirate": true, "level": 3, "max_health": 120, "attack_power": 2, "defense": 5,
+      "base_damage": 8, "attack_interval": 1.5, "range_cm": 180, "aggro_radius_cm": 800, "leash_radius_cm": 2000, "xp_reward": 60, "respawn_seconds": 30 }
+  ]
+}

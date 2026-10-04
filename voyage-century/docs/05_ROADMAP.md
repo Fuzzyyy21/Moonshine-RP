@@ -69,9 +69,24 @@ Charaktererstellung, Bewegung, Kamera, Animation, Attribute, Level, XP, Skills (
 Zonenwechsel ist in der Abnahme enthalten, es gibt aber noch nur eine Zone. Getestet ist die gleichwertige
 Bedingung „Dienst-Neustart“; der echte Zonenwechsel folgt mit dem World Directory.
 
-## Phase 3 – Landkampf
+## Phase 3 – Landkampf (Iteration 1 fertig)
 
 Waffen, Angriffe, Fähigkeiten (GAS), Schaden, NPC-KI, PvE, PvP-Grundregeln.
+
+| Schritt | Status | Prüfung |
+|---|---|---|
+| Kampfregeln als reines C++ (`VCRules`): Werte ableiten, Waffenschaden mit Skillbonus, Ausweichen → Block → Krit, Reichweite, Angriffsintervall | ✅ | `tools/test_rules.sh` (14 Fälle, GCC und Clang, Unreal-Compilerflags) |
+| Kampfdaten: Tuning, 5 Entwicklungswaffen, 2 Entwicklungsgegner (`is_dev`); HP/SP pro Stufe aus der Reconstruction DB | ✅ | Export `--check`, Schematest |
+| Backend: Kill melden (XP aus Gegnerdaten, Idempotenz), PvP nur in `FREE`-Zonen, PvP-Statistik, Zoneninfo, Leben/Ausdauer speichern | ✅ | `CombatTests` (11 Tests) |
+| UE: GAS – Attribute, Schadensberechnung über `VCRules`, Grundangriff (nur Server) | ⚠️ geschrieben, nicht kompiliert | lokal |
+| UE: Zielwahl (Tab), Angriff (linke Maustaste), Tod, Respawn, Skill-XP pro Treffer | ⚠️ geschrieben, nicht kompiliert | lokal |
+| UE: Gegner, Zustandsautomat-KI (Aggro, Verfolgen, Angriff, Leine), Spawner | ⚠️ geschrieben, nicht kompiliert | lokal, braucht NavMesh |
+| Weitere Fähigkeiten, Buffs/Debuffs, Statuseffekte, Combos | ❌ Iteration 2 | |
+| Trefferanzeige (Ausgewichen/Geblockt/Krit), Ziel-HUD | ❌ Iteration 2 | |
+| Beute/Drops | ❌ mit dem Inventar (Phase 6) | |
+| Originalwerte für Waffen, Gegner, Formeln | ❌ blockiert | UNKNOWN |
+
+**Abnahme (Vorschlag)**: Spieler besiegt einen Gegner und erhält die im Backend hinterlegte XP; Waffenskill steigt durch Treffer; PvP-Kill nur in PvP-Zonen; Tod führt zu Respawn; manipulierte Schadens- oder Reichweitenangaben des Clients haben keine Wirkung (der Client sendet nur das Ziel).
 
 ## Phase 4 – Welt
 

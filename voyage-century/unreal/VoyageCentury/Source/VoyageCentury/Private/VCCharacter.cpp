@@ -18,6 +18,16 @@
 #include "Engine/SkeletalMesh.h"
 #include "UObject/ConstructorHelpers.h"
 #include "VCCore.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+#include "EngineUtils.h"
+#include "Engine/Engine.h"
+#include "VCAttributeSet.h"
+#include "VCCombatData.h"
+#include "VCGameplayTags.h"
+#include "VCPlayerState.h"
+#include "VCProgressionComponent.h"
+#include "VCServerHooks.h"
 
 AVCCharacter::AVCCharacter()
 {
@@ -93,6 +103,13 @@ void AVCCharacter::CreateInputObjects()
 	}
 
 	InputContext->MapKey(JumpAction, EKeys::SpaceBar);
+
+	TargetAction = NewObject<UInputAction>(this, TEXT("IA_Target"));
+	TargetAction->ValueType = EInputActionValueType::Boolean;
+	InputContext->MapKey(TargetAction, EKeys::Tab);
+	AttackAction = NewObject<UInputAction>(this, TEXT("IA_Attack"));
+	AttackAction->ValueType = EInputActionValueType::Boolean;
+	InputContext->MapKey(AttackAction, EKeys::LeftMouseButton);
 }
 
 void AVCCharacter::PawnClientRestart()
@@ -124,6 +141,8 @@ void AVCCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(LookAction, ETriggerEvent::Triggered, this, &AVCCharacter::Look);
 	Input->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 	Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+	Input->BindAction(TargetAction, ETriggerEvent::Started, this, &AVCCharacter::CycleTarget);
+	Input->BindAction(AttackAction, ETriggerEvent::Started, this, &AVCCharacter::Attack);
 }
 
 void AVCCharacter::Move(const FInputActionValue& Value)
@@ -149,6 +168,7 @@ void AVCCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AVCCharacter, Appearance);
+	DOREPLIFETIME(AVCCharacter, EquippedWeapon);
 }
 
 void AVCCharacter::BeginPlay()
@@ -215,4 +235,139 @@ void AVCCharacter::ApplyAppearance()
 	// Haarform: Index 0 = kurz, höhere Indizes = höher aufgebaut (Platzhalter für echte Frisuren).
 	const int32 HairStyle = Appearance.Get(TEXT("hair"));
 	PlaceholderHair->SetRelativeScale3D(FVector(0.9f, 0.9f, 0.25f + 0.15f * HairStyle));
+}
+
+UAbilitySystemComponent* AVCCharacter::GetAbilitySystemComponent() const
+{
+	const AVCPlayerState* PS = GetPlayerState<AVCPlayerState>();
+	return PS ? PS->GetAbilitySystemComponent() : nullptr;
+}
+
+void AVCCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	InitAbilityActorInfo(); // Server
+}
+
+void AVCCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	InitAbilityActorInfo(); // Client
+}
+
+void AVCCharacter::InitAbilityActorInfo()
+{
+	if (AVCPlayerState* PS = GetPlayerState<AVCPlayerState>())
+	{
+		PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
+	}
+}
+
+bool AVCCharacter::IsAlive() const
+{
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC && !ASC->HasMatchingGameplayTag(TAG_VC_State_Dead)
+		&& ASC->GetNumericAttribute(UVCAttributeSet::GetHealthAttribute()) > 0.f;
+}
+
+bool AVCCharacter::GetAttack(vc::rules::FWeaponDef& OutWeapon, FName& OutSkillCode, int32& OutSkillLevel) const
+{
+	const FName Code = EquippedWeapon.IsNone() ? GetDefault<UVCCombatSettings>()->UnarmedWeapon : EquippedWeapon;
+	const FVCWeaponRow* Row = FVCCombatData::FindWeapon(Code);
+	if (!Row)
+	{
+		return false;
+	}
+	OutWeapon = FVCCombatData::ToRules(*Row);
+	OutSkillCode = Row->SkillCode;
+	OutSkillLevel = 1;
+	if (const AVCPlayerState* PS = GetPlayerState<AVCPlayerState>())
+	{
+		for (const FVCSkillState& Skill : PS->GetProgression()->GetSkills())
+		{
+			if (Skill.Code == Row->SkillCode)
+			{
+				OutSkillLevel = Skill.Level;
+			}
+		}
+	}
+	return true;
+}
+
+void AVCCharacter::HandleOutOfHealth(AActor* Killer)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->AddLooseGameplayTag(TAG_VC_State_Dead);
+	}
+	GetCharacterMovement()->DisableMovement();
+	if (IVCServerHooks* Hooks = Cast<IVCServerHooks>(GetWorld()->GetAuthGameMode()))
+	{
+		Hooks->HandleKill(Killer, this); // Meldung ans Backend und Respawn übernimmt der Server-GameMode
+	}
+}
+
+void AVCCharacter::ServerSetEquippedWeapon(FName WeaponCode)
+{
+	if (HasAuthority() && (WeaponCode.IsNone() || FVCCombatData::FindWeapon(WeaponCode)))
+	{
+		EquippedWeapon = WeaponCode;
+	}
+}
+
+void AVCCharacter::CycleTarget()
+{
+	// Nächstes lebendes, feindliches Ziel im Umkreis, nach Entfernung sortiert; wiederholtes Drücken wechselt weiter.
+	constexpr double SearchRadius = 2500.0;
+	TArray<AActor*> Candidates;
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		const IVCCombatant* Other = Cast<IVCCombatant>(*It);
+		if (*It != this && Other && Other->IsAlive()
+			&& FVector::DistSquared(GetActorLocation(), It->GetActorLocation()) <= SearchRadius * SearchRadius)
+		{
+			Candidates.Add(*It);
+		}
+	}
+	if (Candidates.IsEmpty())
+	{
+		CurrentTarget.Reset();
+		return;
+	}
+	const FVector Here = GetActorLocation();
+	Candidates.Sort([Here](const AActor& A, const AActor& B)
+	{
+		return FVector::DistSquared(Here, A.GetActorLocation()) < FVector::DistSquared(Here, B.GetActorLocation());
+	});
+	const int32 Current = Candidates.IndexOfByKey(CurrentTarget.Get());
+	CurrentTarget = Candidates[(Current + 1) % Candidates.Num()];
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Ziel: %s"), *CurrentTarget->GetName()));
+	}
+}
+
+void AVCCharacter::Attack()
+{
+	if (AActor* Target = CurrentTarget.Get())
+	{
+		ServerRequestAttack(Target);
+	}
+}
+
+void AVCCharacter::ServerRequestAttack_Implementation(AActor* Target)
+{
+	// Der Client nennt nur das Ziel. Ob der Angriff zählt, entscheidet die Fähigkeit auf dem Server.
+	if (!Target || !IsAlive())
+	{
+		return;
+	}
+	FGameplayEventData Payload;
+	Payload.Instigator = this;
+	Payload.Target = Target;
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, TAG_VC_Event_Attack, Payload);
 }

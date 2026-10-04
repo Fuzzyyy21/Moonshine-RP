@@ -1,0 +1,57 @@
+[
+  {
+    "Name": "DEV_UNARMED",
+    "NameDe": "Fäuste",
+    "WeaponClass": "Unarmed",
+    "SkillCode": "BAREHAND",
+    "BaseDamage": 5,
+    "AttackInterval": 1.0,
+    "RangeCm": 150,
+    "DurabilityMax": 0,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_SWORD",
+    "NameDe": "Übungsschwert",
+    "WeaponClass": "Sword",
+    "SkillCode": "SWORD",
+    "BaseDamage": 12,
+    "AttackInterval": 1.2,
+    "RangeCm": 200,
+    "DurabilityMax": 100,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_BLADE",
+    "NameDe": "Übungsklinge",
+    "WeaponClass": "Blade",
+    "SkillCode": "FALCHION",
+    "BaseDamage": 10,
+    "AttackInterval": 1.0,
+    "RangeCm": 190,
+    "DurabilityMax": 100,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_AXE",
+    "NameDe": "Übungsaxt",
+    "WeaponClass": "Axe",
+    "SkillCode": "AXE",
+    "BaseDamage": 18,
+    "AttackInterval": 2.0,
+    "RangeCm": 180,
+    "DurabilityMax": 100,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_PISTOL",
+    "NameDe": "Übungspistole",
+    "WeaponClass": "Firearm",
+    "SkillCode": "SHOOTING",
+    "BaseDamage": 15,
+    "AttackInterval": 2.5,
+    "RangeCm": 1500,
+    "DurabilityMax": 100,
+    "bIsDev": true
+  }
+]

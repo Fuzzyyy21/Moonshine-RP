@@ -43,6 +43,9 @@ public:
 
 	// IVCServerHooks
 	virtual void HandleAdminCommand(APlayerController* Issuer, const FString& CommandLine) override;
+	virtual bool IsPvPAllowed() const override { return bPvPAllowed; }
+	virtual void HandleKill(AActor* Killer, AActor* Victim) override;
+	virtual void HandleWeaponHit(AActor* Attacker, FName SkillCode) override;
 
 	/** Charakter-XP vergeben (z. B. aus Kampf oder Quest, ab Phase 3). Nur Server. */
 	void GrantExperience(APlayerController* PC, int64 Amount, const FString& Source);
@@ -65,7 +68,14 @@ private:
 		double ConnectedAt = 0.0;
 		TWeakObjectPtr<APawn> Pawn;
 		FVCAppearance Appearance;
+		/** Zuletzt gespeicherte Vitals (Health, MaxHealth, Stamina, MaxStamina); Y == 0 = keine. */
+		FIntVector4 SavedVitals = FIntVector4(0, 0, 0, 0);
+		/** Ausgerüstete Waffe; überdauert Tod und Respawn. */
+		FName EquippedWeapon;
 	};
+
+	/** PvP-Regel der Zone; bis das Backend antwortet, ist PvP aus. */
+	bool bPvPAllowed = false;
 
 	TMap<TObjectKey<APlayerController>, FPlayerSession> Sessions;
 	FTimerHandle SaveTimer;
@@ -78,7 +88,10 @@ private:
 	void SpawnAuthenticatedPlayer(APlayerController* PC, const TOptional<FTransform>& SavedTransform);
 	void Reject(APlayerController* PC, const FString& Reason);
 
-	void SaveSession(const FPlayerSession& Session, const APawn& Pawn) const;
+	void SaveSession(const APlayerController* PC, const FPlayerSession& Session, const APawn& Pawn) const;
+	void ReportKill(APlayerController* KillerPC, const FPlayerSession& Killer, const TSharedRef<FJsonObject>& Kill);
+	void ScheduleRespawn(APlayerController* PC);
+	void RespawnPlayer(APlayerController* PC);
 	void SaveAllPlayers();
 	void DisconnectTimedOutPlayers();
 

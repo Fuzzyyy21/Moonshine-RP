@@ -6,6 +6,8 @@
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
 #include "SVCCharacterScreen.h"
+#include "AbilitySystemComponent.h"
+#include "VCAttributeSet.h"
 #include "VCPlayerState.h"
 #include "VCProgressionComponent.h"
 #include "VCServerHooks.h"
@@ -115,6 +117,14 @@ void AVCPlayerController::VCStatus()
 	}
 	TArray<FString> Lines;
 	Lines.Add(FString::Printf(TEXT("Stufe %d, XP %lld"), Progression->GetLevel(), Progression->GetExperience()));
+	if (const UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+	{
+		Lines.Add(FString::Printf(TEXT("Leben %.0f / %.0f, Ausdauer %.0f / %.0f"),
+			ASC->GetNumericAttribute(UVCAttributeSet::GetHealthAttribute()),
+			ASC->GetNumericAttribute(UVCAttributeSet::GetMaxHealthAttribute()),
+			ASC->GetNumericAttribute(UVCAttributeSet::GetStaminaAttribute()),
+			ASC->GetNumericAttribute(UVCAttributeSet::GetMaxStaminaAttribute())));
+	}
 	for (const FVCSkillState& Skill : Progression->GetSkills())
 	{
 		Lines.Add(FString::Printf(TEXT("  %s: Stufe %d (Skillstufe %d), XP %lld"),

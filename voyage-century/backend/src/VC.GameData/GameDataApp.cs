@@ -27,8 +27,14 @@ public sealed record CreateCharacterRequest(string? Name, string? Gender, string
 public sealed record Position(double X, double Y, double Z, float Yaw);
 public sealed record CharacterState(
     long CharacterId, long AccountId, string Name, short Level, long Experience, string ProfessionCode, string? ZoneId,
-    Position? Position, IReadOnlyList<SkillState> Skills, string Gender, IReadOnlyDictionary<string, int> Appearance);
-public sealed record SaveStateRequest(long AccountId, string? ZoneId, double X, double Y, double Z, float Yaw);
+    Position? Position, IReadOnlyList<SkillState> Skills, string Gender, IReadOnlyDictionary<string, int> Appearance,
+    Vitals? Vitals = null);
+public sealed record SaveStateRequest(
+    long AccountId, string? ZoneId, double X, double Y, double Z, float Yaw,
+    int? Health = null, int? MaxHealth = null, int? Stamina = null, int? MaxStamina = null);
+
+/// <summary>Aktuelle Lebens- und Ausdauerpunkte; null, solange der Charakter noch nie gespeichert wurde.</summary>
+public sealed record Vitals(int Health, int MaxHealth, int Stamina, int MaxStamina);
 
 public sealed record AdminAuditRequest(
     long AdminAccountId, string? Command, string? TargetType, string? TargetId,
@@ -52,6 +58,7 @@ public static partial class GameDataApp
         builder.AddVcDefaults();
         builder.Services.AddOptions<GameDataOptions>()
             .Bind(builder.Configuration.GetSection(GameDataOptions.Section)).ValidateDataAnnotations().ValidateOnStart();
+        builder.Services.AddOptions<ContentOptions>().Bind(builder.Configuration.GetSection(ContentOptions.Section));
         builder.Services.AddOptions<ProgressionOptions>()
             .Bind(builder.Configuration.GetSection(ProgressionOptions.Section)).ValidateDataAnnotations().ValidateOnStart();
         return builder;
@@ -71,6 +78,7 @@ public static partial class GameDataApp
         internalApi.MapPut("/characters/{characterId:long}/state", SaveState);
         internalApi.MapPost("/admin-audit", WriteAdminAudit);
         ProgressionEndpoints.Map(internalApi);
+        CombatEndpoints.Map(internalApi);
         return app;
     }
 
@@ -191,8 +199,9 @@ public static partial class GameDataApp
         await using (var cmd = new NpgsqlCommand(
             """
             SELECT c.character_id, c.account_id, c.name, c.level, c.experience, p.code, c.zone_id, c.pos_x, c.pos_y, c.pos_z, c.yaw,
-                   c.gender, c.appearance::text
+                   c.gender, c.appearance::text, st.hp, st.hp_max, st.sp, st.sp_max
             FROM characters c JOIN professions p USING (profession_id)
+            LEFT JOIN character_stats st ON st.character_id = c.character_id
             WHERE c.character_id = @chr AND c.account_id = @acc AND c.deleted_at IS NULL
             """, conn))
         {
@@ -209,7 +218,8 @@ public static partial class GameDataApp
                 : new Position(reader.GetDouble(7), reader.GetDouble(8), reader.GetDouble(9), reader.IsDBNull(10) ? 0f : reader.GetFloat(10));
             state = new CharacterState(reader.GetInt64(0), reader.GetInt64(1), reader.GetString(2), reader.GetInt16(3),
                 reader.GetInt64(4), reader.GetString(5), reader.IsDBNull(6) ? null : reader.GetString(6), position, [],
-                reader.GetString(11), JsonSerializer.Deserialize<Dictionary<string, int>>(reader.GetString(12)) ?? []);
+                reader.GetString(11), JsonSerializer.Deserialize<Dictionary<string, int>>(reader.GetString(12)) ?? [],
+                reader.IsDBNull(13) ? null : new Vitals(reader.GetInt32(13), reader.GetInt32(14), reader.GetInt32(15), reader.GetInt32(16)));
         }
         return Results.Ok(state with { Skills = await ProgressionEndpoints.LoadSkills(conn, characterId, ct) });
     }
@@ -224,14 +234,24 @@ public static partial class GameDataApp
         {
             return BadRequest("Position ist ungültig");
         }
+        int?[] vitals = [req.Health, req.MaxHealth, req.Stamina, req.MaxStamina];
+        var hasVitals = vitals.Any(v => v is not null);
+        if (hasVitals && (vitals.Any(v => v is null) || req.MaxHealth <= 0 || req.MaxStamina <= 0
+            || req.Health < 0 || req.Health > req.MaxHealth || req.Stamina < 0 || req.Stamina > req.MaxStamina))
+        {
+            return BadRequest("Lebens- und Ausdauerwerte unvollständig oder außerhalb von 0 … Maximum");
+        }
+
+        await using var conn = await db.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
         try
         {
-            await using var cmd = db.CreateCommand(
+            await using var cmd = new NpgsqlCommand(
                 """
                 UPDATE characters
                 SET zone_id = @zone, pos_x = @x, pos_y = @y, pos_z = @z, yaw = @yaw, last_saved_at = now()
                 WHERE character_id = @chr AND account_id = @acc AND deleted_at IS NULL
-                """);
+                """, conn, tx);
             cmd.Parameters.AddWithValue("zone", req.ZoneId);
             cmd.Parameters.AddWithValue("x", req.X);
             cmd.Parameters.AddWithValue("y", req.Y);
@@ -239,14 +259,33 @@ public static partial class GameDataApp
             cmd.Parameters.AddWithValue("yaw", req.Yaw);
             cmd.Parameters.AddWithValue("chr", characterId);
             cmd.Parameters.AddWithValue("acc", req.AccountId);
-            return await cmd.ExecuteNonQueryAsync(ct) == 1
-                ? Results.NoContent()
-                : Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Charakter nicht gefunden");
+            if (await cmd.ExecuteNonQueryAsync(ct) != 1)
+            {
+                return Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Charakter nicht gefunden");
+            }
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation)
         {
             return BadRequest("Unbekannte Zone");
         }
+
+        if (hasVitals)
+        {
+            // Maximalwerte berechnet der Zonen-Server aus den Kampfregeln; gespeichert wird der zuletzt gültige Stand.
+            await using var stats = new NpgsqlCommand(
+                """
+                INSERT INTO character_stats (character_id, hp, hp_max, sp, sp_max) VALUES (@chr, @hp, @hpMax, @sp, @spMax)
+                ON CONFLICT (character_id) DO UPDATE SET hp = EXCLUDED.hp, hp_max = EXCLUDED.hp_max, sp = EXCLUDED.sp, sp_max = EXCLUDED.sp_max
+                """, conn, tx);
+            stats.Parameters.AddWithValue("chr", characterId);
+            stats.Parameters.AddWithValue("hp", req.Health!.Value);
+            stats.Parameters.AddWithValue("hpMax", req.MaxHealth!.Value);
+            stats.Parameters.AddWithValue("sp", req.Stamina!.Value);
+            stats.Parameters.AddWithValue("spMax", req.MaxStamina!.Value);
+            await stats.ExecuteNonQueryAsync(ct);
+        }
+        await tx.CommitAsync(ct);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> WriteAdminAudit(AdminAuditRequest req, NpgsqlDataSource db, CancellationToken ct)

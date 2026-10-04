@@ -82,14 +82,27 @@ public static class ProgressionEndpoints
         {
             return NotFound();
         }
-        var curve = await Curve.Load(conn, tx, "level_table", options.Value.AllowDevCurves, ct);
+        var progress = await ApplyCharacterXp(conn, tx, characterId, current.Value, req, options.Value.AllowDevCurves, ct);
+        await tx.CommitAsync(ct);
+        return Results.Ok(progress);
+    }
+
+    /// <summary>
+    /// Verbucht Charakter-XP innerhalb einer laufenden Transaktion. Der Aufrufer muss die Charakterzeile
+    /// bereits gesperrt haben (<see cref="LockCharacter"/>). Wird auch für XP aus Kills benutzt.
+    /// </summary>
+    internal static async Task<CharacterProgress> ApplyCharacterXp(
+        NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, (short Level, long Experience) current,
+        GrantRequest req, bool allowDevCurves, CancellationToken ct)
+    {
+        var curve = await Curve.Load(conn, tx, "level_table", allowDevCurves, ct);
         if (!await RecordGrant(conn, tx, req, characterId, "CHARACTER_XP", null, ct))
         {
-            return Results.Ok(new CharacterProgress(current.Value.Level, current.Value.Experience, curve.Cap, Duplicate: true));
+            return new CharacterProgress(current.Level, current.Experience, curve.Cap, Duplicate: true);
         }
 
-        var xp = checked(current.Value.Experience + req.Amount);
-        var level = Math.Max(current.Value.Level, curve.LevelFor(xp));
+        var xp = checked(current.Experience + req.Amount);
+        var level = Math.Max(current.Level, curve.LevelFor(xp));
         await using (var upd = new NpgsqlCommand(
             "UPDATE characters SET experience = @xp, level = @lvl WHERE character_id = @chr", conn, tx))
         {
@@ -98,13 +111,12 @@ public static class ProgressionEndpoints
             upd.Parameters.AddWithValue("chr", characterId);
             await upd.ExecuteNonQueryAsync(ct);
         }
-        if (level != current.Value.Level)
+        if (level != current.Level)
         {
             await GameEventLog.WriteAsync(conn, tx, new GameEvent("LEVEL_UP", req.AccountId, characterId,
-                OldValue: new { level = current.Value.Level }, NewValue: new { level, source = req.Source }), req.ServerId!, ct);
+                OldValue: new { level = current.Level }, NewValue: new { level, source = req.Source }), req.ServerId!, ct);
         }
-        await tx.CommitAsync(ct);
-        return Results.Ok(new CharacterProgress(level, xp, curve.Cap, Duplicate: false));
+        return new CharacterProgress(level, xp, curve.Cap, Duplicate: false);
     }
 
     private static async Task<IResult> GrantSkillXp(
@@ -262,7 +274,7 @@ public static class ProgressionEndpoints
         return null;
     }
 
-    private static async Task<(short Level, long Experience)?> LockCharacter(
+    internal static async Task<(short Level, long Experience)?> LockCharacter(
         NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, long? accountId, CancellationToken ct)
     {
         await using var cmd = new NpgsqlCommand(

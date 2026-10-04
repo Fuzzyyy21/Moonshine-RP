@@ -52,6 +52,7 @@ public sealed class TestBackend : IAsyncDisposable
             ["PasswordHash:Iterations"] = "1",
             ["PasswordHash:Parallelism"] = "1",
             ["Progression:AllowDevCurves"] = "true",
+            ["Content:AllowDevContent"] = "true",
         };
         foreach (var (k, v) in overrides ?? new Dictionary<string, string?>())
         {

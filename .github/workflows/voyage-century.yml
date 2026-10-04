@@ -28,6 +28,16 @@ jobs:
       - name: Generierte Dateien sind aktuell
         run: python3 tools/export_content.py --check
 
+  rules:
+    name: Kampfregeln (C++ ohne Unreal)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mit GCC bauen und testen
+        run: tools/test_rules.sh
+      - name: Mit Clang bauen und testen
+        run: CXX=clang++ tools/test_rules.sh
+
   backend:
     name: Datenbank und Backend
     runs-on: ubuntu-latest

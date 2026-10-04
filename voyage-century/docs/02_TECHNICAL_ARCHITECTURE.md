@@ -77,6 +77,7 @@ VoyageCentury/
 │   ├── VCCore/          Logging, Konfiguration, Fehlercodes, gemeinsame Typen
 │   ├── VCData/          Row-Structs der Data Tables, DataRegistry, Validierung beim Laden
 │   ├── VCNet/           Backend-Client (HTTP/JSON), Login-Ablauf, Zonenwechsel
+│   ├── VCRules/         Kampfregeln als reines C++ (ohne Engine, eigenständig getestet)
 │   ├── VCAbilities/     GAS: AttributeSets, Abilities, Effects, Tags
 │   ├── VCCharacter/     Charakter, Erscheinung, Level, Skills
 │   ├── VCCombat/        Landkampf, Schadens-Execution, Zielwahl
@@ -194,6 +195,9 @@ Dokumentation aktualisieren → erst dann nächstes System.
 | Logs | JSON auf stdout, quellgenerierte `LoggerMessage`-Methoden, keine Query-Strings/Bodies | sammelbar, schnell, keine Tickets/Passwörter im Log |
 | `VCServer` | Runtime-Modul statt ServerOnly; Service-Key-Pfade hinter `WITH_SERVER_CODE` | Karten und Konfiguration verweisen auf den GameMode; ein im Client fehlendes Modul würde Ladefehler erzeugen |
 | Zonenwahl | in Phase 1 fest per `-VCZone=`; World Directory folgt | erst nötig, wenn mehrere Zonen existieren |
+| Kampfregeln (Phase 3) | Formeln in `VCRules` ohne Unreal-Typen; GAS ruft sie auf | Regeln lassen sich ohne Engine testen (CI mit GCC und Clang); Zufall wird übergeben, daher reproduzierbar |
+| Ability System (Phase 3) | Spieler: ASC am PlayerState (Mixed); Gegner: ASC am Gegner (Minimal); Grundangriff nur auf dem Server | Attribute überdauern Tod/Respawn; Clients rechnen nie Schaden |
+| Gegner-KI (Phase 3) | C++-Zustandsautomat statt Behavior Tree | keine Binär-Assets nötig; Umstieg auf StateTree/BT, sobald Asset-Arbeit möglich ist |
 
 ### Login-Ablauf
 

@@ -121,6 +121,36 @@ ON CONFLICT (slot) DO UPDATE SET
     recon_id = EXCLUDED.recon_id,
     confidence = EXCLUDED.confidence;
 
+-- Entwicklungsinhalte Landkampf (design_data/dev_combat.json, is_dev = TRUE).
+
+INSERT INTO items (code, item_type, weapon_class, name_de, base_stats, durability_max, is_dev, confidence) VALUES
+    ('DEV_SWORD', 'WEAPON', 'SWORD', 'Übungsschwert', '{"attackInterval": 1.2, "baseDamage": 12, "rangeCm": 200, "skill": "SWORD"}'::jsonb, 100, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_BLADE', 'WEAPON', 'BLADE', 'Übungsklinge', '{"attackInterval": 1.0, "baseDamage": 10, "rangeCm": 190, "skill": "FALCHION"}'::jsonb, 100, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_AXE', 'WEAPON', 'AXE', 'Übungsaxt', '{"attackInterval": 2.0, "baseDamage": 18, "rangeCm": 180, "skill": "AXE"}'::jsonb, 100, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_PISTOL', 'WEAPON', 'FIREARM', 'Übungspistole', '{"attackInterval": 2.5, "baseDamage": 15, "rangeCm": 1500, "skill": "SHOOTING"}'::jsonb, 100, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    item_type = EXCLUDED.item_type,
+    weapon_class = EXCLUDED.weapon_class,
+    name_de = EXCLUDED.name_de,
+    base_stats = EXCLUDED.base_stats,
+    durability_max = EXCLUDED.durability_max,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO monsters (code, name_de, domain, is_pirate, level, hp, stats, xp_reward, is_dev, confidence) VALUES
+    ('DEV_TRAINING_DUMMY', 'Übungspuppe', 'LAND', FALSE, 1, 200, '{"aggro_radius_cm": 0, "attack_interval": 1.0, "attack_power": 0, "base_damage": 0, "defense": 0, "leash_radius_cm": 0, "range_cm": 0, "respawn_seconds": 10}'::jsonb, 20, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_PIRATE_BRAWLER', 'Übungspirat', 'LAND', TRUE, 3, 120, '{"aggro_radius_cm": 800, "attack_interval": 1.5, "attack_power": 2, "base_damage": 8, "defense": 5, "leash_radius_cm": 2000, "range_cm": 180, "respawn_seconds": 30}'::jsonb, 60, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_de = EXCLUDED.name_de,
+    domain = EXCLUDED.domain,
+    is_pirate = EXCLUDED.is_pirate,
+    level = EXCLUDED.level,
+    hp = EXCLUDED.hp,
+    stats = EXCLUDED.stats,
+    xp_reward = EXCLUDED.xp_reward,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO level_table (level, xp_required, is_dev, recon_id, confidence) VALUES
     (1, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),
     (2, 100, TRUE, NULL, 'UNKNOWN'::confidence_level),

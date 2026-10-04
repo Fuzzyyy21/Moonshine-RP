@@ -7,9 +7,10 @@ PostgreSQL.
 
 Unabhängig vom FiveM-Framework im Repo-Wurzelverzeichnis.
 
-**Aktueller Stand: Phase 1 – Technische Grundlage.** Backend (Login, Charaktere,
-Persistenz, Audit) läuft und ist getestet; das UE5-Projekt ist angelegt, aber noch
-nicht kompiliert (siehe [`unreal/README.md`](unreal/README.md)).
+**Aktueller Stand: Phase 3 – Landkampf (Iteration 1).** Backend (Login, Charaktere,
+Progression, Kampfergebnisse) und die Kampfregeln sind getestet; der Unreal-Code ist
+geschrieben, aber noch nicht kompiliert (siehe [`unreal/README.md`](unreal/README.md)).
+Stand je Phase: [`docs/05_ROADMAP.md`](docs/05_ROADMAP.md).
 
 ## Inhalt
 
@@ -43,6 +44,9 @@ tools/test_schema.sh
 
 # Backend bauen und alle Tests gegen echte PostgreSQL ausführen
 tools/test_backend.sh
+
+# Kampfregeln (reines C++) bauen und testen
+tools/test_rules.sh
 
 # Gelieferte Dateien read-only inventarisieren
 python3 tools/inventory_files.py /pfad/zu/originalen --out analysis/inventory.csv

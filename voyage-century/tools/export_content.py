@@ -133,9 +133,34 @@ def dev_curve(spec: dict) -> list[dict]:
     ]
 
 
+WEAPON_CLASS_UE = {"SWORD": "Sword", "BLADE": "Blade", "AXE": "Axe", "FIREARM": "Firearm", "UNARMED": "Unarmed"}
+
+
+def resolve_tuning(tuning: dict, records: dict[str, dict]) -> tuple[dict, dict]:
+    """Löst from_recon-Verweise auf. Liefert (Werte, {Feld: recon_id})."""
+    values, origins = {}, {}
+    for key, value in tuning.items():
+        if isinstance(value, dict) and "from_recon" in value:
+            rec = records.get(value["from_recon"])
+            resolved = known(rec["data"].get(value["field"])) if rec else None
+            if not isinstance(resolved, (int, float)):
+                raise SystemExit(f"design_data/dev_combat.json: {key} verweist auf {value['from_recon']}, Wert fehlt")
+            values[key] = resolved
+            origins[key] = rec["id"]
+        else:
+            values[key] = value
+    return values, origins
+
+
+def camel(key: str) -> str:
+    return "".join(part.capitalize() for part in key.split("_"))
+
+
 def sql_literal(value) -> str:
     if value is None:
         return "NULL"
+    if isinstance(value, dict):
+        return "'" + json.dumps(value, ensure_ascii=False, sort_keys=True).replace("'", "''") + "'::jsonb"
     if isinstance(value, bool):
         return "TRUE" if value else "FALSE"
     if isinstance(value, (int, float)):
@@ -163,7 +188,7 @@ def upsert(table: str, key: str, columns: list[str], rows: list[dict]) -> str:
     )
 
 
-def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict) -> str:
+def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
 
     def renamed(table_rows):
@@ -191,6 +216,20 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict) -> s
         upsert("appearance_slots", "slot", ["slot", "option_count", "sort_order", "is_dev", "recon_id", "confidence"],
                [{"slot": a["slot"], "option_count": a["option_count"], "sort_order": i, "is_dev": True,
                  "recon_id": None, "confidence": "UNKNOWN"} for i, a in enumerate(appearance["slots"])]),
+        "-- Entwicklungsinhalte Landkampf (design_data/dev_combat.json, is_dev = TRUE).\n",
+        upsert("items", "code", ["code", "item_type", "weapon_class", "name_de", "base_stats", "durability_max", "is_dev", "confidence"],
+               [{"code": w["code"], "item_type": "WEAPON", "weapon_class": w["class"], "name_de": w["name_de"],
+                 "base_stats": {"baseDamage": w["base_damage"], "attackInterval": w["attack_interval"], "rangeCm": w["range_cm"],
+                                "skill": w["skill"]},
+                 "durability_max": w["durability"], "is_dev": True, "confidence": "UNKNOWN"}
+                for w in combat["weapons"] if w["class"] != "UNARMED"]),
+        upsert("monsters", "code", ["code", "name_de", "domain", "is_pirate", "level", "hp", "stats", "xp_reward", "is_dev", "confidence"],
+               [{"code": m["code"], "name_de": m["name_de"], "domain": "LAND", "is_pirate": m["is_pirate"], "level": m["level"],
+                 "hp": m["max_health"],
+                 "stats": {k: m[k] for k in ("attack_power", "defense", "base_damage", "attack_interval", "range_cm",
+                                             "aggro_radius_cm", "leash_radius_cm", "respawn_seconds")},
+                 "xp_reward": m["xp_reward"], "is_dev": True, "confidence": "UNKNOWN"}
+                for m in combat["monsters"]]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -206,8 +245,26 @@ def ue_common(row: dict) -> dict:
     }
 
 
-def render_ue(rows: dict[str, list[dict]], appearance: dict) -> dict[str, list[dict]]:
+def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict) -> dict[str, list[dict]]:
     return {
+        "DT_CombatTuning.json": [
+            {"Name": "Default", **{camel(k): v for k, v in combat["tuning"].items()},
+             "ReconSources": ", ".join(f"{camel(k)}={v}" for k, v in sorted(combat["tuning_origins"].items()))}
+        ],
+        "DT_Weapons.json": [
+            {"Name": w["code"], "NameDe": w["name_de"], "WeaponClass": WEAPON_CLASS_UE[w["class"]], "SkillCode": w["skill"],
+             "BaseDamage": w["base_damage"], "AttackInterval": w["attack_interval"], "RangeCm": w["range_cm"],
+             "DurabilityMax": w["durability"] or 0, "bIsDev": True}
+            for w in combat["weapons"]
+        ],
+        "DT_Monsters.json": [
+            {"Name": m["code"], "NameDe": m["name_de"], "bIsPirate": m["is_pirate"], "Level": m["level"],
+             "MaxHealth": m["max_health"], "AttackPower": m["attack_power"], "Defense": m["defense"],
+             "BaseDamage": m["base_damage"], "AttackInterval": m["attack_interval"], "RangeCm": m["range_cm"],
+             "AggroRadiusCm": m["aggro_radius_cm"], "LeashRadiusCm": m["leash_radius_cm"],
+             "XpReward": m["xp_reward"], "RespawnSeconds": m["respawn_seconds"], "bIsDev": True}
+            for m in combat["monsters"]
+        ],
         "DT_AppearanceSlots.json": [
             {"Name": a["slot"], "OptionCount": a["option_count"], "SortOrder": i} for i, a in enumerate(appearance["slots"])
         ],
@@ -237,8 +294,10 @@ def outputs() -> dict[Path, str]:
 
     curves = json.loads((DESIGN_DIR / "dev_curves.json").read_text(encoding="utf-8"))
     appearance = json.loads((DESIGN_DIR / "appearance.json").read_text(encoding="utf-8"))
-    files = {SEED_FILE: render_sql(rows, curves, appearance)}
-    for name, table in render_ue(rows, appearance).items():
+    combat = json.loads((DESIGN_DIR / "dev_combat.json").read_text(encoding="utf-8"))
+    combat["tuning"], combat["tuning_origins"] = resolve_tuning(combat["tuning"], load_records())
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat)}
+    for name, table in render_ue(rows, appearance, combat).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files
 
