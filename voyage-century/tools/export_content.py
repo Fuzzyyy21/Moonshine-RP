@@ -309,7 +309,7 @@ def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: lis
 
 
 def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict,
-               world: dict, discoveries: dict, ships: dict, trade: dict) -> str:
+               world: dict, discoveries: dict, ships: dict, trade: dict, loot: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
     city_zones = {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]}
 
@@ -429,6 +429,30 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
         upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
                [{"rule_key": key, "int_value": round(trade["tuning"][field] * 1000), "is_dev": True, "confidence": "UNKNOWN"}
                 for key, field in sorted(TRADE_RULES.items())]),
+        "-- Inventar und Beute (design_data/dev_loot.json, is_dev = TRUE).\n",
+        upsert("items", "code", ["code", "item_type", "name_de", "stackable", "max_stack", "npc_price", "is_dev", "confidence"],
+               [{"code": m["code"], "item_type": "MATERIAL", "name_de": m["name_de"], "stackable": True, "max_stack": m["max_stack"],
+                 "npc_price": m["npc_price"], "is_dev": True, "confidence": "UNKNOWN"}
+                for m in sorted(loot["materials"], key=lambda m: m["code"])]),
+        upsert("materials", "item_id", ["item_id", "material_category"],
+               [{"item_id": SqlExpr(f"(SELECT item_id FROM items WHERE code = {sql_literal(m['code'])})"),
+                 "material_category": m["category"]} for m in sorted(loot["materials"], key=lambda m: m["code"])]),
+        "".join(f"UPDATE items SET npc_price = {sql_literal(price)} WHERE code = {sql_literal(code)};\n"
+                for code, price in sorted(loot["sell_prices"].items())),
+        upsert("loot_tables", "code", ["code", "gold_min", "gold_max", "is_dev"],
+               [{"code": t["code"], "gold_min": t["gold"]["min"] if t["gold"] else None,
+                 "gold_max": t["gold"]["max"] if t["gold"] else None, "is_dev": True}
+                for t in sorted(loot["loot_tables"], key=lambda t: t["code"])]),
+        upsert("loot_entries", ("loot_table_id", "item_id"), ["loot_table_id", "item_id", "chance", "min_qty", "max_qty"],
+               [{"loot_table_id": SqlExpr(f"(SELECT loot_table_id FROM loot_tables WHERE code = {sql_literal(t['code'])})"),
+                 "item_id": SqlExpr(f"(SELECT item_id FROM items WHERE code = {sql_literal(e['item'])})"),
+                 "chance": e["chance"], "min_qty": e["min"], "max_qty": e["max"]}
+                for t in sorted(loot["loot_tables"], key=lambda t: t["code"]) for e in sorted(t["entries"], key=lambda e: e["item"])]),
+        "".join(f"UPDATE monsters SET loot_table_id = (SELECT loot_table_id FROM loot_tables WHERE code = {sql_literal(t['code'])}) "
+                f"WHERE code = {sql_literal(code)};\n"
+                for t in sorted(loot["loot_tables"], key=lambda t: t["code"]) for code in sorted(t["monsters"])),
+        upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
+               [{"rule_key": "INVENTORY_SLOTS", "int_value": loot["inventory_slots"], "is_dev": True, "confidence": "UNKNOWN"}]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -473,6 +497,33 @@ def check_trade(trade: dict, city_zones: dict[str, str], port_cities: set[str]) 
             problems.append(f"Markt {key}: Preis und Gleichgewicht > 0, Auffüllen ≥ 0, Steuer 0 … <1")
     if problems:
         raise SystemExit("design_data/dev_trade.json:\n  " + "\n  ".join(problems))
+
+
+def check_loot(loot: dict, item_codes: set[str], monster_codes: set[str]) -> None:
+    problems = []
+    codes = item_codes | {m["code"] for m in loot["materials"]}
+    for m in loot["materials"]:
+        if not m["code"].startswith("DEV_") or not TAG_RE.match(m["code"]) or m["max_stack"] < 1 or m["npc_price"] < 0:
+            problems.append(f"{m['code']}: DEV_-Code, Stapel ≥ 1, Preis ≥ 0")
+    for code, price in loot["sell_prices"].items():
+        if code not in item_codes or price < 0:
+            problems.append(f"Verkaufspreis {code}: Item unbekannt oder Preis < 0")
+    if loot["inventory_slots"] < 1:
+        problems.append("inventory_slots ≥ 1")
+    claimed: set[str] = set()
+    for t in loot["loot_tables"]:
+        gold = t["gold"]
+        if gold and not 0 <= gold["min"] <= gold["max"]:
+            problems.append(f"{t['code']}: Gold 0 ≤ min ≤ max")
+        for monster in t["monsters"]:
+            if monster not in monster_codes or monster in claimed:
+                problems.append(f"{t['code']}: Gegner {monster} unbekannt oder schon vergeben")
+            claimed.add(monster)
+        for e in t["entries"]:
+            if e["item"] not in codes or not 0 < e["chance"] <= 1 or not 1 <= e["min"] <= e["max"]:
+                problems.append(f"{t['code']}/{e['item']}: Item bekannt, Chance 0 … 1, 1 ≤ min ≤ max")
+    if problems:
+        raise SystemExit("design_data/dev_loot.json:\n  " + "\n  ".join(problems))
 
 
 SERVICE_RULES = {"SHIP_REPAIR_GOLD_PER_HP": "repair_gold_per_hp", "SAILOR_HIRE_GOLD": "hire_gold_per_sailor",
@@ -669,7 +720,10 @@ def outputs() -> dict[Path, str]:
     trade = json.loads((DESIGN_DIR / "dev_trade.json").read_text(encoding="utf-8"))
     check_trade(trade, {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]},
                 {p["city"] for p in rows["ports"]})
-    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade)}
+    loot = json.loads((DESIGN_DIR / "dev_loot.json").read_text(encoding="utf-8"))
+    check_loot(loot, {w["code"] for w in combat["weapons"] if w["class"] != "UNARMED"} | {g["code"] for g in trade["goods"]},
+               {m["code"] for m in combat["monsters"]} | {pr["code"] for pr in ships["pirates"]})
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade, loot)}
     for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships, trade).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files

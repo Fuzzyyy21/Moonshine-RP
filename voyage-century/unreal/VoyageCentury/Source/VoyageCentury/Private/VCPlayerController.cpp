@@ -295,6 +295,48 @@ void AVCPlayerController::VCShipService(const FString& Kind, const FString& Amou
 	ServerShipCommand(TEXT("service"), Amount.IsEmpty() ? Kind : Kind + TEXT(" ") + Amount);
 }
 
+void AVCPlayerController::VCInventory()
+{
+	ServerInventoryCommand(TEXT("list"), FString());
+}
+
+void AVCPlayerController::VCEquip(const FString& InstanceId)
+{
+	ServerInventoryCommand(TEXT("equip"), InstanceId);
+}
+
+void AVCPlayerController::VCUnequip()
+{
+	ServerInventoryCommand(TEXT("unequip"), FString());
+}
+
+void AVCPlayerController::VCDiscard(const FString& InstanceId, const FString& Quantity)
+{
+	ServerInventoryCommand(TEXT("discard"), InstanceId + TEXT(" ") + Quantity);
+}
+
+void AVCPlayerController::VCSellItem(const FString& InstanceId, const FString& Quantity)
+{
+	ServerInventoryCommand(TEXT("sell"), InstanceId + TEXT(" ") + Quantity);
+}
+
+bool AVCPlayerController::ServerInventoryCommand_Validate(const FString& Command, const FString& Argument)
+{
+	return Command.Len() <= 16 && Argument.Len() <= 64;
+}
+
+void AVCPlayerController::ServerInventoryCommand_Implementation(const FString& Command, const FString& Argument)
+{
+	// Nur bekannte Befehle weiterreichen; Besitz, Art und Menge prüft das Backend.
+	static const TSet<FString> Allowed = { TEXT("list"), TEXT("equip"), TEXT("unequip"), TEXT("discard"), TEXT("sell") };
+	UWorld* World = GetWorld();
+	IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr);
+	if (Hooks && Allowed.Contains(Command))
+	{
+		Hooks->HandleInventoryCommand(this, Command, Argument);
+	}
+}
+
 void AVCPlayerController::VCMarket()
 {
 	ServerShipCommand(TEXT("market"), FString());

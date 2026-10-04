@@ -93,7 +93,8 @@ Testen:
 Tab                         → Ziel wählen (nächstes lebendes Ziel, erneut drücken wechselt)
 Linke Maustaste             → angreifen (Reichweite und Intervall prüft der Server)
 VCStatus                    → Leben, Stufe, Skills
-VCAdmin "equip DEV_SWORD"   → Waffe ausrüsten (Admin, protokolliert; Inventar folgt in Phase 6)
+VCAdmin "giveitem DEV_SWORD" → Schwert ins Inventar (Admin, protokolliert)
+VCInventory                 → Inventar mit Nummern; VCEquip <nr> rüstet das Schwert aus
 ```
 
 Erwartung: Übungspuppe besiegen → +20 XP (Wert aus dem Backend), jeder Treffer +5 Skill-XP auf den
@@ -184,6 +185,22 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Inventar und Beute (Phase 6, Iteration 2)
+
+Keine neue Data Table: Items, Plätze und Beute kommen aus dem Backend (`design_data/dev_loot.json`). Die ausgerüstete
+Waffe ist jetzt ein Item im Inventar und wird beim Login aus dem Backend übernommen; `VCAdmin "equip"` entfällt.
+
+```
+VCAdmin "giveitem DEV_SWORD"    → (Admin) Item ins Inventar; "giveitem DEV_MAT_CLOTH 50" für Stapel
+VCInventory                     → Plätze mit Nummer (Nr.), Menge, ausgerüstete Waffe [WEAPON]
+VCEquip <nr> | VCUnequip        → Waffe ausrüsten (tauscht mit der bisherigen) / ablegen (nur an Land)
+VCDiscard <nr> <menge>          → wegwerfen
+VCSellItem <nr> <menge>         → beim Händler verkaufen (Stoffrest 3, Eisen 8, Waffen 40/60 Gold)
+Übungspirat besiegen            → „Beute: …“ (Stoff, Eisen, selten eine Klinge, 5–20 Gold)
+```
+
+Was nicht ins Inventar (30 Plätze) passt, geht verloren und wird gemeldet.
+
 ## Hafenhandel (Phase 6, Iteration 1)
 
 `DT_Npcs` neu importieren (neue Rolle `Merchant`, Feld `bIsDev`). In `L_London` einen **VCNpc** mit *Npc Code*
@@ -257,14 +274,14 @@ Testen (Adminkonto, Backend in Development):
 
 ```
 VCAbilities                          → alle Fähigkeiten mit Voraussetzungen
-VCAdmin "equip DEV_SWORD"            → Schwert
+VCAdmin "giveitem DEV_SWORD", VCInventory, VCEquip <nr> → Schwert
 VCHotbar 1 DEV_POWER_STRIKE          → Platz 1 belegen (Backend speichert)
 VCHotbar 2 DEV_FIRST_AID
 Tab, dann 1                          → Wuchtschlag auf das Ziel; sofort erneut 1 → „Noch nicht bereit“
 2                                    → Erste Hilfe (nach erlittenem Schaden): Heilung alle 2 s, grüne Zahlen
-VCAdmin "equip DEV_BLADE"            → Klinge; VCAdmin "setskill FALCHION 5"
+VCAdmin "giveitem DEV_BLADE", VCEquip <nr> → Klinge; VCAdmin "setskill FALCHION 5"
 VCHotbar 3 DEV_CRIPPLING_SLASH       → Übungspirat wird langsamer und blutet (orange Zahlen)
-VCAdmin "equip DEV_UNARMED"          → unbewaffnet; mit VCAdmin "setskill BAREHAND 10" dann
+VCUnequip                            → unbewaffnet; mit VCAdmin "setskill BAREHAND 10" dann
 VCHotbar 4 DEV_STUNNING_BLOW         → Betäubungsschlag: Ziel 2 s betäubt
 VCHotbar 3 leer                      → Platz leeren
 ```

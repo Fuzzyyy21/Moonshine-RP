@@ -416,6 +416,9 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 		double Gold = 0.0;
 		Result.Json->TryGetNumberField(TEXT("gold"), Gold);
 		Session->Gold = static_cast<int64>(Gold);
+		// Ausgerüstete Waffe kommt aus dem Inventar des Backends (EQUIPMENT/WEAPON); ohne Eintrag unbewaffnet.
+		FString Weapon;
+		Session->EquippedWeapon = Result.Json->TryGetStringField(TEXT("equippedWeapon"), Weapon) ? FName(*Weapon) : NAME_None;
 
 		const TArray<TSharedPtr<FJsonValue>>* Found = nullptr;
 		if (Result.Json->TryGetArrayField(TEXT("discoveries"), Found) && Found)
@@ -726,32 +729,35 @@ void AVCGameMode::HandleAdminCommand(APlayerController* Issuer, const FString& C
 			PC->ClientMessage(FString::Printf(TEXT("Gold: %lld"), static_cast<int64>(Gold)));
 		});
 	}
-	else if (Command == TEXT("equip") && Args.Num() == 1 && Session->AdminLevel >= GetDefault<UVCServerSettings>()->TeleportAdminLevel)
+	else if (Command == TEXT("giveitem") && (Args.Num() == 1 || Args.Num() == 2))
 	{
-		// Bis das Inventar existiert (Phase 6), rüstet nur ein Admin Waffen aus – protokolliert.
-		const FName Weapon(*Args[0].ToUpper());
-		if (!FVCCombatData::FindWeapon(Weapon))
+		// Waffen und Items kommen jetzt aus dem Inventar; zum Testen legt ein Admin Items hinein (Rechte und Audit im Backend).
+		int32 Quantity = 1;
+		if (Args.Num() == 2 && (!LexTryParseString(Quantity, *Args[1]) || Quantity <= 0))
 		{
-			Issuer->ClientMessage(TEXT("Unbekannte Waffe (siehe DT_Weapons)"));
+			Issuer->ClientMessage(TEXT("Aufruf: VCAdmin \"giveitem <ITEM> [menge]\""));
 			return;
 		}
-		const TSharedRef<FJsonObject> Old = MakeShared<FJsonObject>();
-		Old->SetStringField(TEXT("weapon"), Session->EquippedWeapon.ToString());
-		const TSharedRef<FJsonObject> New = MakeShared<FJsonObject>();
-		New->SetStringField(TEXT("weapon"), Weapon.ToString());
 		TWeakObjectPtr<AVCGameMode> WeakThis(this);
-		AuditThenRun(Issuer, *Session, TEXT("/equip"), New, Old, New, [WeakThis, Weapon](APlayerController* PC)
-		{
-			FPlayerSession* S = WeakThis.IsValid() ? WeakThis->Sessions.Find(PC) : nullptr;
-			if (S)
+		TWeakObjectPtr<APlayerController> WeakPC(Issuer);
+		FVCServerBackend::AdminGrantItem(Session->CharacterId, Args[0].ToUpper(), Quantity, AdminContext(Issuer, *Session),
+			[WeakThis, WeakPC](const FVCHttpResult& Result)
 			{
-				S->EquippedWeapon = Weapon;
-			}
-			if (AVCCharacter* Character = Cast<AVCCharacter>(PC->GetPawn()))
-			{
-				Character->ServerSetEquippedWeapon(Weapon);
-			}
-		});
+				APlayerController* PC = WeakPC.Get();
+				double Placed = 0.0, Lost = 0.0;
+				if (!PC || !WeakThis.IsValid())
+				{
+					return;
+				}
+				if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetNumberField(TEXT("placed"), Placed))
+				{
+					PC->ClientMessage(FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+					return;
+				}
+				Result.Json->TryGetNumberField(TEXT("lost"), Lost);
+				PC->ClientMessage(FString::Printf(TEXT("Ins Inventar: %d%s"), static_cast<int32>(Placed),
+					Lost > 0.0 ? *FString::Printf(TEXT(" (%d passten nicht)"), static_cast<int32>(Lost)) : TEXT("")));
+			});
 	}
 	else
 	{
@@ -1074,7 +1080,8 @@ void AVCGameMode::ReportKill(APlayerController* KillerPC, const FPlayerSession& 
 	Kill->SetNumberField(TEXT("killerCharacterId"), static_cast<double>(Killer.CharacterId));
 	Kill->SetNumberField(TEXT("killerAccountId"), static_cast<double>(Killer.AccountId));
 	TWeakObjectPtr<APlayerController> WeakPC(KillerPC);
-	FVCServerBackend::ReportKill(Kill, [WeakPC](const FVCHttpResult& Result)
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	FVCServerBackend::ReportKill(Kill, [WeakPC, WeakThis](const FVCHttpResult& Result)
 	{
 		if (!Result.IsOk())
 		{
@@ -1086,6 +1093,43 @@ void AVCGameMode::ReportKill(APlayerController* KillerPC, const FPlayerSession& 
 		if (WeakPC.IsValid() && Result.Json.IsValid() && Result.Json->TryGetObjectField(TEXT("progress"), Progress) && Progress)
 		{
 			ApplyCharacterProgress(WeakPC.Get(), *Progress);
+		}
+		// Beute: was im Inventar landete und was nicht passte; Gold aus dem Ledger.
+		APlayerController* PC = WeakPC.Get();
+		const TArray<TSharedPtr<FJsonValue>>* Loot = nullptr;
+		if (!PC || !Result.Json.IsValid())
+		{
+			return;
+		}
+		double LootGold = 0.0;
+		if (Result.Json->TryGetNumberField(TEXT("lootGold"), LootGold) && LootGold > 0.0)
+		{
+			if (FPlayerSession* S = WeakThis.IsValid() ? WeakThis->Sessions.Find(PC) : nullptr)
+			{
+				S->Gold += static_cast<int64>(LootGold);
+			}
+			PC->ClientMessage(FString::Printf(TEXT("Beute: %lld Gold"), static_cast<int64>(LootGold)));
+		}
+		if (Result.Json->TryGetArrayField(TEXT("loot"), Loot) && Loot)
+		{
+			for (const TSharedPtr<FJsonValue>& Value : *Loot)
+			{
+				const TSharedPtr<FJsonObject> Drop = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Drop.IsValid())
+				{
+					continue;
+				}
+				FString Name;
+				if (!Drop->TryGetStringField(TEXT("nameDe"), Name) || Name.IsEmpty())
+				{
+					Name = Drop->GetStringField(TEXT("code"));
+				}
+				const int32 Quantity = static_cast<int32>(Drop->GetNumberField(TEXT("quantity")));
+				const int32 Lost = static_cast<int32>(Drop->GetNumberField(TEXT("lost")));
+				PC->ClientMessage(Lost > 0
+					? FString::Printf(TEXT("Beute: %d × %s – %d passten nicht ins Inventar"), Quantity, *Name, Lost)
+					: FString::Printf(TEXT("Beute: %d × %s"), Quantity, *Name));
+			}
 		}
 	});
 }
@@ -1349,6 +1393,141 @@ UClass* AVCGameMode::GetDefaultPawnClassForController_Implementation(AController
 		}
 	}
 	return Super::GetDefaultPawnClassForController_Implementation(InController);
+}
+
+void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FString& Command, const FString& Argument)
+{
+	FPlayerSession* Session = Player ? Sessions.Find(Player) : nullptr;
+	if (!Session || !Session->bAuthenticated || !Session->bClaimed)
+	{
+		return;
+	}
+	if (Session->bShipRequestInFlight)
+	{
+		Player->ClientMessage(TEXT("Bitte warten, die letzte Anfrage läuft noch."));
+		return;
+	}
+	TArray<FString> Parts;
+	Argument.ParseIntoArrayWS(Parts);
+	int64 InstanceId = 0;
+	int32 Quantity = 0;
+	const bool bHasId = Parts.Num() >= 1 && LexTryParseString(InstanceId, *Parts[0]) && InstanceId > 0;
+	const bool bHasAmount = Parts.Num() == 2 && LexTryParseString(Quantity, *Parts[1]) && Quantity > 0;
+	FString NpcCode;
+	if (Command == TEXT("sell"))
+	{
+		const FName Merchant = FindNpcInRange(Player, EVCNpcRole::Merchant);
+		if (Merchant.IsNone())
+		{
+			Player->ClientMessage(TEXT("Verkaufen geht beim Händler (in Reichweite stehen)."));
+			return;
+		}
+		NpcCode = Merchant.ToString();
+	}
+	if (Command != TEXT("list") && Command != TEXT("unequip") && (!bHasId || ((Command == TEXT("sell") || Command == TEXT("discard")) && !bHasAmount)))
+	{
+		Player->ClientMessage(TEXT("VCInventory | VCEquip <nr> | VCUnequip | VCDiscard <nr> <menge> | VCSellItem <nr> <menge>"));
+		return;
+	}
+	if (Command == TEXT("equip") && Cast<AVCShip>(Player->GetPawn()))
+	{
+		Player->ClientMessage(TEXT("Waffen wechseln nur an Land."));
+		return;
+	}
+
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(Player);
+	Session->bShipRequestInFlight = true;
+	auto Done = [WeakThis, WeakPC, Command](const FVCHttpResult& Result)
+	{
+		APlayerController* PC = WeakPC.Get();
+		FPlayerSession* S = WeakThis.IsValid() && PC ? WeakThis->Sessions.Find(PC) : nullptr;
+		if (!S)
+		{
+			return;
+		}
+		S->bShipRequestInFlight = false;
+		if (!Result.IsOk() || !Result.Json.IsValid())
+		{
+			PC->ClientMessage(FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+			return;
+		}
+		// equip/unequip/list antworten mit dem Inventar, sell/discard mit gold, total und inventory.
+		const TSharedPtr<FJsonObject>* Nested = nullptr;
+		const TSharedPtr<FJsonObject> Inventory = Result.Json->TryGetObjectField(TEXT("inventory"), Nested) && Nested ? *Nested : Result.Json;
+		double Gold = 0.0, Total = 0.0;
+		if (Result.Json->TryGetNumberField(TEXT("gold"), Gold))
+		{
+			S->Gold = static_cast<int64>(Gold);
+			Result.Json->TryGetNumberField(TEXT("total"), Total);
+			PC->ClientMessage(Command == TEXT("sell")
+				? FString::Printf(TEXT("Verkauft für %lld Gold. Gold: %lld"), static_cast<int64>(Total), S->Gold)
+				: FString(TEXT("Weggeworfen.")));
+		}
+		WeakThis->ApplyInventory(PC, Inventory, Command == TEXT("list"));
+	};
+	if (Command == TEXT("list"))
+	{
+		FVCServerBackend::LoadInventory(Session->CharacterId, Session->AccountId, MoveTemp(Done));
+	}
+	else
+	{
+		FVCServerBackend::InventoryAction(Session->CharacterId, Session->AccountId, Command, InstanceId, Quantity, NpcCode, MoveTemp(Done));
+	}
+}
+
+void AVCGameMode::ApplyInventory(APlayerController* PC, const TSharedPtr<FJsonObject>& Inventory, bool bPrint)
+{
+	FPlayerSession* Session = PC ? Sessions.Find(PC) : nullptr;
+	const TArray<TSharedPtr<FJsonValue>>* Items = nullptr;
+	if (!Session || !Inventory.IsValid() || !Inventory->TryGetArrayField(TEXT("items"), Items) || !Items)
+	{
+		return;
+	}
+	FName Weapon;
+	int32 Used = 0;
+	TArray<FString> Lines;
+	for (const TSharedPtr<FJsonValue>& Value : *Items)
+	{
+		const TSharedPtr<FJsonObject> Item = Value.IsValid() ? Value->AsObject() : nullptr;
+		if (!Item.IsValid())
+		{
+			continue;
+		}
+		const FString Location = Item->GetStringField(TEXT("location"));
+		FString Slot, Name;
+		Item->TryGetStringField(TEXT("slot"), Slot);
+		if (!Item->TryGetStringField(TEXT("nameDe"), Name) || Name.IsEmpty())
+		{
+			Name = Item->GetStringField(TEXT("code"));
+		}
+		const bool bEquipped = Location == TEXT("EQUIPMENT");
+		if (bEquipped && Slot == TEXT("WEAPON"))
+		{
+			Weapon = FName(*Item->GetStringField(TEXT("code")));
+		}
+		Used += bEquipped ? 0 : 1;
+		Lines.Add(FString::Printf(TEXT("  [%s] Nr. %lld %s × %d"), bEquipped ? *Slot : *FString::Printf(TEXT("Platz %s"), *Slot),
+			static_cast<int64>(Item->GetNumberField(TEXT("instanceId"))), *Name, static_cast<int32>(Item->GetNumberField(TEXT("quantity")))));
+	}
+	if (bPrint)
+	{
+		PC->ClientMessage(FString::Printf(TEXT("Inventar %d/%d, Gold %lld"), Used,
+			static_cast<int32>(Inventory->GetNumberField(TEXT("capacity"))), Session->Gold));
+		for (const FString& Line : Lines)
+		{
+			PC->ClientMessage(Line);
+		}
+	}
+	if (Weapon != Session->EquippedWeapon)
+	{
+		Session->EquippedWeapon = Weapon;
+		if (AVCCharacter* Character = Cast<AVCCharacter>(PC->GetPawn()))
+		{
+			Character->ServerSetEquippedWeapon(Weapon);
+		}
+		PC->ClientMessage(Weapon.IsNone() ? FString(TEXT("Unbewaffnet.")) : FString::Printf(TEXT("Ausgerüstet: %s"), *Weapon.ToString()));
+	}
 }
 
 FName AVCGameMode::FindNpcInRange(const APlayerController* Player, EVCNpcRole Role) const

@@ -7,7 +7,7 @@ PostgreSQL.
 
 Unabhängig vom FiveM-Framework im Repo-Wurzelverzeichnis.
 
-**Aktueller Stand: Phase 5 – Schiffe (Iteration 3: Rammen, Enterhaken, Entern, Minen; davor Seekampf, Piraten, Hafendienste, Kauf, Segeln, Wind); Phase 6 – Wirtschaft (Iteration 1: Hafenhandel mit Bestandspreisen, Wirtschaftsübersicht).**
+**Aktueller Stand: Phase 5 – Schiffe (Iteration 3: Rammen, Enterhaken, Entern, Minen; davor Seekampf, Piraten, Hafendienste, Kauf, Segeln, Wind); Phase 6 – Wirtschaft (Iteration 2: Inventar, Ausrüsten, Beute, Verkauf an den Händler; davor Hafenhandel mit Bestandspreisen, Wirtschaftsübersicht).**
 Backend (Login, Charaktere, Progression, Kampf, Hotbar, World Directory) und die Kampf- und Fähigkeitsregeln sind getestet; der Unreal-Code ist
 geschrieben, aber noch nicht kompiliert (siehe [`unreal/README.md`](unreal/README.md)).
 Stand je Phase: [`docs/05_ROADMAP.md`](docs/05_ROADMAP.md).

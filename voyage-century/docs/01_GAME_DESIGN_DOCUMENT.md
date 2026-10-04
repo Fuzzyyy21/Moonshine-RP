@@ -298,6 +298,13 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Gold: Kauf beim Händler ist eine Senke (`TRADE_BUY`), Verkauf eine Quelle (`TRADE_SELL`). Die Wirtschaftsübersicht zählt Quellen und Senken je Tag und Grund.
 * Offen: Wirkung der Rhetorik (Preisbonus), Aufstieg von Handelsschiffen durch Handel, echte Waren und Preise.
 
+**Umgesetzt (Phase 6, Iteration 2)** `[DESIGN]`, Regeln in `backend/src/VC.GameData/InventoryRules.cs` (getestet), Werte in `design_data/dev_loot.json`
+* Inventar mit 30 Plätzen; stapelbare Items füllen erst vorhandene Stapel, dann den niedrigsten freien Platz. Was nicht passt, geht verloren und wird gemeldet (kein Boden-Loot).
+* Ausgerüstete Waffe ist ein Item (EQUIPMENT/WEAPON); Ausrüsten tauscht mit der bisherigen. Damit kann der Client keine Waffe mehr behaupten, die er nicht besitzt.
+* Beute: jeder Eintrag einer Beutetabelle wird einzeln gewürfelt; Chance NULL (UNKNOWN) fällt nie. Goldbeute als Spanne, gebucht als Quelle `LOOT_GOLD`. Beute nur für Gegner, nicht im PvP.
+* Verkauf an den Händler zu `items.npc_price` (NULL = kauft er nicht), Quelle `ITEM_SELL`. Wegwerfen vernichtet.
+* Testmaterialien Stoffrest und Eisenstück stehen für die belegten, aber unbekannten Synthese-Materialien (SYS-EQUIP-SYNTHESIS).
+
 ---
 
 ## 14. Crafting und Berufe

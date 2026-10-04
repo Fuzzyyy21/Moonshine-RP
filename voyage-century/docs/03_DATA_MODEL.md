@@ -90,6 +90,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0010__ships.sql` | `ships.is_dev`, `crew_min`, `deceleration`, `start_crew`, `start_provisions`, `one_per_character`; `ship_instances.purchase_key` (Kauf genau einmal) |
 | `V0011__naval_combat.sql` | `game_rules.is_dev` (Hafenpreise), `ships.provisions_max` |
 | `V0012__port_trade.sql` | `npcs.is_dev`; `markets`: `supply`/`demand` → `stock`/`target_stock`, `restock_per_hour`, `is_dev`, ohne zwischengespeicherte Preise; ein Ladungsstapel je Schiff und Ware; `trade_transactions` (Idempotenz und Verlauf jedes Handels) |
+| `V0013__inventory_loot.sql` | `loot_tables.gold_min`/`gold_max`/`is_dev`, `inventory_operations` (Verkauf, Wegwerfen, Admin-Vergabe genau einmal), `combat_kills.loot` |
 | `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Häfen, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten, Zonen und Übergänge, Schiffe, Waren, Märkte, Händler) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);

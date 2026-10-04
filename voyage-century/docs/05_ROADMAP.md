@@ -88,7 +88,7 @@ Waffen, Angriffe, Fähigkeiten (GAS), Schaden, NPC-KI, PvE, PvP-Grundregeln.
 | UE: Hotbar (Tasten 1–0, `VCHotbar`), Speicherung über das Backend, Abklingzeiten | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
 | UE: HUD (Leben/Ausdauer, Zielrahmen, Statuseffekte, Hotbar, Kampftexte, Hinweis bei abgelehnter Fähigkeit) | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
 | Fähigkeiten für Gegner, Combos | ❌ Combos im Original nicht belegt; Gegnerfähigkeiten folgen mit belegten Gegnern | |
-| Beute/Drops | ❌ mit dem Inventar (Phase 6) | |
+| Beute/Drops | ✅ mit dem Inventar (Phase 6, It. 2) | `InventoryTests` |
 | Originalwerte für Waffen, Gegner, Formeln | ❌ blockiert | UNKNOWN |
 
 **Abnahme (Vorschlag)**: Spieler besiegt einen Gegner und erhält die im Backend hinterlegte XP; Waffenskill steigt durch Treffer; PvP-Kill nur in PvP-Zonen; Tod führt zu Respawn; manipulierte Schadens- oder Reichweitenangaben des Clients haben keine Wirkung (der Client sendet nur das Ziel).
@@ -141,7 +141,7 @@ Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Ma
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Werftmeister das Anfängerschiff erhalten; über den Hafen auf die Seezone → man steuert das Schiff; gegen den Wind keine Fahrt, mit halbem Wind am schnellsten; Proviant sinkt mit der Zeit; nach Neustart sind Schiff, Rumpf, Matrosen und Proviant gespeichert; ein zweites Anfängerschiff gibt es nicht.
 
-## Phase 6 – Wirtschaft (Iteration 1 fertig)
+## Phase 6 – Wirtschaft (Iteration 2 fertig)
 
 Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-Dashboard.
 
@@ -152,9 +152,16 @@ Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-D
 | Backend: Markt ansehen, Kaufen/Verkaufen beim Händler der eigenen Zone in den Laderaum des aktiven Schiffs, Ledger (Kauf Senke, Verkauf Quelle), idempotent, Preisgrenze; Wirtschaftsübersicht Quellen/Senken je Tag | ✅ It. 1 | `TradeTests` (5 Tests) |
 | UE: Händler-Rolle, `VCMarket`, `VCTrade` | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal |
 | Rhetorik-Wirkung auf Preise, Handels-Erfahrung für Handelsschiffe | ❌ | belegt als vorhanden, Wirkung UNKNOWN |
-| Inventar, Beute, Crafting, Sammelberufe | ❌ Iteration 2+ | Rezepte und Orte UNKNOWN |
+| Regeln (`InventoryRules`, Backend): Stapel auffüllen, freie Plätze, Überlauf; Beute würfeln (Chance UNKNOWN → fällt nie), Goldbeute | ✅ It. 2 | `InventoryRulesTests` (5 Fälle) |
+| Daten: zwei Testmaterialien, Ankaufspreise, Beutetabellen für Übungsgegner und Piratenschiff, Inventargröße; `V0013` (Goldbeute, `inventory_operations`, Beute im Kill) | ✅ It. 2 | Export `--check` (prüft Beute), Schematest |
+| Backend: Inventar, Waffe aus dem Inventar ausrüsten (Tausch), ablegen, wegwerfen, an den Händler verkaufen (Quelle `ITEM_SELL`), Admin-Vergabe mit Audit; Beute aus Kills ins Inventar, Gold als Quelle `LOOT_GOLD`; Waffe im Charakterzustand | ✅ It. 2 | `InventoryTests` (4 Tests) |
+| UE: `VCInventory`, `VCEquip`, `VCUnequip`, `VCDiscard`, `VCSellItem`, `VCAdmin "giveitem"`, Beutemeldung; Admin-`equip` entfällt | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
+| Crafting, Sammelberufe | ❌ Iteration 3 | Rezepte und Orte UNKNOWN |
+| Haltbarkeit, Sockel, Verfeinerung | ❌ | Mechanik teils belegt (SYS-SOCKETING, SYS-REFINEMENT), Werte UNKNOWN |
 | Auktionshaus, Handel zwischen Spielern | ❌ | |
 | Ledger-Dashboard als Oberfläche | ❌ | Daten liegen über `/internal/v1/economy/summary` vor |
+
+**Abnahme Iteration 2 (Vorschlag)**: Übungspirat besiegen → Beute erscheint im Inventar, Gold steigt; eine erbeutete Klinge ausrüsten, sie bleibt nach Neustart ausgerüstet; Material beim Händler verkaufen (Gold steigt genau einmal, auch bei Wiederholung); volles Inventar meldet verlorene Beute; ohne Inventar-Eintrag kann der Client keine Waffe ausrüsten.
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Händler Öl kaufen (Gold sinkt, Ware im Laderaum, Laderaum begrenzt), über die Seezone nach London segeln und dort mit Gewinn verkaufen; viele Käufe hintereinander machen die Ware teurer, nach einer Weile füllt sich der Bestand wieder auf; ein wiederholter Auftrag bucht nichts doppelt; die Wirtschaftsübersicht zeigt Kauf als Senke und Verkauf als Quelle.
 

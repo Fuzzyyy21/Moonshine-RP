@@ -183,6 +183,35 @@ void FVCServerBackend::Trade(int64 CharacterId, int64 AccountId, const FString& 
 	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/trade"), Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::LoadInventory(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback)
+{
+	FVCHttp::Send(TEXT("GET"), FString::Printf(TEXT("%s/inventory?accountId=%lld"), *CharacterUrl(CharacterId), AccountId), nullptr,
+		Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::InventoryAction(int64 CharacterId, int64 AccountId, const FString& Action, int64 InstanceId, int32 Quantity,
+	const FString& NpcCode, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetNumberField(TEXT("instanceId"), static_cast<double>(InstanceId));
+	Body->SetNumberField(TEXT("quantity"), Quantity);
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	if (!NpcCode.IsEmpty())
+	{
+		Body->SetStringField(TEXT("npcCode"), NpcCode);
+	}
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/inventory/") + Action, Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::AdminGrantItem(int64 CharacterId, const FString& ItemCode, int32 Quantity, const TSharedRef<FJsonObject>& AdminContext,
+	FVCHttpCallback Callback)
+{
+	AdminContext->SetStringField(TEXT("itemCode"), ItemCode);
+	AdminContext->SetNumberField(TEXT("quantity"), Quantity);
+	AdminContext->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/inventory/grant"), AdminContext, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::SaveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, int32 HullHp, int32 Crew, int32 Injured,
 	int32 Provisions, FVCHttpCallback Callback)
 {
@@ -320,6 +349,9 @@ void FVCServerBackend::SaveShip(int64, int64, int64, int32, int32, int32, int32,
 void FVCServerBackend::ShipService(int64, int64, int64, const FString&, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminGrantGold(int64, int64, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ViewMarket(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::LoadInventory(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::InventoryAction(int64, int64, const FString&, int64, int32, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::AdminGrantItem(int64, const FString&, int32, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Trade(int64, int64, const FString&, const FString&, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }

@@ -1,0 +1,44 @@
+{
+  "_comment": "DESIGNENTSCHEIDUNG (Priorität 6). Inventargröße, Stapelgrößen, Beutetabellen, Goldbeute und Händler-Ankaufspreise des Originals sind UNKNOWN. Belegt ist nur, dass es Materialien für Synthese gibt (SYS-EQUIP-SYNTHESIS) – welche, ist UNKNOWN. Alles hier ist Entwicklungsinhalt (DEV_, is_dev), damit Beute, Inventar und Verkauf testbar sind.",
+  "source": "SRC-DESIGN",
+  "inventory_slots": 30,
+  "materials": [
+    { "code": "DEV_MAT_CLOTH", "name_de": "Stoffrest (Test)", "category": "CLOTH", "max_stack": 99, "npc_price": 3 },
+    { "code": "DEV_MAT_IRON", "name_de": "Eisenstück (Test)", "category": "METAL", "max_stack": 99, "npc_price": 8 }
+  ],
+  "sell_prices": {
+    "DEV_SWORD": 40,
+    "DEV_BLADE": 40,
+    "DEV_AXE": 40,
+    "DEV_PISTOL": 60
+  },
+  "loot_tables": [
+    {
+      "code": "DEV_LOOT_DUMMY",
+      "monsters": ["DEV_TRAINING_DUMMY"],
+      "gold": null,
+      "entries": [
+        { "item": "DEV_MAT_CLOTH", "chance": 0.5, "min": 1, "max": 2 }
+      ]
+    },
+    {
+      "code": "DEV_LOOT_BRAWLER",
+      "monsters": ["DEV_PIRATE_BRAWLER"],
+      "gold": { "min": 5, "max": 20 },
+      "entries": [
+        { "item": "DEV_MAT_CLOTH", "chance": 0.6, "min": 1, "max": 3 },
+        { "item": "DEV_MAT_IRON", "chance": 0.3, "min": 1, "max": 1 },
+        { "item": "DEV_BLADE", "chance": 0.1, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "code": "DEV_LOOT_PIRATE_SLOOP",
+      "monsters": ["DEV_PIRATE_SLOOP"],
+      "gold": { "min": 30, "max": 80 },
+      "entries": [
+        { "item": "DEV_MAT_IRON", "chance": 0.5, "min": 2, "max": 4 },
+        { "item": "DEV_PISTOL", "chance": 0.15, "min": 1, "max": 1 }
+      ]
+    }
+  ]
+}

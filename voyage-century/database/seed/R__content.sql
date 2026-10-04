@@ -351,6 +351,63 @@ ON CONFLICT (rule_key) DO UPDATE SET
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 
+-- Inventar und Beute (design_data/dev_loot.json, is_dev = TRUE).
+
+INSERT INTO items (code, item_type, name_de, stackable, max_stack, npc_price, is_dev, confidence) VALUES
+    ('DEV_MAT_CLOTH', 'MATERIAL', 'Stoffrest (Test)', TRUE, 99, 3, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_MAT_IRON', 'MATERIAL', 'Eisenstück (Test)', TRUE, 99, 8, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    item_type = EXCLUDED.item_type,
+    name_de = EXCLUDED.name_de,
+    stackable = EXCLUDED.stackable,
+    max_stack = EXCLUDED.max_stack,
+    npc_price = EXCLUDED.npc_price,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO materials (item_id, material_category) VALUES
+    ((SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 'CLOTH'),
+    ((SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 'METAL')
+ON CONFLICT (item_id) DO UPDATE SET
+    material_category = EXCLUDED.material_category;
+
+UPDATE items SET npc_price = 40 WHERE code = 'DEV_AXE';
+UPDATE items SET npc_price = 40 WHERE code = 'DEV_BLADE';
+UPDATE items SET npc_price = 60 WHERE code = 'DEV_PISTOL';
+UPDATE items SET npc_price = 40 WHERE code = 'DEV_SWORD';
+
+INSERT INTO loot_tables (code, gold_min, gold_max, is_dev) VALUES
+    ('DEV_LOOT_BRAWLER', 5, 20, TRUE),
+    ('DEV_LOOT_DUMMY', NULL, NULL, TRUE),
+    ('DEV_LOOT_PIRATE_SLOOP', 30, 80, TRUE)
+ON CONFLICT (code) DO UPDATE SET
+    gold_min = EXCLUDED.gold_min,
+    gold_max = EXCLUDED.gold_max,
+    is_dev = EXCLUDED.is_dev;
+
+INSERT INTO loot_entries (loot_table_id, item_id, chance, min_qty, max_qty) VALUES
+    ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_BRAWLER'), (SELECT item_id FROM items WHERE code = 'DEV_BLADE'), 0.1, 1, 1),
+    ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_BRAWLER'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 0.6, 1, 3),
+    ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_BRAWLER'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 0.3, 1, 1),
+    ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_DUMMY'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 0.5, 1, 2),
+    ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_PIRATE_SLOOP'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 0.5, 2, 4),
+    ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_PIRATE_SLOOP'), (SELECT item_id FROM items WHERE code = 'DEV_PISTOL'), 0.15, 1, 1)
+ON CONFLICT (loot_table_id, item_id) DO UPDATE SET
+    chance = EXCLUDED.chance,
+    min_qty = EXCLUDED.min_qty,
+    max_qty = EXCLUDED.max_qty;
+
+UPDATE monsters SET loot_table_id = (SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_BRAWLER') WHERE code = 'DEV_PIRATE_BRAWLER';
+UPDATE monsters SET loot_table_id = (SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_DUMMY') WHERE code = 'DEV_TRAINING_DUMMY';
+UPDATE monsters SET loot_table_id = (SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_PIRATE_SLOOP') WHERE code = 'DEV_PIRATE_SLOOP';
+
+INSERT INTO game_rules (rule_key, int_value, is_dev, confidence) VALUES
+    ('INVENTORY_SLOTS', 30, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (rule_key) DO UPDATE SET
+    int_value = EXCLUDED.int_value,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO level_table (level, xp_required, is_dev, recon_id, confidence) VALUES
     (1, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),
     (2, 100, TRUE, NULL, 'UNKNOWN'::confidence_level),

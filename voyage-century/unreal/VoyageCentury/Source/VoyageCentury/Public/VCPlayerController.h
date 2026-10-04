@@ -27,6 +27,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCShipService <REPAIR|HEAL|HIRE n|PROVISIONS n>      Hafendienste für das aktive Schiff beim Werftmeister
  *   VCAdmin "givegold <menge>"
  *   VCMarket | VCTrade <BUY|SELL> <WARE> <menge>         Hafenhandel beim Händler, Ware im Laderaum des aktiven Schiffs
+ *   VCInventory | VCEquip <nr> | VCUnequip               Inventar, Waffe aus dem Inventar ausrüsten/ablegen
+ *   VCDiscard <nr> <menge> | VCSellItem <nr> <menge>     wegwerfen; an den Händler verkaufen
+ *   VCAdmin "giveitem <ITEM> [menge]"
  *
  * Passwörter in der Konsole sind nur für die Entwicklung gedacht; die Login-Oberfläche folgt.
  */
@@ -107,6 +110,21 @@ public:
 	UFUNCTION(Exec)
 	void VCTrade(const FString& Side, const FString& ItemCode, const FString& Quantity);
 
+	UFUNCTION(Exec)
+	void VCInventory();
+
+	UFUNCTION(Exec)
+	void VCEquip(const FString& InstanceId);
+
+	UFUNCTION(Exec)
+	void VCUnequip();
+
+	UFUNCTION(Exec)
+	void VCDiscard(const FString& InstanceId, const FString& Quantity);
+
+	UFUNCTION(Exec)
+	void VCSellItem(const FString& InstanceId, const FString& Quantity);
+
 protected:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerAdminCommand(const FString& CommandLine);
@@ -116,6 +134,9 @@ protected:
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerShipCommand(const FString& Command, const FString& Argument);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerInventoryCommand(const FString& Command, const FString& Argument);
 
 private:
 	class UVCSessionSubsystem* Session() const;

@@ -60,6 +60,7 @@ public:
 	virtual void HandleZoneExit(APawn* Pawn, FName ExitCode) override;
 	virtual void HandleDiscovery(APawn* Pawn, FName DiscoveryCode) override;
 	virtual void HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
+	virtual void HandleInventoryCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
 	virtual void HandleShipSunk(APawn* Ship, AActor* Killer) override;
 	virtual void HandleMonsterKill(AActor* Killer, FName MonsterCode) override;
 
@@ -78,6 +79,9 @@ protected:
 private:
 	/** NPC dieser Rolle in Interaktionsreichweite des Spielers (mit Latenz-Toleranz); None, wenn keiner. */
 	FName FindNpcInRange(const APlayerController* Player, EVCNpcRole Role) const;
+
+	/** Inventar-Antwort des Backends anzeigen und die ausgerüstete Waffe übernehmen (nur was das Backend bestätigt). */
+	void ApplyInventory(APlayerController* PC, const TSharedPtr<FJsonObject>& Inventory, bool bPrint);
 
 	struct FPlayerSession
 	{

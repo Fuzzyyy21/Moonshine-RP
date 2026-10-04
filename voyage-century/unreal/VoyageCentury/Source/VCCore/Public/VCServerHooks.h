@@ -51,6 +51,9 @@ public:
 	/** Schiffsbefehle eines Spielers: "list", "buy <SCHIFF>" (beim Werftmeister in der Nähe), "activate <instanceId>". */
 	virtual void HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument) = 0;
 
+	/** Inventarbefehle eines Spielers: "list", "equip <id>", "unequip", "discard <id> <n>", "sell <id> <n>" (beim Händler). */
+	virtual void HandleInventoryCommand(APlayerController* Player, const FString& Command, const FString& Argument) = 0;
+
 	/** Ein Spielerschiff ist gesunken (Rumpf 0). Speichern und den Spieler an Land zurückschicken. */
 	virtual void HandleShipSunk(APawn* Ship, AActor* Killer) = 0;
 
