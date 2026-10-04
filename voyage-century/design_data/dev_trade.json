@@ -1,0 +1,27 @@
+{
+  "_comment": "DESIGNENTSCHEIDUNG (Priorität 6). Belegt ist nur, dass es Handel gibt, Rhetorik ein Handels-Skill ist und Handelsschiffe durch Handel aufsteigen (SYS-TRADE, SKILL-ELOQUENCE, SHIPCLASS-MERCHANT). Waren, Preismodell, Steuern und der Ort des Händlers sind UNKNOWN. Alles hier ist Entwicklungsinhalt (DEV_, is_dev): zwei Testwaren mit gegenläufigem Preisgefälle zwischen London und Athen, damit sich eine Handelsroute über SEA_DEV testen lässt.",
+  "source": "SRC-DESIGN",
+  "tuning": {
+    "elasticity": 0.7,
+    "min_factor": 0.4,
+    "max_factor": 2.5,
+    "spread": 0.1
+  },
+  "goods": [
+    { "code": "DEV_GOOD_WOOL", "name_de": "Wolle (Test)" },
+    { "code": "DEV_GOOD_OIL", "name_de": "Öl (Test)" },
+    { "code": "DEV_GOOD_SPICE", "name_de": "Gewürze (Test)" }
+  ],
+  "merchants": [
+    { "code": "DEV_LONDON_MERCHANT", "city": "LONDON", "name_de": "Händler (Test)" },
+    { "code": "DEV_ATHENS_MERCHANT", "city": "ATHENS", "name_de": "Händler (Test)" }
+  ],
+  "markets": [
+    { "city": "LONDON", "good": "DEV_GOOD_WOOL", "base_price": 40, "target_stock": 600, "restock_per_hour": 300, "tax_rate": 0.05 },
+    { "city": "LONDON", "good": "DEV_GOOD_OIL", "base_price": 110, "target_stock": 200, "restock_per_hour": 100, "tax_rate": 0.05 },
+    { "city": "LONDON", "good": "DEV_GOOD_SPICE", "base_price": 260, "target_stock": 100, "restock_per_hour": 40, "tax_rate": 0.05 },
+    { "city": "ATHENS", "good": "DEV_GOOD_WOOL", "base_price": 95, "target_stock": 200, "restock_per_hour": 100, "tax_rate": 0.05 },
+    { "city": "ATHENS", "good": "DEV_GOOD_OIL", "base_price": 45, "target_stock": 600, "restock_per_hour": 300, "tax_rate": 0.05 },
+    { "city": "ATHENS", "good": "DEV_GOOD_SPICE", "base_price": 240, "target_stock": 100, "restock_per_hour": 40, "tax_rate": 0.05 }
+  ]
+}

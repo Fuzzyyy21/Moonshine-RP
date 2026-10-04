@@ -288,6 +288,16 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Gold-Senken: Reparaturen, Steuern, Crafting-Gebühren, Schiffskauf, Umbau, Marktgebühren, Matrosenlohn, Proviant.
 * Auktionshaus mit Einstellgebühr und Verkaufssteuer.
 
+**Umgesetzt (Phase 6, Iteration 1)** `[DESIGN]`, Regeln in `backend/src/VC.GameData/TradePricing.cs` (getestet), Werte in `design_data/dev_trade.json`
+* Jeder Markt (Hafen × Ware) hat Basispreis, Bestand und Gleichgewichtsbestand. Mittelpreis = Basis × (Gleichgewicht / Bestand)^0,7, begrenzt auf das 0,4- bis 2,5-Fache. Kaufen kostet Mittelpreis × 1,05 × (1 + Steuer), Verkaufen bringt Mittelpreis × 0,95 × (1 − Steuer); Steuer 5 %.
+* Jede Einheit wird einzeln zum Bestand nach ihrer Bewegung bewertet: große Käufe werden teurer, große Verkäufe billiger, und Kaufen mit sofortigem Rückverkauf im selben Hafen bringt nie Gewinn.
+* Der Bestand wandert mit festem Tempo je Stunde zurück zum Gleichgewicht (Händler kaufen nach bzw. verkaufen weiter).
+* Testwaren: Wolle billig in London (Kauf etwa 45), teuer in Athen (Verkauf etwa 85); Öl umgekehrt (Athen etwa 50, London etwa 99); Gewürze in beiden Häfen ähnlich teuer.
+* Ware liegt im Laderaum des aktiven Schiffs, eine Einheit = ein Platz; Laderaum aus `ships.cargo_capacity` (Handelsschiff am größten, belegt als Rangfolge).
+* Händler (Rolle MERCHANT) stehen als Entwicklungs-NPC in London und Athen, weil kein Händlerort belegt ist. Handel braucht den Händler der eigenen Zone.
+* Gold: Kauf beim Händler ist eine Senke (`TRADE_BUY`), Verkauf eine Quelle (`TRADE_SELL`). Die Wirtschaftsübersicht zählt Quellen und Senken je Tag und Grund.
+* Offen: Wirkung der Rhetorik (Preisbonus), Aufstieg von Handelsschiffen durch Handel, echte Waren und Preise.
+
 ---
 
 ## 14. Crafting und Berufe

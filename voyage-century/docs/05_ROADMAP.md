@@ -141,9 +141,22 @@ Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Ma
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Werftmeister das Anfängerschiff erhalten; über den Hafen auf die Seezone → man steuert das Schiff; gegen den Wind keine Fahrt, mit halbem Wind am schnellsten; Proviant sinkt mit der Zeit; nach Neustart sind Schiff, Rumpf, Matrosen und Proviant gespeichert; ein zweites Anfängerschiff gibt es nicht.
 
-## Phase 6 – Wirtschaft
+## Phase 6 – Wirtschaft (Iteration 1 fertig)
 
 Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-Dashboard.
+
+| Schritt | Status | Prüfung |
+|---|---|---|
+| Preisregeln (`TradePricing`, Backend): Preis nach Bestand zu Gleichgewicht, Spanne, Steuer, Einzelpreis je Einheit, Auffüllen über Zeit; Rückkauf im selben Hafen nie mit Gewinn | ✅ It. 1 | `TradePricingTests` (9 Fälle) |
+| Daten: drei Testwaren, Märkte in London und Athen mit gegenläufigem Preisgefälle, Händler als Entwicklungs-NPC, Preismodell in `game_rules`; `V0012` (Märkte, Ladungsstapel, `trade_transactions`) | ✅ It. 1 | Export `--check` (prüft Märkte), Schematest |
+| Backend: Markt ansehen, Kaufen/Verkaufen beim Händler der eigenen Zone in den Laderaum des aktiven Schiffs, Ledger (Kauf Senke, Verkauf Quelle), idempotent, Preisgrenze; Wirtschaftsübersicht Quellen/Senken je Tag | ✅ It. 1 | `TradeTests` (5 Tests) |
+| UE: Händler-Rolle, `VCMarket`, `VCTrade` | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal |
+| Rhetorik-Wirkung auf Preise, Handels-Erfahrung für Handelsschiffe | ❌ | belegt als vorhanden, Wirkung UNKNOWN |
+| Inventar, Beute, Crafting, Sammelberufe | ❌ Iteration 2+ | Rezepte und Orte UNKNOWN |
+| Auktionshaus, Handel zwischen Spielern | ❌ | |
+| Ledger-Dashboard als Oberfläche | ❌ | Daten liegen über `/internal/v1/economy/summary` vor |
+
+**Abnahme Iteration 1 (Vorschlag)**: In Athen beim Händler Öl kaufen (Gold sinkt, Ware im Laderaum, Laderaum begrenzt), über die Seezone nach London segeln und dort mit Gewinn verkaufen; viele Käufe hintereinander machen die Ware teurer, nach einer Weile füllt sich der Bestand wieder auf; ein wiederholter Auftrag bucht nichts doppelt; die Wirtschaftsübersicht zeigt Kauf als Senke und Verkauf als Quelle.
 
 ## Phase 7 – Sozial
 

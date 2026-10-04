@@ -92,6 +92,7 @@ public static partial class GameDataApp
         WorldEndpoints.Map(internalApi, client);
         DiscoveryEndpoints.Map(internalApi);
         ShipEndpoints.Map(internalApi);
+        TradeEndpoints.Map(internalApi);
         return app;
     }
 

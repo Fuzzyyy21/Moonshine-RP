@@ -274,7 +274,9 @@ UENUM(BlueprintType)
 enum class EVCNpcRole : uint8
 {
 	Shipyard,
-	OfficerExchange
+	OfficerExchange,
+	/** Händler am Markt; im Original ohne belegten Ort, daher nur als Entwicklungs-NPC (bIsDev). */
+	Merchant
 };
 
 /** NPC (DT_Npcs). Einzelne Namen sind UNKNOWN; der Name ist der Rollentitel der Quelle. */
@@ -286,6 +288,8 @@ struct VCDATA_API FVCNpcRow : public FVCReconRow
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC") EVCNpcRole Role = EVCNpcRole::Shipyard;
 	/** Stadt aus der Reconstruction Database (cities.code). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC") FString CityCode;
+	/** Entwicklungs-NPC ohne Beleg (z. B. Händler); das Backend bedient ihn nur mit Content:AllowDevContent. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC") bool bIsDev = false;
 };
 
 /** Entdeckungspunkt (DT_Discoveries). Die Belohnung legt das Backend fest; XpReward ist nur Anzeige. */

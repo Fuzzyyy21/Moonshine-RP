@@ -47,6 +47,11 @@ public:
 	/** Hafendienst beim Werftmeister: REPAIR, HEAL, HIRE (Amount), PROVISIONS (Amount). Antwort: ship, gold, cost. */
 	static void ShipService(int64 CharacterId, int64 AccountId, int64 InstanceId, const FString& NpcCode, const FString& Kind, int32 Amount,
 		FVCHttpCallback Callback);
+	/** Markt des Händlers: Waren mit Preisen der nächsten Einheit, eigene Ladung, Laderaum, Gold. */
+	static void ViewMarket(int64 CharacterId, int64 AccountId, const FString& NpcCode, FVCHttpCallback Callback);
+	/** Handel: Side BUY/SELL, Menge; Preis rechnet das Backend. Antwort: total, gold, stock, inCargo, cargoUsed, cargoCapacity. */
+	static void Trade(int64 CharacterId, int64 AccountId, const FString& NpcCode, const FString& ItemCode, const FString& Side,
+		int32 Quantity, FVCHttpCallback Callback);
 	/** Admin: Gold gutschreiben; Rechte, Ledger und Audit prüft/schreibt das Backend in einer Transaktion. */
 	static void AdminGrantGold(int64 CharacterId, int64 Amount, const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback);
 

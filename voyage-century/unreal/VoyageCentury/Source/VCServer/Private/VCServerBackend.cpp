@@ -164,6 +164,25 @@ void FVCServerBackend::ShipService(int64 CharacterId, int64 AccountId, int64 Ins
 		Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::ViewMarket(int64 CharacterId, int64 AccountId, const FString& NpcCode, FVCHttpCallback Callback)
+{
+	const FString Url = FString::Printf(TEXT("%s/market?accountId=%lld&serverId=%s&npcCode=%s"), *CharacterUrl(CharacterId), AccountId,
+		*FGenericPlatformHttp::UrlEncode(UVCServerSettings::GetServerId()), *FGenericPlatformHttp::UrlEncode(NpcCode));
+	FVCHttp::Send(TEXT("GET"), Url, nullptr, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::Trade(int64 CharacterId, int64 AccountId, const FString& NpcCode, const FString& ItemCode, const FString& Side,
+	int32 Quantity, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetStringField(TEXT("npcCode"), NpcCode);
+	Body->SetStringField(TEXT("itemCode"), ItemCode);
+	Body->SetStringField(TEXT("side"), Side);
+	Body->SetNumberField(TEXT("quantity"), Quantity);
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/trade"), Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::SaveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, int32 HullHp, int32 Crew, int32 Injured,
 	int32 Provisions, FVCHttpCallback Callback)
 {
@@ -300,6 +319,8 @@ void FVCServerBackend::SetActiveShip(int64, int64, int64, FVCHttpCallback Callba
 void FVCServerBackend::SaveShip(int64, int64, int64, int32, int32, int32, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ShipService(int64, int64, int64, const FString&, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminGrantGold(int64, int64, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ViewMarket(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::Trade(int64, int64, const FString&, const FString&, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }

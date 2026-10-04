@@ -335,7 +335,12 @@ void AVCHUD::DrawNpcDialog()
 	if (Row && Row->Role == EVCNpcRole::Shipyard)
 	{
 		Lines.Add(TEXT("Baut und verkauft Schiffe, übernimmt den Schiffsumbau."));
-		Lines.Add(TEXT("Dienst folgt mit Phase 5 (Schiffe)."));
+		Lines.Add(TEXT("VCBuyShip <SCHIFF>, VCShipService <REPAIR|HEAL|HIRE n|PROVISIONS n>; Umbau folgt."));
+	}
+	else if (Row && Row->Role == EVCNpcRole::Merchant)
+	{
+		Lines.Add(TEXT("Kauft und verkauft Waren (Entwicklungs-NPC, Ort im Original UNKNOWN)."));
+		Lines.Add(TEXT("VCMarket zeigt Preise; VCTrade <BUY|SELL> <WARE> <menge> lädt ins aktive Schiff."));
 	}
 	else if (Row && Row->Role == EVCNpcRole::OfficerExchange)
 	{
@@ -344,7 +349,7 @@ void AVCHUD::DrawNpcDialog()
 	}
 	if (Row)
 	{
-		Lines.Add(FString::Printf(TEXT("Beleg: %s"), *Row->ReconId));
+		Lines.Add(Row->ReconId.IsEmpty() ? FString(TEXT("Beleg: keiner (Entwicklungsinhalt)")) : FString::Printf(TEXT("Beleg: %s"), *Row->ReconId));
 	}
 
 	const float Width = 420.f;

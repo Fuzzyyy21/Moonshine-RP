@@ -7,6 +7,8 @@
 #include "VCServerHooks.h"
 #include "VCGameMode.generated.h"
 
+enum class EVCNpcRole : uint8;
+
 struct FVCHttpResult;
 class FJsonObject;
 
@@ -74,6 +76,9 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	/** NPC dieser Rolle in Interaktionsreichweite des Spielers (mit Latenz-Toleranz); None, wenn keiner. */
+	FName FindNpcInRange(const APlayerController* Player, EVCNpcRole Role) const;
+
 	struct FPlayerSession
 	{
 		FString Ticket;

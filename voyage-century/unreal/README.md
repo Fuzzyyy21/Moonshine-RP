@@ -184,6 +184,21 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Hafenhandel (Phase 6, Iteration 1)
+
+`DT_Npcs` neu importieren (neue Rolle `Merchant`, Feld `bIsDev`). In `L_London` einen **VCNpc** mit *Npc Code*
+`DEV_LONDON_MERCHANT` und in `L_Athens` einen mit `DEV_ATHENS_MERCHANT` platzieren. Das Backend braucht
+`Content:AllowDevContent` (Development).
+
+```
+VCMarket                        → beim Händler: Waren, Kauf-/Verkaufspreis der nächsten Einheit, Vorrat, an Bord, Laderaum
+VCTrade BUY DEV_GOOD_OIL 30     → in Athen billig kaufen (landet im aktiven Schiff)
+… über die Seezone nach London …
+VCTrade SELL DEV_GOOD_OIL 30    → teurer verkaufen
+```
+
+Gold-Quellen und -Senken: `GET /internal/v1/economy/summary?days=7` (interner Dienstzugang).
+
 ## Rammen, Enterhaken, Entern, Minen (Phase 5, Iteration 3)
 
 Keine neue Tabelle: die Werte stehen in `DT_ShipTuning` (Zeile `Default`, Kategorien Rammen/Enterhaken/Entern/Minen) –

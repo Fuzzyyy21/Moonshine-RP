@@ -294,3 +294,13 @@ void AVCPlayerController::VCShipService(const FString& Kind, const FString& Amou
 {
 	ServerShipCommand(TEXT("service"), Amount.IsEmpty() ? Kind : Kind + TEXT(" ") + Amount);
 }
+
+void AVCPlayerController::VCMarket()
+{
+	ServerShipCommand(TEXT("market"), FString());
+}
+
+void AVCPlayerController::VCTrade(const FString& Side, const FString& ItemCode, const FString& Quantity)
+{
+	ServerShipCommand(TEXT("trade"), FString::Printf(TEXT("%s %s %s"), *Side, *ItemCode, *Quantity));
+}

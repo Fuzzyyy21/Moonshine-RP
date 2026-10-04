@@ -69,7 +69,8 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 * `items.rarity` ist Freitext ohne CHECK, weil die Originalstufen UNKNOWN sind.
 * `officer_instances.role` ist Freitext aus demselben Grund.
 * `regions` und `continents` bleiben leer: Die einzige Seegebiet-Liste (`REGION-LIST-17173`) ist wegen Vermischungsgefahr mit 大航海时代 Online nicht übernommen; Zonen haben deshalb noch keine Region.
-* `npcs`: nur mit belegter Rolle und belegtem Ort; Name = Rollentitel der Quelle (einzelne Namen UNKNOWN).
+* `npcs`: nur mit belegter Rolle und belegtem Ort; Name = Rollentitel der Quelle (einzelne Namen UNKNOWN). Ausnahme sind Entwicklungs-NPCs (`is_dev`, Code `DEV_…`) wie die Händler.
+* `markets.stock` ist Laufzeitstand: Der Seed setzt ihn nur beim Anlegen, danach schreibt ihn nur der Handel fort.
 * `ports.has_*`: TRUE nur bei Beleg (Schiffsumbau in der Stadt → Werft), sonst NULL; „kein Dienst“ ist nie belegt.
 * Statuseffekte haben keine Tabelle: Sie leben nur auf dem Zonen-Server (`DT_StatusEffects`) und enden mit Tod oder Ausloggen.
 
@@ -88,7 +89,8 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0009__npcs_discoveries.sql` | `discoveries` (Punkt je Zone, `xp_reward` NULL = UNKNOWN), `character_discoveries` (einmal je Charakter) |
 | `V0010__ships.sql` | `ships.is_dev`, `crew_min`, `deceleration`, `start_crew`, `start_provisions`, `one_per_character`; `ship_instances.purchase_key` (Kauf genau einmal) |
 | `V0011__naval_combat.sql` | `game_rules.is_dev` (Hafenpreise), `ships.provisions_max` |
-| `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Häfen, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten, Zonen und Übergänge) |
+| `V0012__port_trade.sql` | `npcs.is_dev`; `markets`: `supply`/`demand` → `stock`/`target_stock`, `restock_per_hour`, `is_dev`, ohne zwischengespeicherte Preise; ein Ladungsstapel je Schiff und Ware; `trade_transactions` (Idempotenz und Verlauf jedes Handels) |
+| `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Häfen, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten, Zonen und Übergänge, Schiffe, Waren, Märkte, Händler) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);
 Änderungen kommen als neue Datei. `R__content.sql` wird nur über `tools/export_content.py`

@@ -26,6 +26,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCShips | VCBuyShip <SCHIFF> | VCSetShip <nummer>    eigene Schiffe, Kauf beim Werftmeister, aktives Schiff
  *   VCShipService <REPAIR|HEAL|HIRE n|PROVISIONS n>      Hafendienste für das aktive Schiff beim Werftmeister
  *   VCAdmin "givegold <menge>"
+ *   VCMarket | VCTrade <BUY|SELL> <WARE> <menge>         Hafenhandel beim Händler, Ware im Laderaum des aktiven Schiffs
  *
  * Passwörter in der Konsole sind nur für die Entwicklung gedacht; die Login-Oberfläche folgt.
  */
@@ -99,6 +100,12 @@ public:
 
 	UFUNCTION(Exec)
 	void VCShipService(const FString& Kind, const FString& Amount);
+
+	UFUNCTION(Exec)
+	void VCMarket();
+
+	UFUNCTION(Exec)
+	void VCTrade(const FString& Side, const FString& ItemCode, const FString& Quantity);
 
 protected:
 	UFUNCTION(Server, Reliable, WithValidation)

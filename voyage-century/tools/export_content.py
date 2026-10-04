@@ -285,7 +285,9 @@ def sql_literal(value) -> str:
     return "'" + str(value).replace("'", "''") + "'"
 
 
-def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: list[dict]) -> str:
+def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: list[dict],
+           insert_only: tuple[str, ...] = ()) -> str:
+    """insert_only: Spalten, die nur beim Anlegen gesetzt werden (Laufzeitstand wie Marktbestände bleibt erhalten)."""
     if not rows:
         return f"-- {table}: keine Datensätze\n"
     values = []
@@ -298,7 +300,7 @@ def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: lis
             cells.append(lit)
         values.append("    (" + ", ".join(cells) + ")")
     keys = (key,) if isinstance(key, str) else key
-    updates = ",\n    ".join(f"{c} = EXCLUDED.{c}" for c in columns if c not in keys)
+    updates = ",\n    ".join(f"{c} = EXCLUDED.{c}" for c in columns if c not in keys and c not in insert_only)
     return (
         f"INSERT INTO {table} ({', '.join(columns)}) VALUES\n"
         + ",\n".join(values)
@@ -307,7 +309,7 @@ def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: lis
 
 
 def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict,
-               world: dict, discoveries: dict, ships: dict) -> str:
+               world: dict, discoveries: dict, ships: dict, trade: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
     city_zones = {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]}
 
@@ -406,6 +408,27 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
                  "stats": {k: pr[k] for k in ("crew", "cannon", "aggro_radius_cm", "leash_radius_cm", "respawn_seconds")},
                  "xp_reward": pr["xp_reward"], "is_dev": True, "confidence": "UNKNOWN"}
                 for pr in ships["pirates"]]),
+        "-- Hafenhandel (design_data/dev_trade.json, is_dev = TRUE). Bestände nur beim Anlegen: danach Laufzeitstand.\n",
+        upsert("items", "code", ["code", "item_type", "name_de", "stackable", "max_stack", "is_dev", "confidence"],
+               [{"code": g["code"], "item_type": "TRADE_GOOD", "name_de": g["name_de"], "stackable": True,
+                 "max_stack": TRADE_MAX_STACK, "is_dev": True, "confidence": "UNKNOWN"}
+                for g in sorted(trade["goods"], key=lambda g: g["code"])]),
+        upsert("npcs", "code", ["code", "name_de", "npc_role", "port_id", "zone_id", "is_dev", "confidence"],
+               [{"code": m["code"], "name_de": m["name_de"], "npc_role": "MERCHANT",
+                 "port_id": SqlExpr(f"(SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = {sql_literal(m['city'])})"),
+                 "zone_id": city_zones[m["city"]], "is_dev": True, "confidence": "UNKNOWN"}
+                for m in sorted(trade["merchants"], key=lambda m: m["code"])]),
+        upsert("markets", ("port_id", "item_id"),
+               ["port_id", "item_id", "base_price", "stock", "target_stock", "restock_per_hour", "tax_rate", "is_dev"],
+               [{"port_id": SqlExpr(f"(SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = {sql_literal(m['city'])})"),
+                 "item_id": SqlExpr(f"(SELECT item_id FROM items WHERE code = {sql_literal(m['good'])})"),
+                 "base_price": m["base_price"], "stock": m["target_stock"], "target_stock": m["target_stock"],
+                 "restock_per_hour": m["restock_per_hour"], "tax_rate": m["tax_rate"], "is_dev": True}
+                for m in sorted(trade["markets"], key=lambda m: (m["city"], m["good"]))],
+               insert_only=("stock",)),
+        upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
+               [{"rule_key": key, "int_value": round(trade["tuning"][field] * 1000), "is_dev": True, "confidence": "UNKNOWN"}
+                for key, field in sorted(TRADE_RULES.items())]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -419,6 +442,37 @@ def ue_common(row: dict) -> dict:
         "NameZh": row["zh"] or "", "NameEn": row["en"] or "", "NameDe": row["de"] or "",
         "ReconId": row["recon_id"], "Confidence": UE_CONFIDENCE[row["confidence"]],
     }
+
+
+# Preismodell-Parameter in Promille (game_rules kennt nur Ganzzahlen).
+TRADE_RULES = {"TRADE_ELASTICITY_PERMILLE": "elasticity", "TRADE_MIN_FACTOR_PERMILLE": "min_factor",
+               "TRADE_MAX_FACTOR_PERMILLE": "max_factor", "TRADE_SPREAD_PERMILLE": "spread"}
+# Stapelgrenze für Waren: Die Ladung begrenzt der Laderaum, nicht der Stapel.
+TRADE_MAX_STACK = 1_000_000
+
+
+def check_trade(trade: dict, city_zones: dict[str, str], port_cities: set[str]) -> None:
+    problems = []
+    t = trade["tuning"]
+    if not (0 < t["min_factor"] <= 1 <= t["max_factor"]) or not 0 <= t["spread"] < 1 or t["elasticity"] < 0:
+        problems.append("Tuning: min_factor ≤ 1 ≤ max_factor, spread 0 … <1, elasticity ≥ 0")
+    goods = {g["code"] for g in trade["goods"]}
+    for g in trade["goods"]:
+        if not g["code"].startswith("DEV_") or not TAG_RE.match(g["code"]):
+            problems.append(f"{g['code']}: Entwicklungsware braucht DEV_-Code")
+    for m in trade["merchants"]:
+        if not m["code"].startswith("DEV_") or m["city"] not in city_zones or m["city"] not in port_cities:
+            problems.append(f"{m['code']}: DEV_-Code und Stadt mit Zone und Hafen nötig")
+    seen = set()
+    for m in trade["markets"]:
+        key = (m["city"], m["good"])
+        if key in seen or m["good"] not in goods or m["city"] not in port_cities:
+            problems.append(f"Markt {key}: doppelt, Ware unbekannt oder Stadt ohne Hafen")
+        seen.add(key)
+        if m["base_price"] <= 0 or m["target_stock"] <= 0 or m["restock_per_hour"] < 0 or not 0 <= m["tax_rate"] < 1:
+            problems.append(f"Markt {key}: Preis und Gleichgewicht > 0, Auffüllen ≥ 0, Steuer 0 … <1")
+    if problems:
+        raise SystemExit("design_data/dev_trade.json:\n  " + "\n  ".join(problems))
 
 
 SERVICE_RULES = {"SHIP_REPAIR_GOLD_PER_HP": "repair_gold_per_hp", "SAILOR_HIRE_GOLD": "hire_gold_per_sailor",
@@ -480,14 +534,14 @@ def check_ships(ships: dict, class_codes: set[str], zone_ids: set[str]) -> None:
         raise SystemExit("design_data/dev_ships.json:\n  " + "\n  ".join(problems))
 
 
-NPC_ROLE_UE = {"SHIPYARD": "Shipyard", "OFFICER_EXCHANGE": "OfficerExchange"}
+NPC_ROLE_UE = {"SHIPYARD": "Shipyard", "OFFICER_EXCHANGE": "OfficerExchange", "MERCHANT": "Merchant"}
 
 
 SHIP_CLASS_UE = {"BATTLE": "Battle", "RAIDER": "Raider", "MERCHANT": "Merchant", "BEGINNER": "Beginner"}
 
 
 def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abilities: dict,
-              discoveries: dict, ships: dict) -> dict[str, list[dict]]:
+              discoveries: dict, ships: dict, trade: dict) -> dict[str, list[dict]]:
     t = ships["tuning"]
     return {
         "DT_Ships.json": sorted(
@@ -521,8 +575,11 @@ def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abili
             for w in sorted(ships["wind"], key=lambda w: w["zone"])
         ],
         "DT_Npcs.json": [
-            {"Name": n["code"], **ue_common(n), "Role": NPC_ROLE_UE[n["role"]], "CityCode": n["city"]}
-            for n in sorted(rows["npcs"], key=lambda n: n["code"])
+            {"Name": n["code"], **ue_common(n), "Role": NPC_ROLE_UE[n["role"]], "CityCode": n["city"], "bIsDev": n["is_dev"]}
+            for n in sorted([{**n, "is_dev": False} for n in rows["npcs"]]
+                            + [{"code": m["code"], "zh": None, "en": None, "de": m["name_de"], "recon_id": "",
+                                "confidence": "UNKNOWN", "role": "MERCHANT", "city": m["city"], "is_dev": True}
+                               for m in trade["merchants"]], key=lambda n: n["code"])
         ],
         "DT_Discoveries.json": [
             {"Name": d["code"], "NameDe": d["name_de"], "ZoneId": d["zone"], "XpReward": d["xp_reward"], "bIsDev": True}
@@ -609,8 +666,11 @@ def outputs() -> dict[Path, str]:
             raise SystemExit(f"design_data/dev_discoveries.json: {d['code']} (Zone {d['zone']} unbekannt oder Code ungültig)")
     ships = json.loads((DESIGN_DIR / "dev_ships.json").read_text(encoding="utf-8"))
     check_ships(ships, {c["code"] for c in rows["ship_classes"]}, zone_ids)
-    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships)}
-    for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships).items():
+    trade = json.loads((DESIGN_DIR / "dev_trade.json").read_text(encoding="utf-8"))
+    check_trade(trade, {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]},
+                {p["city"] for p in rows["ports"]})
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade)}
+    for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships, trade).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files
 

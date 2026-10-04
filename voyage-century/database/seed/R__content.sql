@@ -302,6 +302,55 @@ ON CONFLICT (code) DO UPDATE SET
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 
+-- Hafenhandel (design_data/dev_trade.json, is_dev = TRUE). Bestände nur beim Anlegen: danach Laufzeitstand.
+
+INSERT INTO items (code, item_type, name_de, stackable, max_stack, is_dev, confidence) VALUES
+    ('DEV_GOOD_OIL', 'TRADE_GOOD', 'Öl (Test)', TRUE, 1000000, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_GOOD_SPICE', 'TRADE_GOOD', 'Gewürze (Test)', TRUE, 1000000, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_GOOD_WOOL', 'TRADE_GOOD', 'Wolle (Test)', TRUE, 1000000, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    item_type = EXCLUDED.item_type,
+    name_de = EXCLUDED.name_de,
+    stackable = EXCLUDED.stackable,
+    max_stack = EXCLUDED.max_stack,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO npcs (code, name_de, npc_role, port_id, zone_id, is_dev, confidence) VALUES
+    ('DEV_ATHENS_MERCHANT', 'Händler (Test)', 'MERCHANT', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'ATHENS'), 'CITY_ATHENS', TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_LONDON_MERCHANT', 'Händler (Test)', 'MERCHANT', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'LONDON'), 'CITY_LONDON', TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_de = EXCLUDED.name_de,
+    npc_role = EXCLUDED.npc_role,
+    port_id = EXCLUDED.port_id,
+    zone_id = EXCLUDED.zone_id,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO markets (port_id, item_id, base_price, stock, target_stock, restock_per_hour, tax_rate, is_dev) VALUES
+    ((SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'ATHENS'), (SELECT item_id FROM items WHERE code = 'DEV_GOOD_OIL'), 45, 600, 600, 300, 0.05, TRUE),
+    ((SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'ATHENS'), (SELECT item_id FROM items WHERE code = 'DEV_GOOD_SPICE'), 240, 100, 100, 40, 0.05, TRUE),
+    ((SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'ATHENS'), (SELECT item_id FROM items WHERE code = 'DEV_GOOD_WOOL'), 95, 200, 200, 100, 0.05, TRUE),
+    ((SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'LONDON'), (SELECT item_id FROM items WHERE code = 'DEV_GOOD_OIL'), 110, 200, 200, 100, 0.05, TRUE),
+    ((SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'LONDON'), (SELECT item_id FROM items WHERE code = 'DEV_GOOD_SPICE'), 260, 100, 100, 40, 0.05, TRUE),
+    ((SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'LONDON'), (SELECT item_id FROM items WHERE code = 'DEV_GOOD_WOOL'), 40, 600, 600, 300, 0.05, TRUE)
+ON CONFLICT (port_id, item_id) DO UPDATE SET
+    base_price = EXCLUDED.base_price,
+    target_stock = EXCLUDED.target_stock,
+    restock_per_hour = EXCLUDED.restock_per_hour,
+    tax_rate = EXCLUDED.tax_rate,
+    is_dev = EXCLUDED.is_dev;
+
+INSERT INTO game_rules (rule_key, int_value, is_dev, confidence) VALUES
+    ('TRADE_ELASTICITY_PERMILLE', 700, TRUE, 'UNKNOWN'::confidence_level),
+    ('TRADE_MAX_FACTOR_PERMILLE', 2500, TRUE, 'UNKNOWN'::confidence_level),
+    ('TRADE_MIN_FACTOR_PERMILLE', 400, TRUE, 'UNKNOWN'::confidence_level),
+    ('TRADE_SPREAD_PERMILLE', 100, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (rule_key) DO UPDATE SET
+    int_value = EXCLUDED.int_value,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO level_table (level, xp_required, is_dev, recon_id, confidence) VALUES
     (1, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),
     (2, 100, TRUE, NULL, 'UNKNOWN'::confidence_level),

@@ -408,7 +408,7 @@ public static class ShipEndpoints
     }
 
     /// <summary>Kontostand ändern und im Ledger buchen (append-only). Gibt den neuen Stand zurück.</summary>
-    private static async Task<long> Book(
+    internal static async Task<long> Book(
         NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, long delta, string reason, string flow, Guid key,
         string serverId, CancellationToken ct)
     {

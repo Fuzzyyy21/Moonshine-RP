@@ -7,7 +7,8 @@
     "ReconId": "SHIP-ACQUISITION",
     "Confidence": "Uncertain",
     "Role": "Shipyard",
-    "CityCode": "ALGIERS"
+    "CityCode": "ALGIERS",
+    "bIsDev": false
   },
   {
     "Name": "ATHENS_SHIPYARD",
@@ -17,7 +18,30 @@
     "ReconId": "SHIP-ACQUISITION",
     "Confidence": "Uncertain",
     "Role": "Shipyard",
-    "CityCode": "ATHENS"
+    "CityCode": "ATHENS",
+    "bIsDev": false
+  },
+  {
+    "Name": "DEV_ATHENS_MERCHANT",
+    "NameZh": "",
+    "NameEn": "",
+    "NameDe": "Händler (Test)",
+    "ReconId": "",
+    "Confidence": "Unknown",
+    "Role": "Merchant",
+    "CityCode": "ATHENS",
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_LONDON_MERCHANT",
+    "NameZh": "",
+    "NameEn": "",
+    "NameDe": "Händler (Test)",
+    "ReconId": "",
+    "Confidence": "Unknown",
+    "Role": "Merchant",
+    "CityCode": "LONDON",
+    "bIsDev": true
   },
   {
     "Name": "GENOA_SHIPYARD",
@@ -27,7 +51,8 @@
     "ReconId": "SHIP-ACQUISITION",
     "Confidence": "Uncertain",
     "Role": "Shipyard",
-    "CityCode": "GENOA"
+    "CityCode": "GENOA",
+    "bIsDev": false
   },
   {
     "Name": "HAMBURG_SHIPYARD",
@@ -37,7 +62,8 @@
     "ReconId": "SHIP-ACQUISITION",
     "Confidence": "Uncertain",
     "Role": "Shipyard",
-    "CityCode": "HAMBURG"
+    "CityCode": "HAMBURG",
+    "bIsDev": false
   },
   {
     "Name": "LONDON_OFFICER_EXCHANGE",
@@ -47,7 +73,8 @@
     "ReconId": "SYS-OFFICER-CARDS",
     "Confidence": "Uncertain",
     "Role": "OfficerExchange",
-    "CityCode": "LONDON"
+    "CityCode": "LONDON",
+    "bIsDev": false
   },
   {
     "Name": "MUSCAT_SHIPYARD",
@@ -57,7 +84,8 @@
     "ReconId": "SHIP-ACQUISITION",
     "Confidence": "Uncertain",
     "Role": "Shipyard",
-    "CityCode": "MUSCAT"
+    "CityCode": "MUSCAT",
+    "bIsDev": false
   },
   {
     "Name": "SEOUL_SHIPYARD",
@@ -67,7 +95,8 @@
     "ReconId": "SHIP-ACQUISITION",
     "Confidence": "Uncertain",
     "Role": "Shipyard",
-    "CityCode": "SEOUL"
+    "CityCode": "SEOUL",
+    "bIsDev": false
   },
   {
     "Name": "SEVILLE_SHIPYARD",
@@ -77,7 +106,8 @@
     "ReconId": "SHIP-ACQUISITION",
     "Confidence": "Uncertain",
     "Role": "Shipyard",
-    "CityCode": "SEVILLE"
+    "CityCode": "SEVILLE",
+    "bIsDev": false
   },
   {
     "Name": "ZHIGU_SHIPYARD",
@@ -87,6 +117,7 @@
     "ReconId": "SHIP-ACQUISITION",
     "Confidence": "Uncertain",
     "Role": "Shipyard",
-    "CityCode": "ZHIGU"
+    "CityCode": "ZHIGU",
+    "bIsDev": false
   }
 ]

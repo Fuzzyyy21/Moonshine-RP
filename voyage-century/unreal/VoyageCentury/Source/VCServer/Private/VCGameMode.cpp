@@ -1351,6 +1351,21 @@ UClass* AVCGameMode::GetDefaultPawnClassForController_Implementation(AController
 	return Super::GetDefaultPawnClassForController_Implementation(InController);
 }
 
+FName AVCGameMode::FindNpcInRange(const APlayerController* Player, EVCNpcRole Role) const
+{
+	const APawn* Pawn = Player ? Player->GetPawn() : nullptr;
+	const float Range = GetDefault<UVCWorldSettings>()->InteractRangeCm + 50.f;
+	for (TActorIterator<AVCNpc> It(GetWorld()); It && Pawn; ++It)
+	{
+		const FVCNpcRow* Row = FVCWorldData::FindNpc(It->NpcCode);
+		if (Row && Row->Role == Role && FVector::Dist(Pawn->GetActorLocation(), It->GetActorLocation()) <= Range)
+		{
+			return It->NpcCode;
+		}
+	}
+	return NAME_None;
+}
+
 void AVCGameMode::HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument)
 {
 	FPlayerSession* Session = Player ? Sessions.Find(Player) : nullptr;
@@ -1381,18 +1396,7 @@ void AVCGameMode::HandleShipCommand(APlayerController* Player, const FString& Co
 	if (Command == TEXT("buy"))
 	{
 		// Nur beim Werftmeister in Reichweite (SHIP-ACQUISITION); welches Schiff er verkauft, prüft das Backend.
-		const APawn* Pawn = Player->GetPawn();
-		const float Range = GetDefault<UVCWorldSettings>()->InteractRangeCm + 50.f;
-		FName Shipyard;
-		for (TActorIterator<AVCNpc> It(GetWorld()); It && Pawn; ++It)
-		{
-			const FVCNpcRow* Row = FVCWorldData::FindNpc(It->NpcCode);
-			if (Row && Row->Role == EVCNpcRole::Shipyard && FVector::Dist(Pawn->GetActorLocation(), It->GetActorLocation()) <= Range)
-			{
-				Shipyard = It->NpcCode;
-				break;
-			}
-		}
+		const FName Shipyard = FindNpcInRange(Player, EVCNpcRole::Shipyard);
 		if (Shipyard.IsNone())
 		{
 			Player->ClientMessage(TEXT("Schiffe gibt es nur beim Werftmeister – näher herangehen."));
@@ -1439,18 +1443,7 @@ void AVCGameMode::HandleShipCommand(APlayerController* Player, const FString& Co
 		int32 Amount = 0;
 		LexTryParseString(Amount, *AmountText);
 		const FPlayerSession::FShip* Active = Session->Ships.FindByPredicate([](const FPlayerSession::FShip& Ship) { return Ship.bActive; });
-		const APawn* Pawn = Player->GetPawn();
-		const float Range = GetDefault<UVCWorldSettings>()->InteractRangeCm + 50.f;
-		FName Shipyard;
-		for (TActorIterator<AVCNpc> It(GetWorld()); It && Pawn; ++It)
-		{
-			const FVCNpcRow* Row = FVCWorldData::FindNpc(It->NpcCode);
-			if (Row && Row->Role == EVCNpcRole::Shipyard && FVector::Dist(Pawn->GetActorLocation(), It->GetActorLocation()) <= Range)
-			{
-				Shipyard = It->NpcCode;
-				break;
-			}
-		}
+		const FName Shipyard = FindNpcInRange(Player, EVCNpcRole::Shipyard);
 		if (!Active || Shipyard.IsNone())
 		{
 			Player->ClientMessage(TEXT("Dienste gibt es beim Werftmeister, und nur für das aktive Schiff."));
@@ -1485,6 +1478,102 @@ void AVCGameMode::HandleShipCommand(APlayerController* Player, const FString& Co
 				}
 				PC->ClientMessage(FString::Printf(TEXT("Erledigt für %lld Gold – Rumpf %d/%d, Matrosen %d (+%d verletzt), Proviant %d. Gold: %lld"),
 					static_cast<int64>(Cost), Ship.HullHp, Ship.HullMax, Ship.Crew, Ship.Injured, Ship.Provisions, S->Gold));
+			});
+		return;
+	}
+	if (Command == TEXT("market") || Command == TEXT("trade"))
+	{
+		// Hafenhandel beim Händler in Reichweite; Preise, Bestand und Laderaum entscheidet das Backend.
+		const FName Merchant = FindNpcInRange(Player, EVCNpcRole::Merchant);
+		if (Merchant.IsNone())
+		{
+			Player->ClientMessage(TEXT("Handel gibt es beim Händler (in Reichweite stehen)."));
+			return;
+		}
+		if (Command == TEXT("market"))
+		{
+			Session->bShipRequestInFlight = true;
+			FVCServerBackend::ViewMarket(Session->CharacterId, Session->AccountId, Merchant.ToString(),
+				[WeakThis, WeakPC](const FVCHttpResult& Result)
+				{
+					APlayerController* PC = WeakPC.Get();
+					FPlayerSession* S = WeakThis.IsValid() && PC ? WeakThis->Sessions.Find(PC) : nullptr;
+					if (!S)
+					{
+						return;
+					}
+					S->bShipRequestInFlight = false;
+					const TArray<TSharedPtr<FJsonValue>>* Goods = nullptr;
+					if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetArrayField(TEXT("goods"), Goods) || !Goods)
+					{
+						PC->ClientMessage(FString::Printf(TEXT("Markt nicht verfügbar: %s"), *Result.ErrorMessage()));
+						return;
+					}
+					double Gold = 0.0, Used = 0.0, Capacity = 0.0;
+					Result.Json->TryGetNumberField(TEXT("gold"), Gold);
+					Result.Json->TryGetNumberField(TEXT("cargoUsed"), Used);
+					Result.Json->TryGetNumberField(TEXT("cargoCapacity"), Capacity);
+					S->Gold = static_cast<int64>(Gold);
+					PC->ClientMessage(FString::Printf(TEXT("Markt – Gold %lld, Laderaum %d/%d"), S->Gold,
+						static_cast<int32>(Used), static_cast<int32>(Capacity)));
+					for (const TSharedPtr<FJsonValue>& Value : *Goods)
+					{
+						const TSharedPtr<FJsonObject> Good = Value.IsValid() ? Value->AsObject() : nullptr;
+						if (!Good.IsValid())
+						{
+							continue;
+						}
+						double Stock = 0.0, Buy = 0.0, Sell = 0.0, InCargo = 0.0;
+						Good->TryGetNumberField(TEXT("stock"), Stock);
+						const bool bCanBuy = Good->TryGetNumberField(TEXT("buyPrice"), Buy); // null = ausverkauft
+						Good->TryGetNumberField(TEXT("sellPrice"), Sell);
+						Good->TryGetNumberField(TEXT("inCargo"), InCargo);
+						FString NameDe;
+						Good->TryGetStringField(TEXT("nameDe"), NameDe);
+						PC->ClientMessage(FString::Printf(TEXT("  %s %s – kaufen %s, verkaufen %lld, Vorrat %d, an Bord %d"),
+							*Good->GetStringField(TEXT("code")), *NameDe,
+							bCanBuy ? *FString::Printf(TEXT("%lld"), static_cast<int64>(Buy)) : TEXT("ausverkauft"),
+							static_cast<int64>(Sell), static_cast<int32>(Stock), static_cast<int32>(InCargo)));
+					}
+				});
+			return;
+		}
+		// "BUY DEV_GOOD_OIL 10"
+		TArray<FString> Parts;
+		Argument.ParseIntoArrayWS(Parts);
+		int32 Quantity = 0;
+		if (Parts.Num() != 3 || !LexTryParseString(Quantity, *Parts[2]) || Quantity < 1)
+		{
+			Player->ClientMessage(TEXT("VCTrade <BUY|SELL> <WARE> <menge>"));
+			return;
+		}
+		Session->bShipRequestInFlight = true;
+		FVCServerBackend::Trade(Session->CharacterId, Session->AccountId, Merchant.ToString(), Parts[1].ToUpper(), Parts[0].ToUpper(),
+			Quantity, [WeakThis, WeakPC](const FVCHttpResult& Result)
+			{
+				APlayerController* PC = WeakPC.Get();
+				FPlayerSession* S = WeakThis.IsValid() && PC ? WeakThis->Sessions.Find(PC) : nullptr;
+				if (!S)
+				{
+					return;
+				}
+				S->bShipRequestInFlight = false;
+				double Gold = 0.0, Total = 0.0, InCargo = 0.0, Used = 0.0, Capacity = 0.0;
+				if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetNumberField(TEXT("gold"), Gold))
+				{
+					PC->ClientMessage(FString::Printf(TEXT("Handel abgelehnt: %s"), *Result.ErrorMessage()));
+					return;
+				}
+				Result.Json->TryGetNumberField(TEXT("total"), Total);
+				Result.Json->TryGetNumberField(TEXT("inCargo"), InCargo);
+				Result.Json->TryGetNumberField(TEXT("cargoUsed"), Used);
+				Result.Json->TryGetNumberField(TEXT("cargoCapacity"), Capacity);
+				S->Gold = static_cast<int64>(Gold);
+				const bool bBought = Result.Json->GetStringField(TEXT("side")) == TEXT("BUY");
+				PC->ClientMessage(FString::Printf(TEXT("%s %d × %s für %lld Gold. An Bord %d, Laderaum %d/%d, Gold %lld"),
+					bBought ? TEXT("Gekauft") : TEXT("Verkauft"), static_cast<int32>(Result.Json->GetNumberField(TEXT("quantity"))),
+					*Result.Json->GetStringField(TEXT("itemCode")), static_cast<int64>(Total), static_cast<int32>(InCargo),
+					static_cast<int32>(Used), static_cast<int32>(Capacity), S->Gold));
 			});
 		return;
 	}

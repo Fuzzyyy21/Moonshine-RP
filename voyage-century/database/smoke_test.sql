@@ -157,7 +157,26 @@ DO $$ BEGIN
 EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'ok: Entdeckung einmal je Charakter';
 END $$;
 
--- 12. Partitionierte Logs nehmen Zeilen an.
+-- 12. Märkte: Entwicklungsware nur mit is_dev; je Schiff und Ware ein Ladungsstapel.
+DO $$ BEGIN
+    ASSERT (SELECT count(*) FROM markets m JOIN items i USING (item_id) WHERE i.code LIKE 'DEV_%' AND NOT m.is_dev) = 0,
+        'DEV-Markt ohne is_dev';
+    ASSERT (SELECT count(*) FROM npcs WHERE code LIKE 'DEV_%' AND NOT is_dev) = 0, 'DEV-NPC ohne is_dev';
+END $$;
+INSERT INTO ship_instances (ship_id, owner_character_id, hull_hp, crew_healthy, provisions)
+VALUES ((SELECT ship_id FROM ships WHERE code = 'DEV_MERCHANT_COG'), 1, 1, 1, 1);
+INSERT INTO item_instances (item_id, quantity, location_type, owner_character_id, container_ref, origin)
+VALUES ((SELECT item_id FROM items WHERE code = 'DEV_GOOD_WOOL'), 5, 'SHIP_CARGO', 1,
+        (SELECT max(ship_instance_id) FROM ship_instances), 'NPC_SHOP');
+DO $$ BEGIN
+    INSERT INTO item_instances (item_id, quantity, location_type, owner_character_id, container_ref, origin)
+    VALUES ((SELECT item_id FROM items WHERE code = 'DEV_GOOD_WOOL'), 5, 'SHIP_CARGO', 1,
+            (SELECT max(ship_instance_id) FROM ship_instances), 'NPC_SHOP');
+    RAISE EXCEPTION 'FEHLT: zweiter Ladungsstapel derselben Ware wurde akzeptiert';
+EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'ok: ein Ladungsstapel je Ware und Schiff';
+END $$;
+
+-- 13. Partitionierte Logs nehmen Zeilen an.
 INSERT INTO game_event_log (character_id, action, new_value, server_id) VALUES (1, 'LEVEL_UP', '{"level":2}', 'test');
 INSERT INTO chat_log (channel, sender_character_id, message) VALUES ('WORLD', 1, 'Hallo');
 
