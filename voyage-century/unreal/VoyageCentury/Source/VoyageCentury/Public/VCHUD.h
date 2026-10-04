@@ -37,6 +37,7 @@ private:
 	double NoticeUntil = 0.0;
 	FDelegateHandle CombatTextHandle;
 	FDelegateHandle BlockedHandle;
+	FDelegateHandle ShipHitHandle;
 	TWeakObjectPtr<UVCAbilityStateComponent> BoundAbilityState;
 	bool bBoundController = false;
 	FName DialogNpc;
@@ -45,6 +46,7 @@ private:
 	void OnCombatText(AActor* Target, EVCCombatText Kind, int32 Amount);
 	void OnAbilityBlocked(FName Code, EVCAbilityBlock Reason);
 	void OnNpcDialog(FName NpcCode);
+	void OnShipHit(class AVCShip* Ship, int32 Hits, int32 HullDamage, int32 CrewLosses);
 	void OnDiscovered(FName DiscoveryCode, int64 XpAwarded);
 	void DrawNpcDialog();
 	/** Am Steuer eines Schiffs: Fahrt, Kurs, Segel, Ruder, Wind, Rumpf, Matrosen, Proviant. */

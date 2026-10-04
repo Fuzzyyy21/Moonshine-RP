@@ -13,6 +13,7 @@
     "CrewMax": 30,
     "Cargo": 80,
     "WindEfficiency": 0.9,
+    "CannonSlots": 16,
     "CostGold": 5000,
     "bIsDev": true
   },
@@ -30,7 +31,26 @@
     "CrewMax": 20,
     "Cargo": 300,
     "WindEfficiency": 0.9,
+    "CannonSlots": 6,
     "CostGold": 5000,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_PIRATE_SLOOP",
+    "NameDe": "Piratenschaluppe (Test)",
+    "ShipClass": "Battle",
+    "Level": 1,
+    "HullHp": 800,
+    "MaxSpeed": 950,
+    "Acceleration": 90,
+    "Deceleration": 180,
+    "TurnRateDeg": 15,
+    "CrewMin": 6,
+    "CrewMax": 20,
+    "Cargo": 0,
+    "WindEfficiency": 0.6,
+    "CannonSlots": 8,
+    "CostGold": 0,
     "bIsDev": true
   },
   {
@@ -47,6 +67,7 @@
     "CrewMax": 40,
     "Cargo": 60,
     "WindEfficiency": 0.9,
+    "CannonSlots": 8,
     "CostGold": 5000,
     "bIsDev": true
   },
@@ -64,6 +85,7 @@
     "CrewMax": 12,
     "Cargo": 50,
     "WindEfficiency": 0.8,
+    "CannonSlots": 4,
     "CostGold": 0,
     "bIsDev": true
   }

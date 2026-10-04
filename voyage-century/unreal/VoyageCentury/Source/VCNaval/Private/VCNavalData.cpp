@@ -18,7 +18,10 @@ namespace
 	{
 		UDataTable* Ships = nullptr;
 		UDataTable* Wind = nullptr;
+		UDataTable* Cannons = nullptr;
+		UDataTable* Pirates = nullptr;
 		vc::rules::FSailTuning Tuning;
+		vc::rules::FBroadsideTuning Broadside;
 		bool bValid = false;
 	};
 
@@ -30,6 +33,8 @@ namespace
 			const UVCNavalSettings* Settings = GetDefault<UVCNavalSettings>();
 			C.Ships = Load(Settings->ShipsTable);
 			C.Wind = Load(Settings->ZoneWindTable);
+			C.Cannons = Load(Settings->CannonsTable);
+			C.Pirates = Load(Settings->PirateShipsTable);
 			UDataTable* TuningTable = Load(Settings->ShipTuningTable);
 			const FVCShipTuningRow* Row = TuningTable ? TuningTable->FindRow<FVCShipTuningRow>(TEXT("Default"), TEXT("VCNavalData")) : nullptr;
 			if (Row && Row->PolarAngles.Num() == Row->PolarEfficiencies.Num())
@@ -42,6 +47,8 @@ namespace
 				C.Tuning.MinSteerageFactor = Row->MinSteerageFactor;
 				C.Tuning.ProvisionsPerSailorPerMinute = Row->ProvisionsPerSailorPerMinute;
 				C.Tuning.NoProvisionsFactor = Row->NoProvisionsFactor;
+				C.Broadside.ArcHalfWidthDeg = Row->ArcHalfWidthDeg;
+				C.Broadside.DeathShare = Row->DeathShare;
 			}
 			C.bValid = C.Ships && vc::rules::IsValidSailTuning(C.Tuning);
 			if (!C.bValid)
@@ -97,4 +104,33 @@ vc::rules::FShipDef FVCNavalData::ToRules(const FVCShipRow& Row)
 	Def.CrewMax = Row.CrewMax;
 	Def.WindEfficiency = Row.WindEfficiency;
 	return Def;
+}
+
+const FVCCannonRow* FVCNavalData::FindCannon(FName Code)
+{
+	UDataTable* Table = Cache().Cannons;
+	return Table && !Code.IsNone() ? Table->FindRow<FVCCannonRow>(Code, TEXT("VCNavalData"), false) : nullptr;
+}
+
+const FVCPirateShipRow* FVCNavalData::FindPirate(FName Code)
+{
+	UDataTable* Table = Cache().Pirates;
+	return Table && !Code.IsNone() ? Table->FindRow<FVCPirateShipRow>(Code, TEXT("VCNavalData"), false) : nullptr;
+}
+
+vc::rules::FCannonDef FVCNavalData::ToRules(const FVCCannonRow& Row)
+{
+	vc::rules::FCannonDef Def;
+	Def.RangeCm = Row.RangeCm;
+	Def.DamagePerHit = Row.DamagePerHit;
+	Def.CrewHitsPerHit = Row.CrewHitsPerHit;
+	Def.ReloadSeconds = Row.ReloadSeconds;
+	Def.HitChanceNear = Row.HitChanceNear;
+	Def.HitChanceFar = Row.HitChanceFar;
+	return Def;
+}
+
+const vc::rules::FBroadsideTuning& FVCNavalData::BroadsideTuning()
+{
+	return Cache().Broadside;
 }

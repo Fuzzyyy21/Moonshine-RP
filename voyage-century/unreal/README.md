@@ -163,6 +163,27 @@ W/S Segel in Vierteln, A/D Ruder; HUD unten rechts: Fahrt, Kurs, Wind, Rumpf, Ma
 Erwartung: gegen den Wind (Winkel zum Wind ≥ 150°) keine Fahrt, halber Wind am schnellsten; Proviant sinkt
 (Anfängerschiff mit 6 Matrosen: 0,6 je Minute); Auflaufen stoppt. Nach Neustart sind Schiff und Werte gespeichert.
 
+## Seekampf und Hafendienste (Phase 5, Iteration 2)
+
+| Data Table | Row-Struktur | Pfad |
+|---|---|---|
+| `DT_Cannons.json` | `VCCannonRow` | `/Game/Data/DT_Cannons` |
+| `DT_PirateShips.json` | `VCPirateShipRow` | `/Game/Data/DT_PirateShips` |
+
+`DT_Ships` und `DT_ShipTuning` neu importieren. In `L_SeaDev` einen **VCPirateSpawner** (*Pirate Code* `DEV_PIRATE_SLOOP`)
+mit Abstand zum Anleger platzieren.
+
+Testen: mit dem Schiff hinaussegeln → der Pirat greift an (Aggro 50 m). Q/E feuern, R wechselt Nah-/Fernkanone,
+HUD zeigt Nachladezeit, Treffer stehen über den Schiffen. Pirat versenkt → +150 XP (Backend). Eigenes Schiff gesunken →
+an Land; in Athen beim Werftmeister:
+
+```
+VCShipService REPAIR            → Rumpf voll (2 Gold je Punkt)
+VCShipService HEAL              → Verletzte gesund (20 je Matrose)
+VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Kapazität)
+VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
+```
+
 ## NPCs und Entdeckungen (Phase 4, Iteration 2)
 
 | Data Table | Row-Struktur | Pfad |

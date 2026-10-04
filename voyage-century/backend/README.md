@@ -67,6 +67,7 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | GameData | `POST /internal/v1/world/discoveries` | `X-Service-Key`; Entdeckung (`discoveryCode`) einmal je Charakter, nur vom Server mit Anwesenheit in der Zone des Punktes; XP aus `discoveries.xp_reward`; `GET …/state` liefert `discoveries` |
 | GameData | `POST /internal/v1/characters/{id}/ships` | `X-Service-Key`; Kauf (`npcCode`, `shipCode`, `purchaseKey`) nur beim Werftmeister der Zone, in der der Charakter auf diesem Server ist; Gold über den Ledger |
 | GameData | `PUT …/ships/{instanceId}/active`, `PUT …/ships/{instanceId}/state` | `X-Service-Key`; aktives Schiff; Rumpf/Matrosen/Proviant (dürfen nicht steigen); `GET …/state` liefert `ships`, `gold` |
+| GameData | `POST …/ships/{instanceId}/services` | `X-Service-Key`; `kind` REPAIR, HEAL, HIRE, PROVISIONS (`amount`) beim Werftmeister der Zone; Preise aus `game_rules`, Ledger, idempotent (`key`) |
 | GameData | `POST /internal/v1/characters/{id}/gold` | Admin (`Progression:AdminMinLevel`), Ledger und Audit in einer Transaktion, idempotent |
 | GameData | `POST /internal/v1/world/transfers` | `X-Service-Key`; Zonenwechsel über Ausgang (`exitCode`) → Zielserver, Ankunftspunkt |
 | GameData | `POST /internal/v1/admin-audit` | `X-Service-Key`, Konto braucht `admin_level > 0` |

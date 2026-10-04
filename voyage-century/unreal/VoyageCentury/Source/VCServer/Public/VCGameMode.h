@@ -51,12 +51,15 @@ public:
 	// IVCServerHooks
 	virtual void HandleAdminCommand(APlayerController* Issuer, const FString& CommandLine) override;
 	virtual bool IsPvPAllowed() const override { return bPvPAllowed; }
+	virtual FString GetZoneId() const override;
 	virtual void HandleKill(AActor* Killer, AActor* Victim) override;
 	virtual void HandleSkillUse(AActor* User, FName SkillCode) override;
 	virtual void HandleHotbarChange(APlayerController* Player, int32 Slot, FName AbilityCode) override;
 	virtual void HandleZoneExit(APawn* Pawn, FName ExitCode) override;
 	virtual void HandleDiscovery(APawn* Pawn, FName DiscoveryCode) override;
 	virtual void HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
+	virtual void HandleShipSunk(APawn* Ship, AActor* Killer) override;
+	virtual void HandleMonsterKill(AActor* Killer, FName MonsterCode) override;
 
 	/** Auf See (Zonenart SEA) und mit aktivem Schiff ist das Schiff die Spielfigur, sonst die Figur an Land. */
 	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
@@ -107,6 +110,7 @@ private:
 			int32 HullHp = 0;
 			int32 HullMax = 0;
 			int32 Crew = 0;
+			int32 Injured = 0;
 			int32 Provisions = 0;
 
 			static bool FromJson(const TSharedPtr<FJsonObject>& Json, FShip& Out);

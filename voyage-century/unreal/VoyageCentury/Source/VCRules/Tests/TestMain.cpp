@@ -73,6 +73,8 @@ int main()
 	vctest::Run(vctest::AbilityRulesCases());
 	std::printf("== Segeln\n");
 	vctest::Run(vctest::ShipRulesCases());
+	std::printf("== Seekampf\n");
+	vctest::Run(vctest::NavalCombatRulesCases());
 	std::printf("%d Prüfungen, %d Fehler\n", vctest::Checks, vctest::Failures);
 	return vctest::Failures == 0 ? 0 : 1;
 }

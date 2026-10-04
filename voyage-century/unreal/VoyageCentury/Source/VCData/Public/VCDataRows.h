@@ -329,6 +329,8 @@ struct VCDATA_API FVCShipRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Besatzung") int32 CrewMin = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Besatzung") int32 CrewMax = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ladung") int32 Cargo = 0;
+	/** Kanonenplätze gesamt; je Breitseite die Hälfte. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kampf") int32 CannonSlots = 0;
 	/** Nur Anzeige; den Preis legt das Backend fest. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preis") int64 CostGold = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
@@ -346,6 +348,42 @@ struct VCDATA_API FVCShipTuningRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Segeln") double MinSteerageFactor = 0.2;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Proviant") double ProvisionsPerSailorPerMinute = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Proviant") double NoProvisionsFactor = 0.5;
+	/** Halber Feuerwinkel um die Querachse. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kampf") double ArcHalfWidthDeg = 45.0;
+	/** Anteil der Matrosenverluste, die sterben (Rest verletzt). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kampf") double DeathShare = 0.3;
+};
+
+/** Kanonentyp (DT_Cannons). Belegt sind Nah- und Fernkanonen; Werte UNKNOWN. */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCCannonRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kanone") FString NameDe;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kanone") double RangeCm = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kanone") double DamagePerHit = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kanone") double CrewHitsPerHit = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kanone") double ReloadSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kanone") double HitChanceNear = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kanone") double HitChanceFar = 0.0;
+};
+
+/** Piratenschiff als Gegner (DT_PirateShips, Zeilenname = monsters.code). */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCPirateShipRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pirat") FString NameDe;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pirat") FName ShipCode;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pirat") FName CannonCode;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pirat") int32 Crew = 0;
+	/** Nur Anzeige; die Belohnung legt das Backend fest. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pirat") int64 XpReward = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "KI") double AggroRadiusCm = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "KI") double LeashRadiusCm = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn") double RespawnSeconds = 60.0;
 };
 
 /** Wind je Zone (Zeilenname = zone_id). */

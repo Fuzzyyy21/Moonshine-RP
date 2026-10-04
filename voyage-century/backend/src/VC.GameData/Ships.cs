@@ -5,11 +5,18 @@ using VC.Common.Logging;
 
 namespace VC.GameData;
 
-public sealed record ShipState(long InstanceId, string ShipCode, bool Active, int HullHp, int HullMax, int Crew, int Provisions);
+public sealed record ShipState(
+    long InstanceId, string ShipCode, bool Active, int HullHp, int HullMax, int Crew, int Provisions, int Injured = 0, int CrewMax = 0,
+    int ProvisionsMax = 0);
 public sealed record BuyShipRequest(long AccountId, string? ServerId, string? NpcCode, string? ShipCode, Guid PurchaseKey);
 public sealed record BuyShipResponse(bool Duplicate, ShipState Ship, long Gold);
 public sealed record ShipCommandRequest(long AccountId, string? ServerId);
-public sealed record SaveShipRequest(long AccountId, string? ServerId, int HullHp, int Crew, int Provisions);
+/// <summary>Injured: verletzte Matrosen; null = unverändert.</summary>
+public sealed record SaveShipRequest(long AccountId, string? ServerId, int HullHp, int Crew, int Provisions, int? Injured = null);
+
+/// <summary>Kind: REPAIR (ganz), HEAL (alle Verletzten), HIRE (Amount Matrosen), PROVISIONS (Amount Einheiten).</summary>
+public sealed record ShipServiceRequest(long AccountId, string? ServerId, string? NpcCode, string? Kind, int Amount, Guid Key);
+public sealed record ShipServiceResponse(bool Duplicate, ShipState Ship, long Gold, long Cost);
 public sealed record AdminGoldRequest(long AdminAccountId, long Amount, Guid IdempotencyKey, Guid? SessionId, string? Ip, string? ServerId);
 
 /// <summary>
@@ -24,6 +31,7 @@ public static class ShipEndpoints
         internalApi.MapPost("/characters/{characterId:long}/ships", Buy);
         internalApi.MapPut("/characters/{characterId:long}/ships/{instanceId:long}/active", SetActive);
         internalApi.MapPut("/characters/{characterId:long}/ships/{instanceId:long}/state", SaveShip);
+        internalApi.MapPost("/characters/{characterId:long}/ships/{instanceId:long}/services", Service);
         internalApi.MapPost("/characters/{characterId:long}/gold", AdminGrantGold);
     }
 
@@ -31,7 +39,8 @@ public static class ShipEndpoints
     {
         await using var cmd = new NpgsqlCommand(
             """
-            SELECT i.ship_instance_id, s.code, i.is_active, i.hull_hp, s.hull_hp, i.crew_healthy, i.provisions
+            SELECT i.ship_instance_id, s.code, i.is_active, i.hull_hp, s.hull_hp, i.crew_healthy, i.provisions,
+                   i.crew_injured, s.crew_capacity, s.provisions_max
             FROM ship_instances i JOIN ships s USING (ship_id)
             WHERE i.owner_character_id = @chr ORDER BY i.ship_instance_id
             """, conn, tx);
@@ -41,7 +50,7 @@ public static class ShipEndpoints
         while (await r.ReadAsync(ct))
         {
             list.Add(new ShipState(r.GetInt64(0), r.GetString(1), r.GetBoolean(2), r.GetInt32(3), r.IsDBNull(4) ? 0 : r.GetInt32(4),
-                r.GetInt32(5), r.GetInt32(6)));
+                r.GetInt32(5), r.GetInt32(6), r.GetInt32(7), r.IsDBNull(8) ? 0 : r.GetInt32(8), r.IsDBNull(9) ? 0 : r.GetInt32(9)));
         }
         return list;
     }
@@ -213,7 +222,7 @@ public static class ShipEndpoints
     private static async Task<IResult> SaveShip(
         long characterId, long instanceId, SaveShipRequest req, NpgsqlDataSource db, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(req.ServerId) || req.HullHp < 0 || req.Crew < 0 || req.Provisions < 0)
+        if (string.IsNullOrEmpty(req.ServerId) || req.HullHp < 0 || req.Crew < 0 || req.Provisions < 0 || req.Injured < 0)
         {
             return Problem(StatusCodes.Status400BadRequest, "serverId und nicht negative Werte sind erforderlich");
         }
@@ -229,10 +238,14 @@ public static class ShipEndpoints
         }
         await using var cmd = new NpgsqlCommand(
             """
-            UPDATE ship_instances SET hull_hp = @hull, crew_healthy = @crew, provisions = @prov
+            UPDATE ship_instances
+            SET hull_hp = @hull, crew_healthy = @crew, provisions = @prov, crew_injured = coalesce(@injured, crew_injured)
             WHERE ship_instance_id = @id AND owner_character_id = @chr
               AND @hull <= hull_hp AND @crew <= crew_healthy AND @prov <= provisions
+              -- Gesunde können verletzt werden oder sterben, aber ohne Hafen kommt niemand hinzu.
+              AND @crew + coalesce(@injured, crew_injured) <= crew_healthy + crew_injured
             """, conn, tx);
+        cmd.Parameters.AddWithValue("injured", (object?)req.Injured ?? DBNull.Value);
         cmd.Parameters.AddWithValue("hull", req.HullHp);
         cmd.Parameters.AddWithValue("crew", req.Crew);
         cmd.Parameters.AddWithValue("prov", req.Provisions);
@@ -244,6 +257,119 @@ public static class ShipEndpoints
         }
         await tx.CommitAsync(ct);
         return Results.NoContent();
+    }
+
+    /// <summary>
+    /// Hafendienste beim Werftmeister der eigenen Zone: Preise aus game_rules (im Original UNKNOWN), Gold über den Ledger,
+    /// jede Anfrage genau einmal (Key = Ledger-Idempotenz). Obergrenzen: Rumpf, Matrosen-Kapazität, Proviant-Maximum.
+    /// </summary>
+    private static async Task<IResult> Service(
+        long characterId, long instanceId, ShipServiceRequest req, NpgsqlDataSource db, IOptions<ContentOptions> content,
+        IOptions<ServiceIdentityOptions> identity, CancellationToken ct)
+    {
+        var (rule, reason) = req.Kind switch
+        {
+            "REPAIR" => ("SHIP_REPAIR_GOLD_PER_HP", "SHIP_REPAIR"),
+            "HEAL" => ("SAILOR_HEAL_GOLD", "SAILOR_HEAL"),
+            "HIRE" => ("SAILOR_HIRE_GOLD", "SAILOR_HIRE"),
+            "PROVISIONS" => ("PROVISION_GOLD_PER_UNIT", "PROVISIONS_BUY"),
+            _ => ("", ""),
+        };
+        if (rule.Length == 0 || string.IsNullOrEmpty(req.ServerId) || string.IsNullOrEmpty(req.NpcCode) || req.Key == Guid.Empty
+            || (req.Kind is "HIRE" or "PROVISIONS" && req.Amount is < 1 or > 10_000))
+        {
+            return Problem(StatusCodes.Status400BadRequest, "kind (REPAIR, HEAL, HIRE, PROVISIONS), npcCode, key und bei HIRE/PROVISIONS amount sind erforderlich");
+        }
+        await using var conn = await db.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        if (await ProgressionEndpoints.LockCharacter(conn, tx, characterId, req.AccountId, ct) is null)
+        {
+            return Problem(StatusCodes.Status404NotFound, "Charakter nicht gefunden");
+        }
+        await using (var dup = new NpgsqlCommand("SELECT delta FROM currency_ledger WHERE idempotency_key = @key AND character_id = @chr", conn, tx))
+        {
+            dup.Parameters.AddWithValue("key", req.Key);
+            dup.Parameters.AddWithValue("chr", characterId);
+            if (await dup.ExecuteScalarAsync(ct) is long delta)
+            {
+                var current = (await LoadShips(conn, tx, characterId, ct)).FirstOrDefault(s => s.InstanceId == instanceId);
+                return current is null
+                    ? Problem(StatusCodes.Status404NotFound, "Schiff nicht gefunden")
+                    : Results.Ok(new ShipServiceResponse(true, current, await LoadGold(conn, tx, characterId, ct), -delta));
+            }
+        }
+        var zone = await WorldEndpoints.PresenceZone(conn, tx, characterId, req.ServerId, ct);
+        if (zone is null)
+        {
+            return Problem(StatusCodes.Status409Conflict, "Charakter ist nicht auf diesem Server");
+        }
+        await using (var npc = new NpgsqlCommand("SELECT 1 FROM npcs WHERE code = @code AND npc_role = 'SHIPYARD' AND zone_id = @zone", conn, tx))
+        {
+            npc.Parameters.AddWithValue("code", req.NpcCode);
+            npc.Parameters.AddWithValue("zone", zone);
+            if (await npc.ExecuteScalarAsync(ct) is null)
+            {
+                return Problem(StatusCodes.Status400BadRequest, "Hier gibt es keinen Werftmeister mit diesem Code");
+            }
+        }
+        long? price;
+        await using (var p = new NpgsqlCommand("SELECT int_value FROM game_rules WHERE rule_key = @k AND (NOT is_dev OR @dev)", conn, tx))
+        {
+            p.Parameters.AddWithValue("k", rule);
+            p.Parameters.AddWithValue("dev", content.Value.AllowDevContent);
+            price = await p.ExecuteScalarAsync(ct) as long?;
+        }
+        if (price is null)
+        {
+            return Problem(StatusCodes.Status400BadRequest, "Preis unbekannt – Dienst nicht verfügbar");
+        }
+        var ship = (await LoadShips(conn, tx, characterId, ct)).FirstOrDefault(s => s.InstanceId == instanceId);
+        if (ship is null)
+        {
+            return Problem(StatusCodes.Status404NotFound, "Schiff nicht gefunden");
+        }
+
+        var units = req.Kind switch
+        {
+            "REPAIR" => ship.HullMax - ship.HullHp,
+            "HEAL" => ship.Injured,
+            "HIRE" => Math.Min(req.Amount, ship.CrewMax - ship.Crew - ship.Injured),
+            _ => Math.Min(req.Amount, ship.ProvisionsMax - ship.Provisions),
+        };
+        if (units <= 0)
+        {
+            return Problem(StatusCodes.Status409Conflict, "Nichts zu tun (bereits voll)");
+        }
+        var cost = units * price.Value;
+        var gold = await LoadGold(conn, tx, characterId, ct);
+        if (gold < cost)
+        {
+            return Problem(StatusCodes.Status409Conflict, $"Nicht genug Gold ({gold} von {cost})");
+        }
+        if (cost > 0)
+        {
+            gold = await Book(conn, tx, characterId, -cost, reason, "SINK", req.Key, req.ServerId, ct);
+        }
+        var column = req.Kind switch
+        {
+            "REPAIR" => "hull_hp = hull_hp + @units",
+            "HEAL" => "crew_healthy = crew_healthy + @units, crew_injured = crew_injured - @units",
+            "HIRE" => "crew_healthy = crew_healthy + @units",
+            _ => "provisions = provisions + @units",
+        };
+        await using (var upd = new NpgsqlCommand(
+            $"UPDATE ship_instances SET {column} WHERE ship_instance_id = @id AND owner_character_id = @chr", conn, tx))
+        {
+            upd.Parameters.AddWithValue("units", units);
+            upd.Parameters.AddWithValue("id", instanceId);
+            upd.Parameters.AddWithValue("chr", characterId);
+            await upd.ExecuteNonQueryAsync(ct);
+        }
+        await GameEventLog.WriteAsync(conn, tx, new GameEvent(reason, req.AccountId, characterId,
+            NewValue: new { instance = instanceId, units, cost, npc = req.NpcCode }), identity.Value.InstanceId, ct);
+        var updated = (await LoadShips(conn, tx, characterId, ct)).First(s => s.InstanceId == instanceId);
+        await tx.CommitAsync(ct);
+        return Results.Ok(new ShipServiceResponse(false, updated, gold, cost));
     }
 
     /// <summary>Admin: Gold gutschreiben (Startguthaben des Originals UNKNOWN). Rechte, Buchung und Audit in einer Transaktion.</summary>

@@ -519,6 +519,7 @@ void AVCGameMode::SpawnAuthenticatedPlayer(APlayerController* PC, const TOptiona
 					Loadout.ShipCode = Owned.Code;
 					Loadout.HullHp = Owned.HullHp;
 					Loadout.Crew = Owned.Crew;
+					Loadout.Injured = Owned.Injured;
 					Loadout.Provisions = Owned.Provisions;
 					Ship->ServerInit(Loadout, FName(*UVCServerSettings::GetZoneId()));
 				}
@@ -612,7 +613,7 @@ void AVCGameMode::SaveShipThenCharacter(const APlayerController* PC, int64 Chara
 		return;
 	}
 	const FVCShipLoadout Loadout = Ship->GetLoadout();
-	FVCServerBackend::SaveShip(CharacterId, AccountId, Loadout.InstanceId, Loadout.HullHp, Loadout.Crew, Loadout.Provisions,
+	FVCServerBackend::SaveShip(CharacterId, AccountId, Loadout.InstanceId, Loadout.HullHp, Loadout.Crew, Loadout.Injured, Loadout.Provisions,
 		[SaveCharacter, Done = MoveTemp(Done), CharacterId](const FVCHttpResult& ShipResult) mutable
 		{
 			if (!ShipResult.IsOk())
@@ -1047,13 +1048,7 @@ void AVCGameMode::HandleKill(AActor* Killer, AActor* Victim)
 
 	if (!VictimCombatant->IsPlayerCharacter())
 	{
-		if (bKillerKnown)
-		{
-			const TSharedRef<FJsonObject> Kill = MakeShared<FJsonObject>();
-			Kill->SetStringField(TEXT("victimType"), TEXT("MONSTER"));
-			Kill->SetStringField(TEXT("monsterCode"), VictimCombatant->GetMonsterCode().ToString());
-			ReportKill(KillerPC, *KillerSession, Kill);
-		}
+		HandleMonsterKill(Killer, VictimCombatant->GetMonsterCode());
 		return;
 	}
 
@@ -1329,6 +1324,9 @@ bool AVCGameMode::FPlayerSession::FShip::FromJson(const TSharedPtr<FJsonObject>&
 		return false;
 	}
 	Json->TryGetNumberField(TEXT("hullMax"), HullMax);
+	double Injured = 0.0;
+	Json->TryGetNumberField(TEXT("injured"), Injured);
+	Out.Injured = static_cast<int32>(Injured);
 	Out.Code = FName(*Code);
 	Out.HullHp = static_cast<int32>(Hull);
 	Out.HullMax = static_cast<int32>(HullMax);
@@ -1344,7 +1342,7 @@ UClass* AVCGameMode::GetDefaultPawnClassForController_Implementation(AController
 	{
 		for (const FPlayerSession::FShip& Ship : Session->Ships)
 		{
-			if (Ship.bActive && FVCNavalData::FindShip(Ship.Code))
+			if (Ship.bActive && Ship.HullHp > 0 && FVCNavalData::FindShip(Ship.Code)) // gesunkene Schiffe erst reparieren
 			{
 				return AVCShip::StaticClass();
 			}
@@ -1366,9 +1364,9 @@ void AVCGameMode::HandleShipCommand(APlayerController* Player, const FString& Co
 		for (const FPlayerSession::FShip& Ship : Session->Ships)
 		{
 			const FVCShipRow* Row = FVCNavalData::FindShip(Ship.Code);
-			Player->ClientMessage(FString::Printf(TEXT("%s#%lld %s – Rumpf %d/%d, Matrosen %d, Proviant %d"),
+			Player->ClientMessage(FString::Printf(TEXT("%s#%lld %s – Rumpf %d/%d, Matrosen %d (+%d verletzt), Proviant %d"),
 				Ship.bActive ? TEXT("* ") : TEXT("  "), Ship.InstanceId, Row ? *Row->NameDe : *Ship.Code.ToString(),
-				Ship.HullHp, Ship.HullMax, Ship.Crew, Ship.Provisions));
+				Ship.HullHp, Ship.HullMax, Ship.Crew, Ship.Injured, Ship.Provisions));
 		}
 		return;
 	}
@@ -1430,6 +1428,66 @@ void AVCGameMode::HandleShipCommand(APlayerController* Player, const FString& Co
 			});
 		return;
 	}
+	if (Command == TEXT("service"))
+	{
+		// "REPAIR", "HEAL", "HIRE 5", "PROVISIONS 100" – beim Werftmeister in Reichweite, für das aktive Schiff.
+		FString Kind, AmountText;
+		if (!Argument.Split(TEXT(" "), &Kind, &AmountText))
+		{
+			Kind = Argument;
+		}
+		int32 Amount = 0;
+		LexTryParseString(Amount, *AmountText);
+		const FPlayerSession::FShip* Active = Session->Ships.FindByPredicate([](const FPlayerSession::FShip& Ship) { return Ship.bActive; });
+		const APawn* Pawn = Player->GetPawn();
+		const float Range = GetDefault<UVCWorldSettings>()->InteractRangeCm + 50.f;
+		FName Shipyard;
+		for (TActorIterator<AVCNpc> It(GetWorld()); It && Pawn; ++It)
+		{
+			const FVCNpcRow* Row = FVCWorldData::FindNpc(It->NpcCode);
+			if (Row && Row->Role == EVCNpcRole::Shipyard && FVector::Dist(Pawn->GetActorLocation(), It->GetActorLocation()) <= Range)
+			{
+				Shipyard = It->NpcCode;
+				break;
+			}
+		}
+		if (!Active || Shipyard.IsNone())
+		{
+			Player->ClientMessage(TEXT("Dienste gibt es beim Werftmeister, und nur für das aktive Schiff."));
+			return;
+		}
+		Session->bShipRequestInFlight = true;
+		const int64 InstanceId = Active->InstanceId;
+		FVCServerBackend::ShipService(Session->CharacterId, Session->AccountId, InstanceId, Shipyard.ToString(), Kind.ToUpper(), Amount,
+			[WeakThis, WeakPC](const FVCHttpResult& Result)
+			{
+				APlayerController* PC = WeakPC.Get();
+				FPlayerSession* S = WeakThis.IsValid() && PC ? WeakThis->Sessions.Find(PC) : nullptr;
+				if (!S)
+				{
+					return;
+				}
+				S->bShipRequestInFlight = false;
+				const TSharedPtr<FJsonObject>* ShipJson = nullptr;
+				FPlayerSession::FShip Ship;
+				double Gold = 0.0, Cost = 0.0;
+				if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetObjectField(TEXT("ship"), ShipJson) || !ShipJson
+					|| !FPlayerSession::FShip::FromJson(*ShipJson, Ship) || !Result.Json->TryGetNumberField(TEXT("gold"), Gold))
+				{
+					PC->ClientMessage(FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+					return;
+				}
+				Result.Json->TryGetNumberField(TEXT("cost"), Cost);
+				S->Gold = static_cast<int64>(Gold);
+				for (FPlayerSession::FShip& Owned : S->Ships)
+				{
+					Owned = Owned.InstanceId == Ship.InstanceId ? Ship : Owned;
+				}
+				PC->ClientMessage(FString::Printf(TEXT("Erledigt für %lld Gold – Rumpf %d/%d, Matrosen %d (+%d verletzt), Proviant %d. Gold: %lld"),
+					static_cast<int64>(Cost), Ship.HullHp, Ship.HullMax, Ship.Crew, Ship.Injured, Ship.Provisions, S->Gold));
+			});
+		return;
+	}
 	if (Command == TEXT("activate"))
 	{
 		int64 InstanceId = 0;
@@ -1468,4 +1526,52 @@ void AVCGameMode::HandleShipCommand(APlayerController* Player, const FString& Co
 		return;
 	}
 	Player->ClientMessage(TEXT("Schiffsbefehle: VCShips, VCBuyShip <SCHIFF>, VCSetShip <nummer>"));
+}
+
+FString AVCGameMode::GetZoneId() const
+{
+	return UVCServerSettings::GetZoneId();
+}
+
+void AVCGameMode::HandleMonsterKill(AActor* Killer, FName MonsterCode)
+{
+	// Killer kann ein Charakter oder ein Schiff sein; gemeldet wird für den Spieler, der ihn steuert.
+	const APawn* KillerPawn = Cast<APawn>(Killer);
+	APlayerController* KillerPC = KillerPawn ? Cast<APlayerController>(KillerPawn->GetController()) : nullptr;
+	const FPlayerSession* KillerSession = KillerPC ? Sessions.Find(KillerPC) : nullptr;
+	if (!KillerSession || !KillerSession->bAuthenticated || MonsterCode.IsNone())
+	{
+		return;
+	}
+	const TSharedRef<FJsonObject> Kill = MakeShared<FJsonObject>();
+	Kill->SetStringField(TEXT("victimType"), TEXT("MONSTER"));
+	Kill->SetStringField(TEXT("monsterCode"), MonsterCode.ToString());
+	ReportKill(KillerPC, *KillerSession, Kill);
+}
+
+void AVCGameMode::HandleShipSunk(APawn* Ship, AActor* Killer)
+{
+	APlayerController* PC = Ship ? Cast<APlayerController>(Ship->GetController()) : nullptr;
+	FPlayerSession* Session = PC ? Sessions.Find(PC) : nullptr;
+	const AVCShip* Sunk = Cast<AVCShip>(Ship);
+	if (!Session || !Sunk)
+	{
+		return;
+	}
+	// Strafe fürs Sinken im Original UNKNOWN [DESIGN]: Schiff bleibt im Besitz mit Rumpf 0 (Reparatur beim Werftmeister),
+	// der Spieler kommt nach kurzer Zeit an Land der Zone (Anleger) zurück. Kein Gold- oder XP-Verlust.
+	const FVCShipLoadout Loadout = Sunk->GetLoadout();
+	for (FPlayerSession::FShip& Owned : Session->Ships)
+	{
+		if (Owned.InstanceId == Loadout.InstanceId)
+		{
+			Owned.HullHp = 0;
+			Owned.Crew = Loadout.Crew;
+			Owned.Injured = Loadout.Injured;
+			Owned.Provisions = Loadout.Provisions;
+		}
+	}
+	SaveSession(PC, *Session, *Ship, false);
+	PC->ClientMessage(TEXT("Dein Schiff ist gesunken. Reparatur beim Werftmeister (VCShipService REPAIR)."));
+	ScheduleRespawn(PC);
 }

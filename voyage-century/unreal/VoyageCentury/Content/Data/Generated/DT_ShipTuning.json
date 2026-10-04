@@ -20,6 +20,8 @@
     "CrewMinFactor": 0.5,
     "MinSteerageFactor": 0.2,
     "ProvisionsPerSailorPerMinute": 0.1,
-    "NoProvisionsFactor": 0.5
+    "NoProvisionsFactor": 0.5,
+    "ArcHalfWidthDeg": 45,
+    "DeathShare": 0.3
   }
 ]

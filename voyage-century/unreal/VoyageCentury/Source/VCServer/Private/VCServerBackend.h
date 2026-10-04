@@ -42,7 +42,10 @@ public:
 		FVCHttpCallback Callback);
 	static void SetActiveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, FVCHttpCallback Callback);
 	/** Rumpf, Besatzung, Proviant nach der Fahrt (können ohne Werft nur sinken). */
-	static void SaveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, int32 HullHp, int32 Crew, int32 Provisions,
+	static void SaveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, int32 HullHp, int32 Crew, int32 Injured, int32 Provisions,
+		FVCHttpCallback Callback);
+	/** Hafendienst beim Werftmeister: REPAIR, HEAL, HIRE (Amount), PROVISIONS (Amount). Antwort: ship, gold, cost. */
+	static void ShipService(int64 CharacterId, int64 AccountId, int64 InstanceId, const FString& NpcCode, const FString& Kind, int32 Amount,
 		FVCHttpCallback Callback);
 	/** Admin: Gold gutschreiben; Rechte, Ledger und Audit prüft/schreibt das Backend in einer Transaktion. */
 	static void AdminGrantGold(int64 CharacterId, int64 Amount, const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback);

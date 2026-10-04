@@ -115,7 +115,7 @@ Erste Seezone und zwei Häfen (Kandidaten: London, Athen, weil am besten belegt)
 
 **Abnahme Iteration 1 (Vorschlag)**: Drei Server (Testzone, London, Seezone) und Backend laufen; Client verbindet ohne Adresse über das World Directory; Ausgang in London führt auf die Seezone an den Ankunftspunkt LONDON; derselbe Charakter kann sich nicht gleichzeitig ein zweites Mal einloggen; nach dem Wechsel kann der alte Server den Charakter nicht mehr speichern; ein Neustart von Server und Backend lässt den Charakter in der neuen Zone weiterspielen.
 
-## Phase 5 – Schiffe (Iteration 1 fertig)
+## Phase 5 – Schiffe (Iteration 2 fertig)
 
 Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Matrosen, Seekampf, Entern. Lasttest für große Seeschlachten.
 
@@ -125,10 +125,15 @@ Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Ma
 | Schiffsdaten: Klasse BEGINNER (Anfängerschiff), 4 Entwicklungsschiffe mit belegten Rangfolgen, Segel-Tuning, Wind je Seezone; `V0010` | ✅ It. 1 | Export `--check` (prüft Rangfolgen), Schematest |
 | Backend: Gold mit Ledger, Admin-Gold, Kauf beim Werftmeister der eigenen Zone, aktives Schiff, Schiffszustand (nur sinkend) | ✅ It. 1 | `ShipTests` (6 Tests) |
 | UE: Modul `VCNaval` – Schiff als Spielfigur auf See, Fahrt nur auf dem Server, Steuerung, Wind, HUD; Kauf und Befehle | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal |
-| Matrosen anheuern, Proviant kaufen, Reparatur | ❌ Iteration 2 | Kosten im Original UNKNOWN |
-| Seekampf (Kanonen, Schaden, Sinken), Entern | ❌ Iteration 2/3 | Schadensmodell UNKNOWN |
+| Seekampf-Regeln (`VCNavalCombatRules`): Feuerwinkel der Breitseiten, Trefferchance nach Entfernung, Rumpfschaden, Matrosen verletzt/tot, Nachladen | ✅ It. 2 | `tools/test_rules.sh` (5 weitere Fälle) |
+| Daten: Nah- und Fernkanone, Kanonenplätze (Rangfolge geprüft), Hafenpreise, Piratenschiff; `V0011` | ✅ It. 2 | Export `--check`, Schematest |
+| Backend: Hafendienste beim Werftmeister (Reparatur, Heilen, Anheuern, Proviant) über den Ledger, Obergrenzen, idempotent; verletzte Matrosen im Schiffszustand | ✅ It. 2 | `ShipTests` (+2 Tests) |
+| UE: Breitseiten Q/E, Kanonenwahl R, Treffer und Sinken auf dem Server, Piratenschiff mit KI und Spawner, XP für versenkte Piraten, Sinken → zurück an Land, HUD | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
+| Entern, Rammen, Enterhaken, Minen | ❌ Iteration 3 | belegt als Fähigkeiten, Mechanik UNKNOWN |
 | Wasser-Optik, Strömung, Wetter | ❌ | braucht Assets |
 | Lasttest große Seeschlachten | ❌ | |
+
+**Abnahme Iteration 2 (Vorschlag)**: Auf der Seezone greift ein Piratenschiff an; Breitseiten treffen nur quer ab und in Reichweite; Treffer kosten Rumpf und Matrosen (verletzt oder tot), weniger Matrosen machen langsamer; ein versenkter Pirat gibt die XP aus dem Backend; das eigene Schiff sinkt bei Rumpf 0, man landet an Land und repariert, heilt, heuert an und kauft Proviant beim Werftmeister gegen Gold; alles ist nach Neustart gespeichert.
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Werftmeister das Anfängerschiff erhalten; über den Hafen auf die Seezone → man steuert das Schiff; gegen den Wind keine Fahrt, mit halbem Wind am schnellsten; Proviant sinkt mit der Zeit; nach Neustart sind Schiff, Rumpf, Matrosen und Proviant gespeichert; ein zweites Anfängerschiff gibt es nicht.
 

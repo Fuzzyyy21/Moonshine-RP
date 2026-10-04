@@ -24,6 +24,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCAbilities                                          alle Fähigkeiten mit Voraussetzungen
  *   VCHotbar <platz 1-10> <CODE|leer>                    Hotbar belegen (Server prüft und speichert)
  *   VCShips | VCBuyShip <SCHIFF> | VCSetShip <nummer>    eigene Schiffe, Kauf beim Werftmeister, aktives Schiff
+ *   VCShipService <REPAIR|HEAL|HIRE n|PROVISIONS n>      Hafendienste für das aktive Schiff beim Werftmeister
  *   VCAdmin "givegold <menge>"
  *
  * Passwörter in der Konsole sind nur für die Entwicklung gedacht; die Login-Oberfläche folgt.
@@ -95,6 +96,9 @@ public:
 
 	UFUNCTION(Exec)
 	void VCSetShip(const FString& InstanceId);
+
+	UFUNCTION(Exec)
+	void VCShipService(const FString& Kind, const FString& Amount);
 
 protected:
 	UFUNCTION(Server, Reliable, WithValidation)

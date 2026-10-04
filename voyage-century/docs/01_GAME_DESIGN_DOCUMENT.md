@@ -155,6 +155,8 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Startbesatzung = Hälfte der Kapazität (Community-Rat aus `SAILOR-SYSTEM`), Startproviant aus den Daten. Anheuern, Proviant kaufen und Reparatur folgen; bis dahin können Rumpf, Matrosen und Proviant nur sinken (Backend lehnt höhere Werte ab).
 * Gold: Startguthaben des Originals UNKNOWN (0); Admins können Gold gutschreiben (`givegold`, protokolliert).
 
+**Umgesetzt (Phase 5, Iteration 2)** `[DESIGN]`: Hafendienste beim Werftmeister gegen Gold – Reparatur (2 Gold je Rumpfpunkt), Verletzte heilen (20 je Matrose), Anheuern (50 je Matrose, bis zur Kapazität), Proviant (1 je Einheit, bis zum Maximum). Preise und der Ort fürs Anheuern sind im Original UNKNOWN; belegt ist nur, dass der Hafenarbeiter Matrosen heilt (Ort unbekannt).
+
 **Offen**: alle Schiffsnamen und Werte, Bedingungen für den Schiffsstufen-Aufstieg.
 
 ---
@@ -196,6 +198,15 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Reparatur: auf See mit Material (Fähigkeit), im Hafen gegen Gold (Gold-Senke).
 * Flucht: Kampf endet, wenn Abstand > Kampfradius für Z Sekunden.
 * Untergang: Schiff sinkt, Spieler respawnt im Hafen; Verlustregeln UNKNOWN.
+
+
+**Umgesetzt (Phase 5, Iteration 2)** `[DESIGN]`, Regeln in `VCNavalCombatRules` (getestet), Werte in `design_data/dev_ships.json`
+* Breitseiten: Q backbord, E steuerbord; je Seite die Hälfte der Kanonenplätze. Getroffen wird das nächste feindliche Schiff im Feuerwinkel (±45° um die Querachse) und in Reichweite.
+* Zwei Kanonen (belegt: Nah/Fern): Nahkanone 15 m, mehr Schaden, Fernkanone 40 m, weniger Schaden; Trefferchance sinkt mit der Entfernung. Umschalten mit R.
+* Ein Wurf je Kanone; jeder Treffer kostet Rumpf und anteilig Matrosen, davon 30 % tot, der Rest verletzt (Zustände belegt). Verletzte segeln und schießen nicht mit.
+* Ohne Mindestbesatzung keine Breitseite. Rumpf 0: Das Schiff sinkt; der Spieler kommt an Land zurück, das Schiff bleibt mit Rumpf 0 im Besitz (Strafe im Original UNKNOWN).
+* Piratenschiff als Gegner: legt sich quer zum Ziel, hält Abstand, feuert; XP für das Versenken legt das Backend fest (wie bei Landgegnern).
+* PvP auf See nur in Zonen mit `pvp_mode = FREE`.
 
 ---
 

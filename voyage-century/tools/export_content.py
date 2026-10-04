@@ -385,15 +385,27 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
         "-- Entwicklungsschiffe (design_data/dev_ships.json, is_dev = TRUE).\n",
         upsert("ships", "code", ["code", "name_de", "ship_class_id", "ship_level", "hull_hp", "speed", "acceleration", "deceleration",
                                  "turning", "crew_min", "crew_capacity", "cargo_capacity", "wind_efficiency", "cost_gold",
-                                 "one_per_character", "start_crew", "start_provisions", "is_dev", "confidence"],
+                                 "one_per_character", "start_crew", "start_provisions", "provisions_max", "cannon_slots",
+                                 "is_dev", "confidence"],
                [{"code": sh["code"], "name_de": sh["name_de"],
                  "ship_class_id": SqlExpr(f"(SELECT ship_class_id FROM ship_classes WHERE code = {sql_literal(sh['class'])})"),
                  "ship_level": sh["level"], "hull_hp": sh["hull_hp"], "speed": sh["max_speed"], "acceleration": sh["acceleration"],
                  "deceleration": sh["deceleration"], "turning": sh["turn_rate"], "crew_min": sh["crew_min"],
                  "crew_capacity": sh["crew_max"], "cargo_capacity": sh["cargo"], "wind_efficiency": sh["wind_efficiency"],
                  "cost_gold": sh["cost_gold"], "one_per_character": sh["one_per_character"],
-                 "start_crew": start_crew(sh, ships), "start_provisions": sh["start_provisions"], "is_dev": True,
+                 "start_crew": start_crew(sh, ships), "start_provisions": sh["start_provisions"],
+                 "provisions_max": sh["start_provisions"], "cannon_slots": sh["cannon_slots"], "is_dev": True,
                  "confidence": "UNKNOWN"} for sh in sorted(ships["ships"], key=lambda sh: sh["code"])]),
+        "-- Hafenpreise (design_data/dev_ships.json, UNKNOWN im Original, is_dev = TRUE).\n",
+        upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
+               [{"rule_key": key, "int_value": ships["services"][field], "is_dev": True, "confidence": "UNKNOWN"}
+                for key, field in sorted(SERVICE_RULES.items())]),
+        "-- Piratenschiffe als Gegner (Kill-Belohnung wie bei Landgegnern über monsters).\n",
+        upsert("monsters", "code", ["code", "name_de", "domain", "is_pirate", "hp", "stats", "xp_reward", "is_dev", "confidence"],
+               [{"code": pr["code"], "name_de": pr["name_de"], "domain": "SEA", "is_pirate": True, "hp": pr["ship"]["hull_hp"],
+                 "stats": {k: pr[k] for k in ("crew", "cannon", "aggro_radius_cm", "leash_radius_cm", "respawn_seconds")},
+                 "xp_reward": pr["xp_reward"], "is_dev": True, "confidence": "UNKNOWN"}
+                for pr in ships["pirates"]]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -407,6 +419,18 @@ def ue_common(row: dict) -> dict:
         "NameZh": row["zh"] or "", "NameEn": row["en"] or "", "NameDe": row["de"] or "",
         "ReconId": row["recon_id"], "Confidence": UE_CONFIDENCE[row["confidence"]],
     }
+
+
+SERVICE_RULES = {"SHIP_REPAIR_GOLD_PER_HP": "repair_gold_per_hp", "SAILOR_HIRE_GOLD": "hire_gold_per_sailor",
+                 "SAILOR_HEAL_GOLD": "heal_gold_per_sailor", "PROVISION_GOLD_PER_UNIT": "provisions_gold_per_unit"}
+
+
+def ue_ship(code: str, name_de: str, sh: dict, cost: int, ship_class: str) -> dict:
+    return {"Name": code, "NameDe": name_de, "ShipClass": SHIP_CLASS_UE[ship_class], "Level": sh.get("level", 1),
+            "HullHp": sh["hull_hp"], "MaxSpeed": sh["max_speed"], "Acceleration": sh["acceleration"],
+            "Deceleration": sh["deceleration"], "TurnRateDeg": sh["turn_rate"], "CrewMin": sh["crew_min"],
+            "CrewMax": sh["crew_max"], "Cargo": sh["cargo"], "WindEfficiency": sh["wind_efficiency"],
+            "CannonSlots": sh["cannon_slots"], "CostGold": cost, "bIsDev": True}
 
 
 def start_crew(ship: dict, ships: dict) -> int:
@@ -439,6 +463,12 @@ def check_ships(ships: dict, class_codes: set[str], zone_ids: set[str]) -> None:
             problems.append("Rangfolge Matrosen: Erkundungsschiff hat die meisten")
         if not (m["cargo"] > b["cargo"] and m["cargo"] > r["cargo"]):
             problems.append("Rangfolge Ladung: Handelsschiff hat die größte")
+        if not (b["cannon_slots"] > r["cannon_slots"] and b["cannon_slots"] > m["cannon_slots"]):
+            problems.append("Rangfolge Kanonen: Kriegsschiff hat die meisten")
+    cannon_codes = {c["code"] for c in ships["cannons"]}
+    for pr in ships["pirates"]:
+        if pr["cannon"] not in cannon_codes or pr["zone"] not in zone_ids or pr["ship"]["class"] not in class_codes:
+            problems.append(f"{pr['code']}: Kanone, Zone oder Klasse unbekannt")
     if problems:
         raise SystemExit("design_data/dev_ships.json:\n  " + "\n  ".join(problems))
 
@@ -453,18 +483,27 @@ def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abili
               discoveries: dict, ships: dict) -> dict[str, list[dict]]:
     t = ships["tuning"]
     return {
-        "DT_Ships.json": [
-            {"Name": sh["code"], "NameDe": sh["name_de"], "ShipClass": SHIP_CLASS_UE[sh["class"]], "Level": sh["level"],
-             "HullHp": sh["hull_hp"], "MaxSpeed": sh["max_speed"], "Acceleration": sh["acceleration"],
-             "Deceleration": sh["deceleration"], "TurnRateDeg": sh["turn_rate"], "CrewMin": sh["crew_min"],
-             "CrewMax": sh["crew_max"], "Cargo": sh["cargo"], "WindEfficiency": sh["wind_efficiency"],
-             "CostGold": sh["cost_gold"], "bIsDev": True}
-            for sh in sorted(ships["ships"], key=lambda sh: sh["code"])
+        "DT_Ships.json": sorted(
+            [ue_ship(sh["code"], sh["name_de"], sh, sh["cost_gold"], sh["class"]) for sh in ships["ships"]]
+            + [ue_ship(pr["code"], pr["name_de"], pr["ship"], 0, pr["ship"]["class"]) for pr in ships["pirates"]],
+            key=lambda row: row["Name"]),
+        "DT_Cannons.json": [
+            {"Name": c["code"], "NameDe": c["name_de"], "RangeCm": c["range_cm"], "DamagePerHit": c["damage_per_hit"],
+             "CrewHitsPerHit": c["crew_hits_per_hit"], "ReloadSeconds": c["reload_seconds"],
+             "HitChanceNear": c["hit_chance_near"], "HitChanceFar": c["hit_chance_far"]}
+            for c in ships["cannons"]
+        ],
+        "DT_PirateShips.json": [
+            {"Name": pr["code"], "NameDe": pr["name_de"], "ShipCode": pr["code"], "CannonCode": pr["cannon"], "Crew": pr["crew"],
+             "XpReward": pr["xp_reward"], "AggroRadiusCm": pr["aggro_radius_cm"], "LeashRadiusCm": pr["leash_radius_cm"],
+             "RespawnSeconds": pr["respawn_seconds"]}
+            for pr in ships["pirates"]
         ],
         "DT_ShipTuning.json": [
             {"Name": "Default", "PolarAngles": [a for a, _ in t["polar"]], "PolarEfficiencies": [e for _, e in t["polar"]],
              "CrewMinFactor": t["crew_min_factor"], "MinSteerageFactor": t["min_steerage_factor"],
-             "ProvisionsPerSailorPerMinute": t["provisions_per_sailor_per_minute"], "NoProvisionsFactor": t["no_provisions_factor"]}
+             "ProvisionsPerSailorPerMinute": t["provisions_per_sailor_per_minute"], "NoProvisionsFactor": t["no_provisions_factor"],
+             "ArcHalfWidthDeg": ships["broadside"]["arc_half_width_deg"], "DeathShare": ships["broadside"]["death_share"]}
         ],
         "DT_ZoneWind.json": [
             {"Name": w["zone"], "BaseDirectionDeg": w["base_direction_deg"], "BaseStrength": w["base_strength"],

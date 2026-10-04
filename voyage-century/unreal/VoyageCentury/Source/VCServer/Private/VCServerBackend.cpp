@@ -152,12 +152,25 @@ void FVCServerBackend::SetActiveShip(int64 CharacterId, int64 AccountId, int64 I
 		OwnerBody(AccountId), Headers(), MoveTemp(Callback));
 }
 
-void FVCServerBackend::SaveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, int32 HullHp, int32 Crew, int32 Provisions,
-	FVCHttpCallback Callback)
+void FVCServerBackend::ShipService(int64 CharacterId, int64 AccountId, int64 InstanceId, const FString& NpcCode, const FString& Kind,
+	int32 Amount, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetStringField(TEXT("npcCode"), NpcCode);
+	Body->SetStringField(TEXT("kind"), Kind);
+	Body->SetNumberField(TEXT("amount"), Amount);
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FVCHttp::Send(TEXT("POST"), FString::Printf(TEXT("%s/ships/%lld/services"), *CharacterUrl(CharacterId), InstanceId),
+		Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::SaveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, int32 HullHp, int32 Crew, int32 Injured,
+	int32 Provisions, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
 	Body->SetNumberField(TEXT("hullHp"), HullHp);
 	Body->SetNumberField(TEXT("crew"), Crew);
+	Body->SetNumberField(TEXT("injured"), Injured);
 	Body->SetNumberField(TEXT("provisions"), Provisions);
 	FVCHttp::Send(TEXT("PUT"), FString::Printf(TEXT("%s/ships/%lld/state"), *CharacterUrl(CharacterId), InstanceId),
 		Body, Headers(), MoveTemp(Callback));
@@ -284,7 +297,8 @@ void FVCServerBackend::RequestTransfer(int64, int64, const FString&, FVCHttpCall
 void FVCServerBackend::ReportDiscovery(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::BuyShip(int64, int64, const FString&, const FString&, const FGuid&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::SetActiveShip(int64, int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
-void FVCServerBackend::SaveShip(int64, int64, int64, int32, int32, int32, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::SaveShip(int64, int64, int64, int32, int32, int32, int32, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ShipService(int64, int64, int64, const FString&, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminGrantGold(int64, int64, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }

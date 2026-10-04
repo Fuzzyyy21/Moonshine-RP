@@ -249,11 +249,11 @@ ON CONFLICT (code) DO UPDATE SET
 
 -- Entwicklungsschiffe (design_data/dev_ships.json, is_dev = TRUE).
 
-INSERT INTO ships (code, name_de, ship_class_id, ship_level, hull_hp, speed, acceleration, deceleration, turning, crew_min, crew_capacity, cargo_capacity, wind_efficiency, cost_gold, one_per_character, start_crew, start_provisions, is_dev, confidence) VALUES
-    ('DEV_BATTLE_SLOOP', 'Kriegsschaluppe (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'BATTLE'), 2, 1500, 1000, 90, 180, 14, 10, 30, 80, 0.9, 5000, FALSE, 15, 400, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_MERCHANT_COG', 'Handelskogge (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'MERCHANT'), 2, 1200, 750, 60, 150, 10, 8, 20, 300, 0.9, 5000, FALSE, 10, 400, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_RAIDER_CUTTER', 'Erkundungskutter (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'RAIDER'), 2, 900, 1300, 140, 220, 22, 12, 40, 60, 0.9, 5000, FALSE, 20, 400, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_STARTER_SHIP', 'Anfängerschiff (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'BEGINNER'), 1, 500, 900, 120, 200, 18, 4, 12, 50, 0.8, 0, TRUE, 6, 200, TRUE, 'UNKNOWN'::confidence_level)
+INSERT INTO ships (code, name_de, ship_class_id, ship_level, hull_hp, speed, acceleration, deceleration, turning, crew_min, crew_capacity, cargo_capacity, wind_efficiency, cost_gold, one_per_character, start_crew, start_provisions, provisions_max, cannon_slots, is_dev, confidence) VALUES
+    ('DEV_BATTLE_SLOOP', 'Kriegsschaluppe (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'BATTLE'), 2, 1500, 1000, 90, 180, 14, 10, 30, 80, 0.9, 5000, FALSE, 15, 400, 400, 16, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_MERCHANT_COG', 'Handelskogge (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'MERCHANT'), 2, 1200, 750, 60, 150, 10, 8, 20, 300, 0.9, 5000, FALSE, 10, 400, 400, 6, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_RAIDER_CUTTER', 'Erkundungskutter (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'RAIDER'), 2, 900, 1300, 140, 220, 22, 12, 40, 60, 0.9, 5000, FALSE, 20, 400, 400, 8, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_STARTER_SHIP', 'Anfängerschiff (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'BEGINNER'), 1, 500, 900, 120, 200, 18, 4, 12, 50, 0.8, 0, TRUE, 6, 200, 200, 4, TRUE, 'UNKNOWN'::confidence_level)
 ON CONFLICT (code) DO UPDATE SET
     name_de = EXCLUDED.name_de,
     ship_class_id = EXCLUDED.ship_class_id,
@@ -271,6 +271,34 @@ ON CONFLICT (code) DO UPDATE SET
     one_per_character = EXCLUDED.one_per_character,
     start_crew = EXCLUDED.start_crew,
     start_provisions = EXCLUDED.start_provisions,
+    provisions_max = EXCLUDED.provisions_max,
+    cannon_slots = EXCLUDED.cannon_slots,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+-- Hafenpreise (design_data/dev_ships.json, UNKNOWN im Original, is_dev = TRUE).
+
+INSERT INTO game_rules (rule_key, int_value, is_dev, confidence) VALUES
+    ('PROVISION_GOLD_PER_UNIT', 1, TRUE, 'UNKNOWN'::confidence_level),
+    ('SAILOR_HEAL_GOLD', 20, TRUE, 'UNKNOWN'::confidence_level),
+    ('SAILOR_HIRE_GOLD', 50, TRUE, 'UNKNOWN'::confidence_level),
+    ('SHIP_REPAIR_GOLD_PER_HP', 2, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (rule_key) DO UPDATE SET
+    int_value = EXCLUDED.int_value,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+-- Piratenschiffe als Gegner (Kill-Belohnung wie bei Landgegnern über monsters).
+
+INSERT INTO monsters (code, name_de, domain, is_pirate, hp, stats, xp_reward, is_dev, confidence) VALUES
+    ('DEV_PIRATE_SLOOP', 'Piratenschaluppe (Test)', 'SEA', TRUE, 800, '{"aggro_radius_cm": 5000, "cannon": "DEV_CANNON_NEAR", "crew": 16, "leash_radius_cm": 15000, "respawn_seconds": 60}'::jsonb, 150, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_de = EXCLUDED.name_de,
+    domain = EXCLUDED.domain,
+    is_pirate = EXCLUDED.is_pirate,
+    hp = EXCLUDED.hp,
+    stats = EXCLUDED.stats,
+    xp_reward = EXCLUDED.xp_reward,
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
 #include "VCDataRows.h"
+#include "VCNavalCombatRules.h"
 #include "VCShipRules.h"
 #include "VCNavalData.generated.h"
 
@@ -24,6 +25,20 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Daten", meta = (RequiredAssetDataTags = "RowStructure=/Script/VCData.VCZoneWindRow"))
 	TSoftObjectPtr<UDataTable> ZoneWindTable;
 
+	UPROPERTY(config, EditAnywhere, Category = "Daten", meta = (RequiredAssetDataTags = "RowStructure=/Script/VCData.VCCannonRow"))
+	TSoftObjectPtr<UDataTable> CannonsTable;
+
+	UPROPERTY(config, EditAnywhere, Category = "Daten", meta = (RequiredAssetDataTags = "RowStructure=/Script/VCData.VCPirateShipRow"))
+	TSoftObjectPtr<UDataTable> PirateShipsTable;
+
+	/** Kanone, mit der Spielerschiffe beginnen (Ausrüstung folgt mit dem Inventar). */
+	UPROPERTY(config, EditAnywhere, Category = "Daten")
+	FName DefaultCannon = TEXT("DEV_CANNON_NEAR");
+
+	/** Zweite Munition/Kanone zum Umschalten (R). */
+	UPROPERTY(config, EditAnywhere, Category = "Daten")
+	FName AlternateCannon = TEXT("DEV_CANNON_FAR");
+
 	/** Höhe der Wasseroberfläche in den Seekarten (Platzhalter, bis es Wasser-Assets gibt). */
 	UPROPERTY(config, EditAnywhere, Category = "See")
 	float SeaLevelZ = 0.f;
@@ -42,4 +57,8 @@ public:
 	/** Wind der Zone; ohne Eintrag Windstille (Stärke 0). */
 	static vc::rules::FWindParams WindFor(FName ZoneId);
 	static vc::rules::FShipDef ToRules(const FVCShipRow& Row);
+	static const FVCCannonRow* FindCannon(FName Code);
+	static const FVCPirateShipRow* FindPirate(FName Code);
+	static vc::rules::FCannonDef ToRules(const FVCCannonRow& Row);
+	static const vc::rules::FBroadsideTuning& BroadsideTuning();
 };

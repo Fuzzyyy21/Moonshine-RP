@@ -87,6 +87,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0008__world_directory.sql` | `zones.is_dev`, Hafendienste nullable (NULL = UNKNOWN), `zone_links` (Ausgang → Zielzone, Ankunftspunkt), `zone_servers`, `character_presence` (eine Anwesenheit je Charakter) |
 | `V0009__npcs_discoveries.sql` | `discoveries` (Punkt je Zone, `xp_reward` NULL = UNKNOWN), `character_discoveries` (einmal je Charakter) |
 | `V0010__ships.sql` | `ships.is_dev`, `crew_min`, `deceleration`, `start_crew`, `start_provisions`, `one_per_character`; `ship_instances.purchase_key` (Kauf genau einmal) |
+| `V0011__naval_combat.sql` | `game_rules.is_dev` (Hafenpreise), `ships.provisions_max` |
 | `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Häfen, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten, Zonen und Übergänge) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);

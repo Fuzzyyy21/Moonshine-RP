@@ -1,0 +1,22 @@
+[
+  {
+    "Name": "DEV_CANNON_NEAR",
+    "NameDe": "Nahkampfkanone (Test)",
+    "RangeCm": 1500,
+    "DamagePerHit": 25,
+    "CrewHitsPerHit": 0.4,
+    "ReloadSeconds": 8,
+    "HitChanceNear": 0.9,
+    "HitChanceFar": 0.6
+  },
+  {
+    "Name": "DEV_CANNON_FAR",
+    "NameDe": "Fernkampfkanone (Test)",
+    "RangeCm": 4000,
+    "DamagePerHit": 15,
+    "CrewHitsPerHit": 0.2,
+    "ReloadSeconds": 12,
+    "HitChanceNear": 0.8,
+    "HitChanceFar": 0.3
+  }
+]

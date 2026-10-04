@@ -289,3 +289,8 @@ void AVCPlayerController::ServerShipCommand_Implementation(const FString& Comman
 		Hooks->HandleShipCommand(this, Command, Argument);
 	}
 }
+
+void AVCPlayerController::VCShipService(const FString& Kind, const FString& Amount)
+{
+	ServerShipCommand(TEXT("service"), Amount.IsEmpty() ? Kind : Kind + TEXT(" ") + Amount);
+}

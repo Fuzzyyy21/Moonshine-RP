@@ -133,6 +133,50 @@ public sealed class ShipTests(PostgresFixture db)
         Assert.Equal(HttpStatusCode.BadRequest, (await Buy(prod, p, "DEV_STARTER_SHIP")).StatusCode);
     }
 
+    [Fact]
+    public async Task Harbor_services_cost_gold_and_respect_limits()
+    {
+        await using var backend = await TestBackend.StartAsync(db, InAthens);
+        var p = await InZone(backend, "CITY_ATHENS");
+        var ship = (await (await Buy(backend, p, "DEV_STARTER_SHIP")).Content.ReadFromJsonAsync<BuyShipResponse>())!.Ship;
+        // Gefecht: 100 Rumpf verloren, 2 Matrosen verletzt, 1 tot, 20 Proviant verbraucht.
+        Assert.Equal(HttpStatusCode.NoContent, (await SaveShip(backend, p, ship.InstanceId, 400, 3, 180, injured: 2)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await Service(backend, p, ship, "REPAIR")).StatusCode); // kein Gold
+        await GiveGold(backend, await Admin(backend), p, 10_000, Guid.NewGuid());
+
+        var key = Guid.NewGuid();
+        var repair = (await (await Service(backend, p, ship, "REPAIR", key: key)).Content.ReadFromJsonAsync<ShipServiceResponse>())!;
+        Assert.Equal((500, 200L), (repair.Ship.HullHp, repair.Cost)); // 100 HP × 2 Gold
+        var again = (await (await Service(backend, p, ship, "REPAIR", key: key)).Content.ReadFromJsonAsync<ShipServiceResponse>())!;
+        Assert.True(again.Duplicate);
+        Assert.Equal(repair.Gold, again.Gold);
+
+        var heal = (await (await Service(backend, p, ship, "HEAL")).Content.ReadFromJsonAsync<ShipServiceResponse>())!;
+        Assert.Equal((5, 0, 40L), (heal.Ship.Crew, heal.Ship.Injured, heal.Cost));
+        var hire = (await (await Service(backend, p, ship, "HIRE", 50)).Content.ReadFromJsonAsync<ShipServiceResponse>())!;
+        Assert.Equal((12, 350L), (hire.Ship.Crew, hire.Cost)); // nur bis zur Kapazität: 7 × 50
+        var food = (await (await Service(backend, p, ship, "PROVISIONS", 500)).Content.ReadFromJsonAsync<ShipServiceResponse>())!;
+        Assert.Equal((200, 20L), (food.Ship.Provisions, food.Cost));
+        Assert.Equal(HttpStatusCode.Conflict, (await Service(backend, p, ship, "REPAIR")).StatusCode); // bereits ganz
+        Assert.Equal(10_000 - 200 - 40 - 350 - 20, (await State(backend, p)).Gold);
+    }
+
+    [Fact]
+    public async Task Crew_cannot_grow_and_services_need_the_shipyard()
+    {
+        await using var backend = await TestBackend.StartAsync(db, InAthens);
+        var p = await InZone(backend, "CITY_ATHENS");
+        var ship = (await (await Buy(backend, p, "DEV_STARTER_SHIP")).Content.ReadFromJsonAsync<BuyShipResponse>())!.Ship;
+        Assert.Equal(HttpStatusCode.Conflict, (await SaveShip(backend, p, ship.InstanceId, 500, 5, 200, injured: 5)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Service(backend, p, ship, "TELEPORT")).StatusCode);
+
+        await using var test = await TestBackend.StartAsync(db);
+        var q = await InZone(test, "DEV_TESTZONE");
+        var res = await test.GameInternal.PostAsJsonAsync($"/internal/v1/characters/{q.CharacterId}/ships/{ship.InstanceId}/services",
+            new ShipServiceRequest(q.AccountId, q.ServerId, "ATHENS_SHIPYARD", "REPAIR", 0, Guid.NewGuid()));
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
     // ---- Hilfen ------------------------------------------------------------------------------
 
     private sealed record Player(long AccountId, long CharacterId, string ServerId = "");
@@ -164,9 +208,14 @@ public sealed class ShipTests(PostgresFixture db)
         backend.GameInternal.PostAsJsonAsync($"/internal/v1/characters/{p.CharacterId}/gold",
             new AdminGoldRequest(admin, amount, key, null, "203.0.113.9", "zone-test"));
 
-    private static Task<HttpResponseMessage> SaveShip(TestBackend backend, Player p, long instance, int hull, int crew, int provisions) =>
+    private static Task<HttpResponseMessage> SaveShip(TestBackend backend, Player p, long instance, int hull, int crew, int provisions,
+        int? injured = null) =>
         backend.GameInternal.PutAsJsonAsync($"/internal/v1/characters/{p.CharacterId}/ships/{instance}/state",
-            new SaveShipRequest(p.AccountId, p.ServerId, hull, crew, provisions));
+            new SaveShipRequest(p.AccountId, p.ServerId, hull, crew, provisions, injured));
+
+    private static Task<HttpResponseMessage> Service(TestBackend backend, Player p, ShipState ship, string kind, int amount = 0, Guid? key = null) =>
+        backend.GameInternal.PostAsJsonAsync($"/internal/v1/characters/{p.CharacterId}/ships/{ship.InstanceId}/services",
+            new ShipServiceRequest(p.AccountId, p.ServerId, "ATHENS_SHIPYARD", kind, amount, key ?? Guid.NewGuid()));
 
     private static async Task<CharacterState> State(TestBackend backend, Player p) =>
         (await backend.GameInternal.GetFromJsonAsync<CharacterState>(

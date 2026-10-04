@@ -27,6 +27,9 @@ public:
 	/** Admin-Kommando eines Spielers, z. B. "teleport 0 0 500". Rechteprüfung und Audit liegen beim Server. */
 	virtual void HandleAdminCommand(APlayerController* Issuer, const FString& CommandLine) = 0;
 
+	/** Zone dieses Servers (z. B. für den Wind). */
+	virtual FString GetZoneId() const = 0;
+
 	/** Erlaubt die Zone Kämpfe zwischen Spielern? (aus zones.pvp_mode, vom Backend geladen) */
 	virtual bool IsPvPAllowed() const = 0;
 
@@ -47,4 +50,10 @@ public:
 
 	/** Schiffsbefehle eines Spielers: "list", "buy <SCHIFF>" (beim Werftmeister in der Nähe), "activate <instanceId>". */
 	virtual void HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument) = 0;
+
+	/** Ein Spielerschiff ist gesunken (Rumpf 0). Speichern und den Spieler an Land zurückschicken. */
+	virtual void HandleShipSunk(APawn* Ship, AActor* Killer) = 0;
+
+	/** Ein Gegner ohne Kampfsystem-Schnittstelle (z. B. Piratenschiff) wurde besiegt; Belohnung legt das Backend fest. */
+	virtual void HandleMonsterKill(AActor* Killer, FName MonsterCode) = 0;
 };

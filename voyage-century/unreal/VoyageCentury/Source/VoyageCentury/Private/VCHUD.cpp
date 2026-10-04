@@ -65,11 +65,13 @@ void AVCHUD::BeginPlay()
 {
 	Super::BeginPlay();
 	CombatTextHandle = UVCCombatStateComponent::OnCombatText.AddUObject(this, &AVCHUD::OnCombatText);
+	ShipHitHandle = AVCShip::OnShipHit.AddUObject(this, &AVCHUD::OnShipHit);
 }
 
 void AVCHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	UVCCombatStateComponent::OnCombatText.Remove(CombatTextHandle);
+	AVCShip::OnShipHit.Remove(ShipHitHandle);
 	if (UVCAbilityStateComponent* State = BoundAbilityState.Get())
 	{
 		State->OnAbilityBlocked.Remove(BlockedHandle);
@@ -376,14 +378,37 @@ void AVCHUD::DrawShipPanel()
 	Lines.Add(FString::Printf(TEXT("Segel %.0f %%   Ruder %+.0f %%"), Ship->GetSailLevel() * 100.0, Ship->GetRudder() * 100.0));
 	Lines.Add(FString::Printf(TEXT("Wind nach %.0f°, Stärke %.2f – %.0f° zum Wind"), Wind.DirectionDeg, Wind.Strength, OffWind));
 	Lines.Add(FString::Printf(TEXT("Rumpf %d / %d"), Ship->GetHullHp(), Row ? Row->HullHp : 0));
-	Lines.Add(FString::Printf(TEXT("Matrosen %d (min. %d, max. %d)   Proviant %d"), Ship->GetCrew(), Row ? Row->CrewMin : 0,
-		Row ? Row->CrewMax : 0, Ship->GetProvisions()));
+	Lines.Add(FString::Printf(TEXT("Matrosen %d (+%d verletzt; min. %d, max. %d)   Proviant %d"), Ship->GetCrew(), Ship->GetInjured(),
+		Row ? Row->CrewMin : 0, Row ? Row->CrewMax : 0, Ship->GetProvisions()));
+	const FVCCannonRow* Cannon = FVCNavalData::FindCannon(Ship->GetCannonCode());
+	const double PortReload = Ship->GetReloadRemaining(false);
+	const double StarboardReload = Ship->GetReloadRemaining(true);
+	Lines.Add(FString::Printf(TEXT("%s (%.0f m)   Q backbord %s   E steuerbord %s"),
+		Cannon ? *Cannon->NameDe : TEXT("keine Kanone"), Cannon ? Cannon->RangeCm / 100.0 : 0.0,
+		PortReload > 0.0 ? *FString::Printf(TEXT("%.0f s"), FMath::CeilToDouble(PortReload)) : TEXT("bereit"),
+		StarboardReload > 0.0 ? *FString::Printf(TEXT("%.0f s"), FMath::CeilToDouble(StarboardReload)) : TEXT("bereit")));
+	if (Ship->IsSunk())
+	{
+		Lines.Add(TEXT("GESUNKEN"));
+	}
 
 	const float X = Canvas->ClipX - 360.f;
 	const float Y = Canvas->ClipY - 170.f;
-	DrawRect(Panel, X - 8.f, Y - 6.f, 350.f, 18.f * Lines.Num() + 12.f);
+	DrawRect(Panel, X - 8.f, Y - 6.f - 36.f, 350.f, 18.f * Lines.Num() + 12.f);
 	for (int32 Index = 0; Index < Lines.Num(); ++Index)
 	{
-		DrawText(Lines[Index], Index == 0 ? FLinearColor::Yellow : FLinearColor::White, X, Y + Index * 18.f, SmallFont());
+		DrawText(Lines[Index], Index == 0 ? FLinearColor::Yellow : FLinearColor::White, X, Y - 36.f + Index * 18.f, SmallFont());
 	}
+}
+
+void AVCHUD::OnShipHit(AVCShip* Ship, int32 Hits, int32 HullDamage, int32 CrewLosses)
+{
+	FFloatingText& Entry = FloatingTexts.AddDefaulted_GetRef();
+	Entry.Actor = Ship;
+	Entry.StartTime = LocalNow();
+	Entry.Color = Hits > 0 ? FLinearColor(1.f, 0.6f, 0.2f) : FLinearColor::Gray;
+	Entry.Text = Hits > 0
+		? FString::Printf(TEXT("-%d Rumpf (%d Treffer)%s"), HullDamage, Hits,
+			CrewLosses > 0 ? *FString::Printf(TEXT(", %d Matrosen"), CrewLosses) : TEXT(""))
+		: TEXT("verfehlt");
 }

@@ -1,0 +1,13 @@
+[
+  {
+    "Name": "DEV_PIRATE_SLOOP",
+    "NameDe": "Piratenschaluppe (Test)",
+    "ShipCode": "DEV_PIRATE_SLOOP",
+    "CannonCode": "DEV_CANNON_NEAR",
+    "Crew": 16,
+    "XpReward": 150,
+    "AggroRadiusCm": 5000,
+    "LeashRadiusCm": 15000,
+    "RespawnSeconds": 60
+  }
+]

@@ -11,9 +11,11 @@ add_executable(vc_rules_tests
     CombatRulesTests.cpp
     AbilityRulesTests.cpp
     ShipRulesTests.cpp
+    NavalCombatRulesTests.cpp
     ../Private/VCCombatRules.cpp
     ../Private/VCAbilityRules.cpp
-    ../Private/VCShipRules.cpp)
+    ../Private/VCShipRules.cpp
+    ../Private/VCNavalCombatRules.cpp)
 target_include_directories(vc_rules_tests PRIVATE ../Public)
 target_compile_options(vc_rules_tests PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror -fno-exceptions -fno-rtti)
 
