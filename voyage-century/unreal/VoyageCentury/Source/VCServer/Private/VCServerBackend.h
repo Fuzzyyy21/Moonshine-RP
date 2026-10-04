@@ -19,4 +19,12 @@ public:
 	static void SaveCharacter(int64 CharacterId, int64 AccountId, const FString& ZoneId,
 		const FVector& Location, float Yaw, FVCHttpCallback Callback);
 	static void WriteAdminAudit(const TSharedRef<FJsonObject>& Entry, FVCHttpCallback Callback);
+
+	/** XP-Vergabe; jeder Aufruf bekommt einen neuen Idempotenzschlüssel. SkillCode leer = Charakter-XP. */
+	static void GrantExperience(int64 CharacterId, int64 AccountId, const FString& SkillCode, int64 Amount,
+		const FString& Source, FVCHttpCallback Callback);
+
+	/** Admin: Level bzw. Skillstufe setzen. Das Backend prüft Rechte und schreibt Audit in derselben Transaktion. */
+	static void AdminSetLevel(int64 CharacterId, const FString& SkillCode, int32 Level,
+		const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback);
 };

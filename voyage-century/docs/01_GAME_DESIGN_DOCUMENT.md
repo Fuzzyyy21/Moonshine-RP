@@ -64,6 +64,11 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Bänder aus dem Master-Prompt (1–30 … 221–230) werden als **Content-Bänder** für Gebiete, Gegner und Ausrüstung genutzt. `[DESIGN]`
 * Solange die XP-Kurve fehlt, gibt es für Entwicklung und Tests eine **klar markierte Test-Kurve** in einer separaten Data Table `DT_LevelCurve_DEV`, die im Shipping-Build nicht geladen werden darf. `[DESIGN]`
 
+**Umgesetzt (Phase 2, Iteration 1)**
+* `level_table` und `skill_level_table` enthalten kumulierte XP-Schwellen. Das Cap ist die letzte Stufe einer **lückenlosen** Folge bekannter Schwellen; fehlt eine Stufe, endet die Kurve dort.
+* Entwicklungskurven (`design_data/dev_curves.json`: Charakter 100·(L−1)², Skills 50·(L−1)²) stehen mit `is_dev = TRUE` in der Datenbank und werden nur bei `Progression:AllowDevCurves` benutzt. Echte Werte ersetzen sie stufenweise.
+* Ohne nutzbare Kurve sammelt sich XP weiter an, das Level bleibt.
+
 **Offen**: echte XP-Tabelle, aktuelles Cap, Boni pro Stufe in der CN-Version.
 
 ---
@@ -81,6 +86,11 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Gesamtcap 1700 wird serverseitig geprüft; Spieler können Skills **senken**, um Punkte umzuverteilen. `[DESIGN]`
 * Fähigkeiten (aktiv/passiv) sind GAS-Abilities, die über `abilities.required_skill_level` freigeschaltet werden.
 * UI-Gruppierung Kampf / Seefahrt / Berufe wie im Master-Prompt, Datenkategorie bleibt original (`CONTRA-005`).
+
+**Umgesetzt (Phase 2, Iteration 1)**
+* Skill-XP wird vom Zonen-Server gemeldet und im GameData-Dienst verbucht. Die Stufe ist begrenzt durch die Skill-XP-Kurve, das Maximum der aktuellen Skillstufe (31/100/120) und das Restbudget des Gesamtcaps (1700 minus Summe aller anderen Skills).
+* Skills ohne Eintrag gelten als Stufe 1 mit 0 XP `[DESIGN]` (Startwerte UNKNOWN).
+* Automatische Beförderung findet nicht statt, solange die Bedingungen UNKNOWN sind; `/setskill` setzt Stufe und Skillstufe mit Audit.
 
 **Offen**: chinesische Skillnamen für 12 von 17 Skills, XP-Gewinn je Aktion, Liste der Fähigkeiten pro Skill, Beförderungsbedingungen.
 

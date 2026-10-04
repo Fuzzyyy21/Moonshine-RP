@@ -15,7 +15,7 @@ nutzen `BuildSettingsVersion.Latest`, damit kein versionsspezifischer Wert festg
 | `VCCore` | Log-Kategorie `LogVC`, Backend-Adressen (`UVCBackendSettings`), Schnittstelle `IVCServerHooks` |
 | `VCData` | Row-Structs für die generierten Data Tables |
 | `VCNet` | HTTP/JSON-Client `FVCHttp`, Login-Ablauf `UVCSessionSubsystem` |
-| `VoyageCentury` | Primärmodul: `AVCPlayerController` (Konsolenbefehle, Admin-RPC), `AVCCharacter` (Platzhalterfigur) |
+| `VoyageCentury` | Primärmodul: `AVCPlayerController` (Konsolenbefehle, Admin-RPC), `AVCCharacter` (Bewegung, Kamera), `AVCPlayerState` + `UVCProgressionComponent` (replizierte Progression) |
 | `VCServer` | `AVCGameMode`: Ticketprüfung, Laden/Speichern, Admin-Audit; `UVCServerSettings` |
 
 Targets: `VoyageCentury` (Game), `VoyageCenturyEditor`, `VoyageCenturyServer`, `VoyageCenturyClient`.
@@ -65,6 +65,22 @@ Abnahmekriterien:
 | Admin-Kommando im Audit-Log | Konto in der DB zum Admin machen (`UPDATE accounts SET admin_level = 1 WHERE login = '…'`), neu verbinden, dann `VCAdmin "teleport 0 0 300"` → Zeile in `admin_audit_log` mit alter und neuer Position |
 | Ohne Ticket kein Zutritt | `open 127.0.0.1:7777` ohne Login → Verbindung abgelehnt |
 
+## Phase 2 testen (Progression und Bewegung)
+
+Steuerung: WASD, Maus, Leertaste. Mit Adminkonto (Backend in Development, Entwicklungskurven aktiv):
+
+```
+VCAdmin "givexp 450"                → VCStatus zeigt Stufe 3, XP 450
+VCAdmin "giveskillxp NAVIGATION 100000" → NAVIGATION Stufe 31 (Grenze der Grundstufe)
+VCAdmin "setskill SWORD 60"         → SWORD Stufe 60, Skillstufe 2
+```
+
+Danach Client trennen, Server und Backend neu starten, erneut verbinden: `VCStatus` zeigt dieselben Werte.
+Jede dieser Aktionen steht in `admin_audit_log`.
+
+Clients haben keinen Weg, Level oder XP zu setzen: Die Progressionskomponente nimmt Werte nur auf dem
+Server an und nur aus Backend-Antworten; `CheckAuthority` verwirft alle anderen Aufrufe.
+
 ## Sicherheitsregeln im Code
 
 * Der Server spawnt erst einen Pawn, wenn Ticket **und** Charakterbesitz vom Backend bestätigt sind.
@@ -79,7 +95,8 @@ Abnahmekriterien:
 
 ## Bekannte Grenzen von Phase 1
 
-* Keine Steuerung (Phase 2); Positionsänderung nur per Admin-Teleport.
+* Laufgeschwindigkeit, Sprunghöhe usw. sind Engine-Standardwerte (Originalwerte UNKNOWN).
+* Keine Animation, Platzhalterfigur (Assets fehlen).
 * Konsolenbefehle statt Login-Oberfläche; Passwort steht in der Konsolen-Historie.
 * Das Ticket steht in der Verbindungs-URL und kann in ausführlichen Engine-Logs auftauchen.
 * Keine Sperre gegen gleichzeitiges Einloggen desselben Charakters auf zwei Zonen (World Directory folgt).

@@ -5,12 +5,19 @@
 #include "VCCharacter.generated.h"
 
 class UCameraComponent;
+class UInputAction;
+class UInputMappingContext;
 class USpringArmComponent;
 class UStaticMeshComponent;
+struct FInputActionValue;
 
 /**
- * Phase-1-Spielfigur: repliziert, sichtbar (Platzhalterform aus den Engine-Grundformen), Kamera.
- * Steuerung, Animation und echtes Modell kommen in Phase 2.
+ * Spielfigur an Land. Bewegung über die Character Movement Component: der Client sagt voraus,
+ * der Server rechnet nach und korrigiert. Der Client sendet nur Eingaben, keine Positionen.
+ *
+ * Steuerung (Enhanced Input, zur Laufzeit erzeugt, damit keine Binär-Assets nötig sind):
+ *   WASD bewegen, Maus umsehen, Leertaste springen.
+ * Laufgeschwindigkeit und Sprunghöhe des Originals sind UNKNOWN; es gelten die Engine-Standardwerte.
  */
 UCLASS()
 class VOYAGECENTURY_API AVCCharacter : public ACharacter
@@ -19,6 +26,9 @@ class VOYAGECENTURY_API AVCCharacter : public ACharacter
 
 public:
 	AVCCharacter();
+
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void PawnClientRestart() override;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Visual")
@@ -29,4 +39,20 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<UCameraComponent> FollowCamera;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputMappingContext> InputContext;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> LookAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> JumpAction;
+
+	void CreateInputObjects();
+	void Move(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
 };

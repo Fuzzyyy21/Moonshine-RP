@@ -113,9 +113,24 @@ def build_rows(records: dict[str, dict], ui_groups: dict[str, str]) -> dict[str,
         for r in by_entity.get("EQUIPMENT_SET", [])
     ]
 
+    total_cap = records.get("SKILL-TOTAL-CAP")
+    rows["game_rules"] = [
+        {"rule_key": "SKILL_TOTAL_CAP", "int_value": total_cap["data"]["total_cap"],
+         "recon_id": total_cap["id"], "confidence": total_cap["confidence"]}
+    ] if total_cap and isinstance(known(total_cap["data"].get("total_cap")), int) else []
+
     for key, value in rows.items():
-        value.sort(key=lambda row: row.get("code", row.get("stage_no")))
+        value.sort(key=lambda row: row.get("code", row.get("stage_no", row.get("rule_key"))))
     return rows
+
+
+def dev_curve(spec: dict) -> list[dict]:
+    """Entwicklungskurve aus design_data/dev_curves.json (is_dev = TRUE, Confidence UNKNOWN)."""
+    return [
+        {"level": lvl, "xp_required": spec["xp_factor"] * (lvl - 1) ** 2, "is_dev": True,
+         "recon_id": None, "confidence": "UNKNOWN"}
+        for lvl in range(1, spec["max_level"] + 1)
+    ]
 
 
 def sql_literal(value) -> str:
@@ -148,7 +163,7 @@ def upsert(table: str, key: str, columns: list[str], rows: list[dict]) -> str:
     )
 
 
-def render_sql(rows: dict[str, list[dict]]) -> str:
+def render_sql(rows: dict[str, list[dict]], curves: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
 
     def renamed(table_rows):
@@ -170,6 +185,13 @@ def render_sql(rows: dict[str, list[dict]]) -> str:
                renamed(rows["cities"])),
         upsert("item_sets", "code", ["code", *name_cols, "level", "recon_id", "confidence"],
                renamed(rows["item_sets"])),
+        upsert("game_rules", "rule_key", ["rule_key", "int_value", "recon_id", "confidence"], rows["game_rules"]),
+        "-- Entwicklungskurven (design_data/dev_curves.json). Echte Werte aus der Reconstruction Database\n"
+        "-- überschreiben einzelne Stufen, sobald sie belegt sind (dann is_dev = FALSE).\n",
+        upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
+               dev_curve(curves["character_levels"])),
+        upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
+               dev_curve(curves["skill_levels"])),
     ]
     return "\n".join(parts)
 
@@ -207,7 +229,8 @@ def outputs() -> dict[Path, str]:
     design = json.loads((DESIGN_DIR / "skill_ui_groups.json").read_text(encoding="utf-8"))
     rows = build_rows(load_records(), design["groups"])
 
-    files = {SEED_FILE: render_sql(rows)}
+    curves = json.loads((DESIGN_DIR / "dev_curves.json").read_text(encoding="utf-8"))
+    files = {SEED_FILE: render_sql(rows, curves)}
     for name, table in render_ue(rows).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files

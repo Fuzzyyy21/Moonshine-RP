@@ -10,6 +10,8 @@
 #include "VCCore.h"
 #include "VCHttp.h"
 #include "VCPlayerController.h"
+#include "VCPlayerState.h"
+#include "VCProgressionComponent.h"
 #include "VCServerBackend.h"
 #include "VCServerSettings.h"
 
@@ -24,6 +26,41 @@ namespace
 		return Obj;
 	}
 
+	UVCProgressionComponent* ProgressionOf(const APlayerController* PC)
+	{
+		const AVCPlayerState* PS = PC ? PC->GetPlayerState<AVCPlayerState>() : nullptr;
+		return PS ? PS->GetProgression() : nullptr;
+	}
+
+	/** Übernimmt {level, experience, levelCap?} aus einer Backend-Antwort. */
+	void ApplyCharacterProgress(const APlayerController* PC, const TSharedPtr<FJsonObject>& Json)
+	{
+		UVCProgressionComponent* Progression = ProgressionOf(PC);
+		double Level = 1.0, Experience = 0.0, Cap = 1.0;
+		if (Progression && Json.IsValid() && Json->TryGetNumberField(TEXT("level"), Level)
+			&& Json->TryGetNumberField(TEXT("experience"), Experience))
+		{
+			Json->TryGetNumberField(TEXT("levelCap"), Cap);
+			Progression->ServerApplyCharacter(static_cast<int32>(Level), static_cast<int64>(Experience), static_cast<int32>(Cap));
+		}
+	}
+
+	bool ParseSkill(const TSharedPtr<FJsonObject>& Json, FVCSkillState& Out)
+	{
+		FString Code;
+		double Level = 0.0, Stage = 0.0, Experience = 0.0;
+		if (!Json.IsValid() || !Json->TryGetStringField(TEXT("code"), Code) || !Json->TryGetNumberField(TEXT("level"), Level)
+			|| !Json->TryGetNumberField(TEXT("stage"), Stage) || !Json->TryGetNumberField(TEXT("experience"), Experience))
+		{
+			return false;
+		}
+		Out.Code = FName(*Code);
+		Out.Level = static_cast<int32>(Level);
+		Out.Stage = static_cast<int32>(Stage);
+		Out.Experience = static_cast<int64>(Experience);
+		return true;
+	}
+
 	FString RemoteAddress(const APlayerController* PC)
 	{
 		// LowLevelGetRemoteAddress ist nicht const, daher nicht-konstanter Zeiger.
@@ -35,6 +72,7 @@ namespace
 AVCGameMode::AVCGameMode()
 {
 	PlayerControllerClass = AVCPlayerController::StaticClass();
+	PlayerStateClass = AVCPlayerState::StaticClass();
 	DefaultPawnClass = AVCCharacter::StaticClass();
 }
 
@@ -175,6 +213,26 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 	FString Name;
 	Result.Json->TryGetStringField(TEXT("name"), Name);
 	ChangeName(PC, Name, false);
+
+	// Progression aus der Datenbank übernehmen; der Client erhält sie per Replikation.
+	ApplyCharacterProgress(PC, Result.Json);
+	if (UVCProgressionComponent* Progression = ProgressionOf(PC))
+	{
+		TArray<FVCSkillState> Skills;
+		const TArray<TSharedPtr<FJsonValue>>* SkillValues = nullptr;
+		if (Result.Json->TryGetArrayField(TEXT("skills"), SkillValues) && SkillValues)
+		{
+			for (const TSharedPtr<FJsonValue>& Value : *SkillValues)
+			{
+				FVCSkillState Skill;
+				if (ParseSkill(Value->AsObject(), Skill))
+				{
+					Skills.Add(Skill);
+				}
+			}
+		}
+		Progression->ServerSetSkills(Skills);
+	}
 
 	// Gespeicherte Position nur verwenden, wenn sie zu dieser Zone gehört.
 	TOptional<FTransform> Saved;
@@ -319,6 +377,22 @@ void AVCGameMode::HandleAdminCommand(APlayerController* Issuer, const FString& C
 	{
 		AdminTeleport(Issuer, *Session, Args);
 	}
+	else if (Command == TEXT("setlevel") && Args.Num() == 1)
+	{
+		AdminSetLevel(Issuer, *Session, FString(), Args[0]);
+	}
+	else if (Command == TEXT("setskill") && Args.Num() == 2)
+	{
+		AdminSetLevel(Issuer, *Session, Args[0].ToUpper(), Args[1]);
+	}
+	else if (Command == TEXT("givexp") && Args.Num() == 1)
+	{
+		AdminGiveXp(Issuer, *Session, FString(), Args[0]);
+	}
+	else if (Command == TEXT("giveskillxp") && Args.Num() == 2)
+	{
+		AdminGiveXp(Issuer, *Session, Args[0].ToUpper(), Args[1]);
+	}
 	else
 	{
 		Issuer->ClientMessage(FString::Printf(TEXT("Unbekanntes Admin-Kommando: %s"), *Command));
@@ -347,26 +421,54 @@ void AVCGameMode::AdminTeleport(APlayerController* Issuer, const FPlayerSession&
 	}
 	const FVector Old = Pawn->GetActorLocation();
 
-	const TSharedRef<FJsonObject> Entry = MakeShared<FJsonObject>();
-	Entry->SetNumberField(TEXT("adminAccountId"), static_cast<double>(Session.AccountId));
-	Entry->SetStringField(TEXT("command"), TEXT("/teleport"));
-	Entry->SetStringField(TEXT("targetType"), TEXT("CHARACTER"));
-	Entry->SetStringField(TEXT("targetId"), FString::Printf(TEXT("%lld"), Session.CharacterId));
-	Entry->SetObjectField(TEXT("args"), VectorJson(Target));
-	Entry->SetObjectField(TEXT("oldValue"), VectorJson(Old));
-	Entry->SetObjectField(TEXT("newValue"), VectorJson(Target));
-	Entry->SetStringField(TEXT("sessionId"), Session.SessionId);
-	Entry->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	AuditThenRun(Issuer, Session, TEXT("/teleport"), VectorJson(Target), VectorJson(Old), VectorJson(Target),
+		[WeakThis, Target](APlayerController* PC)
+		{
+			APawn* P = PC->GetPawn();
+			if (!P || !P->TeleportTo(Target, P->GetActorRotation()))
+			{
+				UE_LOG(LogVC, Warning, TEXT("Teleport nach %s nicht möglich (blockiert)"), *Target.ToString());
+				PC->ClientMessage(TEXT("Zielort blockiert."));
+				return;
+			}
+			if (const FPlayerSession* S = WeakThis.IsValid() ? WeakThis->Sessions.Find(PC) : nullptr)
+			{
+				WeakThis->SaveSession(*S, *P);
+			}
+		});
+}
+
+TSharedRef<FJsonObject> AVCGameMode::AdminContext(const APlayerController* Issuer, const FPlayerSession& Session) const
+{
+	const TSharedRef<FJsonObject> Ctx = MakeShared<FJsonObject>();
+	Ctx->SetNumberField(TEXT("adminAccountId"), static_cast<double>(Session.AccountId));
+	Ctx->SetStringField(TEXT("sessionId"), Session.SessionId);
+	Ctx->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
 	const FString Ip = RemoteAddress(Issuer);
 	if (!Ip.IsEmpty())
 	{
-		Entry->SetStringField(TEXT("ip"), Ip);
+		Ctx->SetStringField(TEXT("ip"), Ip);
 	}
+	return Ctx;
+}
+
+void AVCGameMode::AuditThenRun(APlayerController* Issuer, const FPlayerSession& Session, const FString& Command,
+	const TSharedRef<FJsonObject>& Args, const TSharedRef<FJsonObject>& OldValue, const TSharedRef<FJsonObject>& NewValue,
+	TFunction<void(APlayerController*)> Action)
+{
+	const TSharedRef<FJsonObject> Entry = AdminContext(Issuer, Session);
+	Entry->SetStringField(TEXT("command"), Command);
+	Entry->SetStringField(TEXT("targetType"), TEXT("CHARACTER"));
+	Entry->SetStringField(TEXT("targetId"), FString::Printf(TEXT("%lld"), Session.CharacterId));
+	Entry->SetObjectField(TEXT("args"), Args);
+	Entry->SetObjectField(TEXT("oldValue"), OldValue);
+	Entry->SetObjectField(TEXT("newValue"), NewValue);
 
 	// Erst protokollieren, dann ausführen: ohne Audit-Eintrag keine Admin-Aktion.
 	TWeakObjectPtr<AVCGameMode> WeakThis(this);
 	TWeakObjectPtr<APlayerController> WeakPC(Issuer);
-	FVCServerBackend::WriteAdminAudit(Entry, [WeakThis, WeakPC, Target](const FVCHttpResult& Result)
+	FVCServerBackend::WriteAdminAudit(Entry, [WeakThis, WeakPC, Command, Action = MoveTemp(Action)](const FVCHttpResult& Result)
 	{
 		APlayerController* PC = WeakPC.Get();
 		if (!WeakThis.IsValid() || !PC)
@@ -375,19 +477,127 @@ void AVCGameMode::AdminTeleport(APlayerController* Issuer, const FPlayerSession&
 		}
 		if (!Result.IsOk())
 		{
-			PC->ClientMessage(FString::Printf(TEXT("Teleport abgelehnt: %s"), *Result.ErrorMessage()));
+			PC->ClientMessage(FString::Printf(TEXT("%s abgelehnt: %s"), *Command, *Result.ErrorMessage()));
 			return;
 		}
-		APawn* P = PC->GetPawn();
-		if (!P || !P->TeleportTo(Target, P->GetActorRotation()))
-		{
-			UE_LOG(LogVC, Warning, TEXT("Teleport nach %s nicht möglich (blockiert)"), *Target.ToString());
-			PC->ClientMessage(TEXT("Zielort blockiert."));
-			return;
-		}
-		if (const FPlayerSession* S = WeakThis->Sessions.Find(PC))
-		{
-			WeakThis->SaveSession(*S, *P);
-		}
+		Action(PC);
 	});
+}
+
+void AVCGameMode::AdminSetLevel(APlayerController* Issuer, const FPlayerSession& Session, const FString& SkillCode,
+	const FString& LevelArg)
+{
+	int32 Level = 0;
+	if (!LexTryParseString(Level, *LevelArg) || Level < 1)
+	{
+		Issuer->ClientMessage(TEXT("Aufruf: VCAdmin \"setlevel <stufe>\" oder VCAdmin \"setskill <SKILL> <stufe>\""));
+		return;
+	}
+	// Rechteprüfung, Grenzen (bekannte XP-Schwellen, Skillstufen, Gesamtcap) und Audit erledigt das Backend atomar.
+	TWeakObjectPtr<APlayerController> WeakPC(Issuer);
+	FVCServerBackend::AdminSetLevel(Session.CharacterId, SkillCode, Level, AdminContext(Issuer, Session),
+		[WeakPC, SkillCode](const FVCHttpResult& Result)
+		{
+			APlayerController* PC = WeakPC.Get();
+			if (!PC)
+			{
+				return;
+			}
+			const TSharedPtr<FJsonObject>* Progress = nullptr;
+			if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetObjectField(TEXT("progress"), Progress) || !Progress)
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+				return;
+			}
+			if (SkillCode.IsEmpty())
+			{
+				ApplyCharacterProgress(PC, *Progress);
+			}
+			else if (UVCProgressionComponent* Progression = ProgressionOf(PC))
+			{
+				FVCSkillState Skill;
+				if (ParseSkill(*Progress, Skill))
+				{
+					Progression->ServerApplySkill(Skill);
+				}
+			}
+		});
+}
+
+void AVCGameMode::AdminGiveXp(APlayerController* Issuer, const FPlayerSession& Session, const FString& SkillCode,
+	const FString& AmountArg)
+{
+	int64 Amount = 0;
+	if (!LexTryParseString(Amount, *AmountArg) || Amount <= 0)
+	{
+		Issuer->ClientMessage(TEXT("Aufruf: VCAdmin \"givexp <menge>\" oder VCAdmin \"giveskillxp <SKILL> <menge>\""));
+		return;
+	}
+	if (Session.AdminLevel < GetDefault<UVCServerSettings>()->TeleportAdminLevel)
+	{
+		Issuer->ClientMessage(TEXT("Keine Berechtigung."));
+		return;
+	}
+	const TSharedRef<FJsonObject> Args = MakeShared<FJsonObject>();
+	Args->SetStringField(TEXT("skill"), SkillCode);
+	Args->SetNumberField(TEXT("amount"), static_cast<double>(Amount));
+	const FString Source = FString::Printf(TEXT("admin:%lld"), Session.AccountId);
+
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	AuditThenRun(Issuer, Session, SkillCode.IsEmpty() ? TEXT("/givexp") : TEXT("/giveskillxp"), Args,
+		MakeShared<FJsonObject>(), Args, [WeakThis, SkillCode, Amount, Source](APlayerController* PC)
+		{
+			if (WeakThis.IsValid())
+			{
+				WeakThis->RequestGrant(PC, SkillCode, Amount, Source);
+			}
+		});
+}
+
+void AVCGameMode::GrantExperience(APlayerController* PC, int64 Amount, const FString& Source)
+{
+	RequestGrant(PC, FString(), Amount, Source);
+}
+
+void AVCGameMode::GrantSkillExperience(APlayerController* PC, FName SkillCode, int64 Amount, const FString& Source)
+{
+	RequestGrant(PC, SkillCode.ToString(), Amount, Source);
+}
+
+void AVCGameMode::RequestGrant(APlayerController* PC, const FString& SkillCode, int64 Amount, const FString& Source)
+{
+	const FPlayerSession* Session = Sessions.Find(PC);
+	if (!Session || !Session->bAuthenticated || Amount <= 0)
+	{
+		return;
+	}
+	TWeakObjectPtr<APlayerController> WeakPC(PC);
+	const int64 CharacterId = Session->CharacterId;
+	FVCServerBackend::GrantExperience(CharacterId, Session->AccountId, SkillCode, Amount, Source,
+		[WeakPC, SkillCode, CharacterId](const FVCHttpResult& Result)
+		{
+			if (!Result.IsOk())
+			{
+				// Keine lokale Schätzung: ohne Bestätigung des Backends bleibt der angezeigte Stand unverändert.
+				UE_LOG(LogVC, Error, TEXT("XP-Vergabe für Charakter %lld fehlgeschlagen: %s"), CharacterId, *Result.ErrorMessage());
+				return;
+			}
+			APlayerController* PC = WeakPC.Get();
+			if (!PC)
+			{
+				return;
+			}
+			if (SkillCode.IsEmpty())
+			{
+				ApplyCharacterProgress(PC, Result.Json);
+			}
+			else if (UVCProgressionComponent* Progression = ProgressionOf(PC))
+			{
+				FVCSkillState Skill;
+				if (ParseSkill(Result.Json, Skill))
+				{
+					Progression->ServerApplySkill(Skill);
+				}
+			}
+		});
 }

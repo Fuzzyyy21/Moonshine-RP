@@ -26,7 +26,8 @@ public sealed record CreateCharacterRequest(string? Name, string? Gender, string
 
 public sealed record Position(double X, double Y, double Z, float Yaw);
 public sealed record CharacterState(
-    long CharacterId, long AccountId, string Name, short Level, string ProfessionCode, string? ZoneId, Position? Position);
+    long CharacterId, long AccountId, string Name, short Level, long Experience, string ProfessionCode, string? ZoneId,
+    Position? Position, IReadOnlyList<SkillState> Skills);
 public sealed record SaveStateRequest(long AccountId, string? ZoneId, double X, double Y, double Z, float Yaw);
 
 public sealed record AdminAuditRequest(
@@ -51,6 +52,8 @@ public static partial class GameDataApp
         builder.AddVcDefaults();
         builder.Services.AddOptions<GameDataOptions>()
             .Bind(builder.Configuration.GetSection(GameDataOptions.Section)).ValidateDataAnnotations().ValidateOnStart();
+        builder.Services.AddOptions<ProgressionOptions>()
+            .Bind(builder.Configuration.GetSection(ProgressionOptions.Section)).ValidateDataAnnotations().ValidateOnStart();
         return builder;
     }
 
@@ -66,6 +69,7 @@ public static partial class GameDataApp
         internalApi.MapGet("/characters/{characterId:long}/state", GetState);
         internalApi.MapPut("/characters/{characterId:long}/state", SaveState);
         internalApi.MapPost("/admin-audit", WriteAdminAudit);
+        ProgressionEndpoints.Map(internalApi);
         return app;
     }
 
@@ -185,25 +189,30 @@ public static partial class GameDataApp
 
     private static async Task<IResult> GetState(long characterId, long accountId, NpgsqlDataSource db, CancellationToken ct)
     {
-        await using var cmd = db.CreateCommand(
+        await using var conn = await db.OpenConnectionAsync(ct);
+        CharacterState state;
+        await using (var cmd = new NpgsqlCommand(
             """
-            SELECT c.character_id, c.account_id, c.name, c.level, p.code, c.zone_id, c.pos_x, c.pos_y, c.pos_z, c.yaw
+            SELECT c.character_id, c.account_id, c.name, c.level, c.experience, p.code, c.zone_id, c.pos_x, c.pos_y, c.pos_z, c.yaw
             FROM characters c JOIN professions p USING (profession_id)
             WHERE c.character_id = @chr AND c.account_id = @acc AND c.deleted_at IS NULL
-            """);
-        cmd.Parameters.AddWithValue("chr", characterId);
-        cmd.Parameters.AddWithValue("acc", accountId);
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct))
+            """, conn))
         {
-            // Gleiche Antwort für "gibt es nicht" und "gehört jemand anderem".
-            return Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Charakter nicht gefunden");
+            cmd.Parameters.AddWithValue("chr", characterId);
+            cmd.Parameters.AddWithValue("acc", accountId);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct))
+            {
+                // Gleiche Antwort für "gibt es nicht" und "gehört jemand anderem".
+                return Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Charakter nicht gefunden");
+            }
+            Position? position = reader.IsDBNull(7) || reader.IsDBNull(8) || reader.IsDBNull(9)
+                ? null
+                : new Position(reader.GetDouble(7), reader.GetDouble(8), reader.GetDouble(9), reader.IsDBNull(10) ? 0f : reader.GetFloat(10));
+            state = new CharacterState(reader.GetInt64(0), reader.GetInt64(1), reader.GetString(2), reader.GetInt16(3),
+                reader.GetInt64(4), reader.GetString(5), reader.IsDBNull(6) ? null : reader.GetString(6), position, []);
         }
-        Position? position = reader.IsDBNull(6) || reader.IsDBNull(7) || reader.IsDBNull(8)
-            ? null
-            : new Position(reader.GetDouble(6), reader.GetDouble(7), reader.GetDouble(8), reader.IsDBNull(9) ? 0f : reader.GetFloat(9));
-        return Results.Ok(new CharacterState(reader.GetInt64(0), reader.GetInt64(1), reader.GetString(2), reader.GetInt16(3),
-            reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetString(5), position));
+        return Results.Ok(state with { Skills = await ProgressionEndpoints.LoadSkills(conn, characterId, ct) });
     }
 
     private static async Task<IResult> SaveState(long characterId, SaveStateRequest req, NpgsqlDataSource db, CancellationToken ct)

@@ -75,6 +75,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0001__initial_schema.sql` | Ausgangsschema aus Phase 0 |
 | `V0002__session_tickets.sql` | `account_sessions.token_hash` (SHA-256 des Tickets), `last_seen_at`, `server_id` |
 | `V0003__dev_test_zone.sql` | technische Zone `DEV_TESTZONE` für Phase 1 |
+| `V0004__progression.sql` | `level_table.is_dev`, `skill_level_table`, `game_rules` (z. B. `SKILL_TOTAL_CAP`), `progression_grants` (Idempotenz jeder XP-Vergabe) |
 | `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Sets) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);

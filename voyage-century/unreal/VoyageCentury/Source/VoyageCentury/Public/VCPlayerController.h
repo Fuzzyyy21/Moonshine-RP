@@ -12,7 +12,10 @@
  *   VCCharacters
  *   VCCreateCharacter <name> <MALE|FEMALE> <BERUF>      z. B. ROYAL_OFFICER
  *   VCConnect <host:port> <characterId>
+ *   VCStatus                                             eigenes Level, XP und Skills (Anzeige-Kopie vom Server)
  *   VCAdmin "teleport <x> <y> <z>"                       nur mit Adminrecht, wird protokolliert
+ *   VCAdmin "setlevel <stufe>" | "setskill <SKILL> <stufe>"
+ *   VCAdmin "givexp <menge>"   | "giveskillxp <SKILL> <menge>"
  *
  * Passwörter in der Konsole sind nur für die Entwicklung gedacht; die Login-Oberfläche folgt.
  */
@@ -33,6 +36,10 @@ public:
 
 	UFUNCTION(Exec)
 	void VCConnect(const FString& Address, const FString& CharacterId);
+
+	/** Zeigt den replizierten Fortschritt. Ändern kann ihn nur der Server. */
+	UFUNCTION(Exec)
+	void VCStatus();
 
 	/** Admin-Kommando an den Server senden. Der Server prüft Rechte und protokolliert vor der Ausführung. */
 	UFUNCTION(Exec)

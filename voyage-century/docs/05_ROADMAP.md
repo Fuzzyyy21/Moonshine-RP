@@ -44,10 +44,26 @@ Die Engine-Seite steht aus, bis das UE-Projekt lokal gebaut und nach
 Offen für die nächsten Iterationen: World Directory mit Sperre gegen Doppel-Login,
 Redis, TLS-Terminierung, mTLS zwischen Diensten.
 
-## Phase 2 – Charakter
+## Phase 2 – Charakter (Iteration 1 fertig)
 
 Charaktererstellung, Bewegung, Kamera, Animation, Attribute, Level, XP, Skills (17 Skills, Stufen, Gesamtcap).
 **Abnahme**: Skill-XP und Level werden serverseitig vergeben, überleben Zonenwechsel und Neustart; manipulierte Client-Werte haben keine Wirkung.
+
+| Schritt | Status | Prüfung |
+|---|---|---|
+| Progression im Backend: Charakter-XP, Skill-XP, Level aus lückenloser Kurve, Skillstufen-Grenze, Gesamtcap 1700, Idempotenz, Sperre pro Charakter | ✅ | `ProgressionTests` (12 Tests) |
+| Admin `/setlevel`, `/setskill` mit Audit in derselben Transaktion | ✅ | `ProgressionTests` |
+| Entwicklungskurven klar getrennt (`is_dev`, nur mit `Progression:AllowDevCurves`) | ✅ | Test „ohne bekannte Schwellen kein Aufstieg“ |
+| UE: Bewegung + Kamera (Enhanced Input, serverseitig korrigierte Character Movement) | ⚠️ geschrieben, nicht kompiliert | lokal |
+| UE: replizierte Progression (Level für alle, XP/Skills nur für den Besitzer), Übernahme nur von Backend-Werten | ⚠️ geschrieben, nicht kompiliert | lokal |
+| UE: Admin `givexp`, `giveskillxp`, `setlevel`, `setskill`, Client `VCStatus` | ⚠️ geschrieben, nicht kompiliert | lokal |
+| Charaktererstellung mit Oberfläche und Erscheinungsbild-Optionen | ❌ Iteration 2 | |
+| Animation (braucht Modell- und Animations-Assets) | ❌ Iteration 2 | |
+| Attribute | ❌ blockiert | Originalattribute UNKNOWN |
+| Beförderung in Skillstufe 2/3 durch Spieler | ❌ blockiert | Bedingungen UNKNOWN; nur per `/setskill` |
+
+Zonenwechsel ist in der Abnahme enthalten, es gibt aber noch nur eine Zone. Getestet ist die gleichwertige
+Bedingung „Dienst-Neustart“; der echte Zonenwechsel folgt mit dem World Directory.
 
 ## Phase 3 – Landkampf
 

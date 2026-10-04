@@ -41,6 +41,9 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | `Auth:LoginAttemptsPerMinute` | Login-Versuche pro IP und Minute |
 | `PasswordHash:*` | argon2id-Parameter; Änderungen wirken beim nächsten Login per Rehash |
 | `GameData:MaxCharactersPerAccount` | technisches Limit, kein Originalwert |
+| `Progression:AllowDevCurves` | Entwicklungs-XP-Kurven verwenden (nur Development/Tests) |
+| `Progression:MaxCharacterXpPerGrant`, `MaxSkillXpPerGrant` | Plausibilitätsgrenze je Vergabe |
+| `Progression:AdminMinLevel` | Mindest-Adminlevel für `/setlevel`, `/setskill` |
 
 ## Endpunkte
 
@@ -53,6 +56,9 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | GameData | `GET/POST /v1/characters` | `Authorization: Bearer <ticket>` |
 | GameData | `GET/PUT /internal/v1/characters/{id}/state` | `X-Service-Key`, mit `accountId` (Besitzprüfung) |
 | GameData | `POST /internal/v1/admin-audit` | `X-Service-Key`, Konto braucht `admin_level > 0` |
+| GameData | `POST /internal/v1/characters/{id}/experience` | `X-Service-Key`; `amount`, `source`, `idempotencyKey`, `serverId` |
+| GameData | `POST /internal/v1/characters/{id}/skills/{code}/experience` | wie oben, für Skill-XP |
+| GameData | `PUT /internal/v1/characters/{id}/level` bzw. `…/skills/{code}/level` | Admin (`Progression:AdminMinLevel`), Audit in derselben Transaktion |
 | beide | `GET /health` | offen |
 
 Fehler kommen als RFC-7807-ProblemDetails (`title`, `status`).

@@ -1,6 +1,8 @@
 #include "VCServerBackend.h"
 #include "HAL/PlatformMisc.h"
+#include "GenericPlatform/GenericPlatformHttp.h"
 #include "VCBackendSettings.h"
+#include "VCServerSettings.h"
 
 #if WITH_SERVER_CODE
 
@@ -60,6 +62,33 @@ void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>& Entry, FVC
 		Entry, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::GrantExperience(int64 CharacterId, int64 AccountId, const FString& SkillCode, int64 Amount,
+	const FString& Source, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
+	Body->SetNumberField(TEXT("amount"), static_cast<double>(Amount));
+	Body->SetStringField(TEXT("source"), Source);
+	Body->SetStringField(TEXT("idempotencyKey"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	Body->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
+	const FString Base = FString::Printf(TEXT("%s/internal/v1/characters/%lld"), *UVCBackendSettings::GetGameDataBaseUrl(), CharacterId);
+	const FString Url = SkillCode.IsEmpty()
+		? Base + TEXT("/experience")
+		: FString::Printf(TEXT("%s/skills/%s/experience"), *Base, *FGenericPlatformHttp::UrlEncode(SkillCode));
+	FVCHttp::Send(TEXT("POST"), Url, Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::AdminSetLevel(int64 CharacterId, const FString& SkillCode, int32 Level,
+	const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback)
+{
+	AdminContext->SetNumberField(TEXT("level"), Level);
+	const FString Base = FString::Printf(TEXT("%s/internal/v1/characters/%lld"), *UVCBackendSettings::GetGameDataBaseUrl(), CharacterId);
+	const FString Url = SkillCode.IsEmpty()
+		? Base + TEXT("/level")
+		: FString::Printf(TEXT("%s/skills/%s/level"), *Base, *FGenericPlatformHttp::UrlEncode(SkillCode));
+	FVCHttp::Send(TEXT("PUT"), Url, AdminContext, Headers(), MoveTemp(Callback));
+}
+
 #else // !WITH_SERVER_CODE
 
 namespace
@@ -75,5 +104,7 @@ void FVCServerBackend::ValidateTicket(const FString&, FVCHttpCallback Callback) 
 void FVCServerBackend::LoadCharacter(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::SaveCharacter(int64, int64, const FString&, const FVector&, float, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::GrantExperience(int64, int64, const FString&, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::AdminSetLevel(int64, const FString&, int32, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 
 #endif // WITH_SERVER_CODE

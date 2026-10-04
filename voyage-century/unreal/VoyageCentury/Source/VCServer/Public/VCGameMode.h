@@ -7,6 +7,7 @@
 #include "VCGameMode.generated.h"
 
 struct FVCHttpResult;
+class FJsonObject;
 
 /**
  * Server-GameMode einer Zone (Phase 1).
@@ -19,7 +20,10 @@ struct FVCHttpResult;
  *   Scheitert ein Schritt oder dauert er länger als AuthTimeoutSeconds, wird der Spieler getrennt.
  *
  * Speichern: periodisch, beim Zerstören des Pawns (Logout) und nach Admin-Teleport.
- * Admin: jedes Kommando wird erst ins Audit-Log geschrieben und nur bei Erfolg ausgeführt.
+ * Progression: XP vergibt nur dieser Server über den GameData-Dienst; übernommen wird nur, was das
+ *   Backend bestätigt. Clients können Level, XP und Skills nicht setzen.
+ * Admin: jedes Kommando wird protokolliert, bevor es wirkt (Teleport/XP: erst Audit, dann Aktion;
+ *   setlevel/setskill: Backend schreibt Änderung und Audit in einer Transaktion).
  */
 UCLASS()
 class VCSERVER_API AVCGameMode : public AGameModeBase, public IVCServerHooks
@@ -38,6 +42,12 @@ public:
 
 	// IVCServerHooks
 	virtual void HandleAdminCommand(APlayerController* Issuer, const FString& CommandLine) override;
+
+	/** Charakter-XP vergeben (z. B. aus Kampf oder Quest, ab Phase 3). Nur Server. */
+	void GrantExperience(APlayerController* PC, int64 Amount, const FString& Source);
+
+	/** Skill-XP vergeben (Skill-Code aus DT_Skills). Nur Server. */
+	void GrantSkillExperience(APlayerController* PC, FName SkillCode, int64 Amount, const FString& Source);
 
 protected:
 	virtual void BeginPlay() override;
@@ -74,4 +84,14 @@ private:
 	void OnPlayerPawnDestroyed(AActor* DestroyedActor);
 
 	void AdminTeleport(APlayerController* Issuer, const FPlayerSession& Session, const TArray<FString>& Args);
+	void AdminSetLevel(APlayerController* Issuer, const FPlayerSession& Session, const FString& SkillCode, const FString& LevelArg);
+	void AdminGiveXp(APlayerController* Issuer, const FPlayerSession& Session, const FString& SkillCode, const FString& AmountArg);
+
+	/** Schreibt den Audit-Eintrag und führt Action nur aus, wenn das Backend ihn bestätigt hat. */
+	void AuditThenRun(APlayerController* Issuer, const FPlayerSession& Session, const FString& Command,
+		const TSharedRef<FJsonObject>& Args, const TSharedRef<FJsonObject>& OldValue, const TSharedRef<FJsonObject>& NewValue,
+		TFunction<void(APlayerController*)> Action);
+
+	TSharedRef<FJsonObject> AdminContext(const APlayerController* Issuer, const FPlayerSession& Session) const;
+	void RequestGrant(APlayerController* PC, const FString& SkillCode, int64 Amount, const FString& Source);
 };

@@ -1,0 +1,14 @@
+{
+  "_comment": "ENTWICKLUNGSWERTE (Priorität 6), KEINE Originaldaten. Nur damit Aufstiege testbar sind, solange LVL-XP-CURVE UNKNOWN ist. Werden in der DB mit is_dev = TRUE gespeichert und nur bei Progression:AllowDevCurves verwendet. Echte Werte aus der Reconstruction Database überschreiben einzelne Stufen automatisch.",
+  "source": "SRC-DESIGN",
+  "character_levels": {
+    "max_level": 230,
+    "xp_factor": 100,
+    "rule": "xp_required(level) = xp_factor * (level - 1)^2"
+  },
+  "skill_levels": {
+    "max_level": 120,
+    "xp_factor": 50,
+    "rule": "xp_required(level) = xp_factor * (level - 1)^2"
+  }
+}
