@@ -9,6 +9,15 @@
     "LeveledBy": "Kämpfe gegen andere Schiffe auf Schlachtfeldern"
   },
   {
+    "Name": "BEGINNER",
+    "NameZh": "",
+    "NameEn": "",
+    "NameDe": "Anfängerschiff",
+    "ReconId": "SHIP-TIERS-INTL",
+    "Confidence": "Uncertain",
+    "LeveledBy": ""
+  },
+  {
     "Name": "MERCHANT",
     "NameZh": "商船",
     "NameEn": "Merchant Ship",

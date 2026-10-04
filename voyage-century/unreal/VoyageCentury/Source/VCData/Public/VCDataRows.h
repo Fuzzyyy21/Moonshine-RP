@@ -299,3 +299,64 @@ struct VCDATA_API FVCDiscoveryRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Entdeckung") int64 XpReward = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
 };
+
+/** Schiffsklassen laut SHIPCLASS-* plus Anfängerschiff (SHIP-TIERS-INTL). */
+UENUM(BlueprintType)
+enum class EVCShipClass : uint8
+{
+	Battle,
+	Raider,
+	Merchant,
+	Beginner
+};
+
+/** Schiff (DT_Ships). Alle Werte des Originals sind UNKNOWN; Entwicklungswerte aus design_data/dev_ships.json. */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCShipRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Schiff") FString NameDe;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Schiff") EVCShipClass ShipClass = EVCShipClass::Beginner;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Schiff") int32 Level = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Werte") int32 HullHp = 0;
+	/** cm/s */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fahrt") double MaxSpeed = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fahrt") double Acceleration = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fahrt") double Deceleration = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fahrt") double TurnRateDeg = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fahrt") double WindEfficiency = 1.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Besatzung") int32 CrewMin = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Besatzung") int32 CrewMax = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ladung") int32 Cargo = 0;
+	/** Nur Anzeige; den Preis legt das Backend fest. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preis") int64 CostGold = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
+};
+
+/** Segelmodell (eine Zeile "Default"). Polare: Winkel zum Wind (0 = von achtern) → Wirkungsgrad. */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCShipTuningRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Segeln") TArray<double> PolarAngles;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Segeln") TArray<double> PolarEfficiencies;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Segeln") double CrewMinFactor = 0.5;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Segeln") double MinSteerageFactor = 0.2;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Proviant") double ProvisionsPerSailorPerMinute = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Proviant") double NoProvisionsFactor = 0.5;
+};
+
+/** Wind je Zone (Zeilenname = zone_id). */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCZoneWindRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wind") double BaseDirectionDeg = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wind") double BaseStrength = 1.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wind") double DirectionSwingDeg = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wind") double StrengthSwing = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wind") double PeriodSeconds = 600.0;
+};

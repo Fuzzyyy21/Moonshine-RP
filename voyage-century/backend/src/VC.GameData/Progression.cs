@@ -332,7 +332,7 @@ public static class ProgressionEndpoints
         return (r.GetInt16(0), r.GetInt16(1), r.GetInt64(2));
     }
 
-    private static async Task<IResult?> CheckAdmin(
+    internal static async Task<IResult?> CheckAdmin(
         NpgsqlConnection conn, NpgsqlTransaction tx, AdminSetRequest req, short minLevel, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(req.ServerId) || req.ServerId.Length > 64)
@@ -352,9 +352,9 @@ public static class ProgressionEndpoints
     }
 
     /// <summary>Änderung und Audit-Eintrag in derselben Transaktion: entweder beides oder nichts.</summary>
-    private static async Task<long> Audit(
+    internal static async Task<long> Audit(
         NpgsqlConnection conn, NpgsqlTransaction tx, AdminSetRequest req, string command, long characterId,
-        object oldValue, object newValue, CancellationToken ct)
+        object oldValue, object newValue, CancellationToken ct, object? args = null)
     {
         await using var cmd = new NpgsqlCommand(
             """
@@ -365,7 +365,7 @@ public static class ProgressionEndpoints
         cmd.Parameters.AddWithValue("acc", req.AdminAccountId);
         cmd.Parameters.AddWithValue("cmd", command);
         cmd.Parameters.AddWithValue("tid", characterId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        cmd.Parameters.Add(GameEventLog.Json("args", new { level = req.Level }));
+        cmd.Parameters.Add(GameEventLog.Json("args", args ?? new { level = req.Level }));
         cmd.Parameters.Add(GameEventLog.Json("old", oldValue));
         cmd.Parameters.Add(GameEventLog.Json("new", newValue));
         cmd.Parameters.AddWithValue("sid", (object?)req.SessionId ?? DBNull.Value);

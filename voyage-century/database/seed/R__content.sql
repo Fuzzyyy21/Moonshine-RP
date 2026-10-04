@@ -54,6 +54,7 @@ ON CONFLICT (stage_no) DO UPDATE SET
 
 INSERT INTO ship_classes (code, name_zh, name_en, name_de, leveled_by, recon_id, confidence) VALUES
     ('BATTLE', '战船', 'Battle Ship', 'Kriegsschiff', 'Kämpfe gegen andere Schiffe auf Schlachtfeldern', 'SHIPCLASS-BATTLE', 'LIKELY'::confidence_level),
+    ('BEGINNER', NULL, NULL, 'Anfängerschiff', NULL, 'SHIP-TIERS-INTL', 'UNCERTAIN'::confidence_level),
     ('MERCHANT', '商船', 'Merchant Ship', 'Handelsschiff', 'Handel', 'SHIPCLASS-MERCHANT', 'LIKELY'::confidence_level),
     ('RAIDER', '探险船', 'Raider Ship', 'Erkundungsschiff', 'Erkundung', 'SHIPCLASS-RAIDER', 'LIKELY'::confidence_level)
 ON CONFLICT (code) DO UPDATE SET
@@ -243,6 +244,33 @@ ON CONFLICT (code) DO UPDATE SET
     required_skill_level = EXCLUDED.required_skill_level,
     gas_ability_class = EXCLUDED.gas_ability_class,
     params = EXCLUDED.params,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+-- Entwicklungsschiffe (design_data/dev_ships.json, is_dev = TRUE).
+
+INSERT INTO ships (code, name_de, ship_class_id, ship_level, hull_hp, speed, acceleration, deceleration, turning, crew_min, crew_capacity, cargo_capacity, wind_efficiency, cost_gold, one_per_character, start_crew, start_provisions, is_dev, confidence) VALUES
+    ('DEV_BATTLE_SLOOP', 'Kriegsschaluppe (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'BATTLE'), 2, 1500, 1000, 90, 180, 14, 10, 30, 80, 0.9, 5000, FALSE, 15, 400, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_MERCHANT_COG', 'Handelskogge (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'MERCHANT'), 2, 1200, 750, 60, 150, 10, 8, 20, 300, 0.9, 5000, FALSE, 10, 400, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_RAIDER_CUTTER', 'Erkundungskutter (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'RAIDER'), 2, 900, 1300, 140, 220, 22, 12, 40, 60, 0.9, 5000, FALSE, 20, 400, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_STARTER_SHIP', 'Anfängerschiff (Test)', (SELECT ship_class_id FROM ship_classes WHERE code = 'BEGINNER'), 1, 500, 900, 120, 200, 18, 4, 12, 50, 0.8, 0, TRUE, 6, 200, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_de = EXCLUDED.name_de,
+    ship_class_id = EXCLUDED.ship_class_id,
+    ship_level = EXCLUDED.ship_level,
+    hull_hp = EXCLUDED.hull_hp,
+    speed = EXCLUDED.speed,
+    acceleration = EXCLUDED.acceleration,
+    deceleration = EXCLUDED.deceleration,
+    turning = EXCLUDED.turning,
+    crew_min = EXCLUDED.crew_min,
+    crew_capacity = EXCLUDED.crew_capacity,
+    cargo_capacity = EXCLUDED.cargo_capacity,
+    wind_efficiency = EXCLUDED.wind_efficiency,
+    cost_gold = EXCLUDED.cost_gold,
+    one_per_character = EXCLUDED.one_per_character,
+    start_crew = EXCLUDED.start_crew,
+    start_provisions = EXCLUDED.start_provisions,
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 

@@ -78,6 +78,17 @@ public static partial class WorldEndpoints
         return await cmd.ExecuteScalarAsync(ct) is not null;
     }
 
+    /// <summary>Wie <see cref="HoldsPresence"/>, ohne Zone (z. B. Schiffszustand, Kauf: die Zone prüft der Aufrufer).</summary>
+    internal static async Task<string?> PresenceZone(
+        NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, string serverId, CancellationToken ct)
+    {
+        await using var cmd = new NpgsqlCommand(
+            "SELECT zone_id FROM character_presence WHERE character_id = @chr AND server_id = @server AND state = 'ONLINE'", conn, tx);
+        cmd.Parameters.AddWithValue("chr", characterId);
+        cmd.Parameters.AddWithValue("server", serverId);
+        return await cmd.ExecuteScalarAsync(ct) as string;
+    }
+
     // ---- Zonen-Server ------------------------------------------------------------------------
 
     /// <summary>Prozessstart: Server eintragen und Anwesenheiten eines früheren Laufs verwerfen (dort ist niemand mehr).</summary>

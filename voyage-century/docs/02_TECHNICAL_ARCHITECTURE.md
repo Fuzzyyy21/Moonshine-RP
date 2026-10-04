@@ -225,6 +225,9 @@ Dokumentation aktualisieren → erst dann nächstes System.
 | World Directory (Phase 4) | Vorerst Teil des GameData-Dienstes statt eigener Dienst; Anwesenheit in PostgreSQL statt Redis | braucht dieselben Tabellen und Transaktionen (Speichern prüft die Anwesenheit); auslagern, sobald Last es verlangt |
 | Zonenwechsel (Phase 4) | Session-Ticket wiederverwenden statt eigenem Transfer-Ticket | Ticket hat nur der Client; die Reservierung im Directory bindet den Charakter an den Zielserver |
 | Zonen betreten (Phase 4) | Ein Server nimmt nur Charaktere an, die in seiner Zone stehen (neue: Startzone) | direktes Verbinden ist sonst ein Teleport an allen Übergängen vorbei |
+| Schiffsbewegung (Phase 5) | Eigenes Modell in `VCRules`, nur der Server rechnet; replizierte Bewegung ohne Client-Vorhersage | Schiffe sind träge, Latenz fällt kaum auf; Regeln ohne Engine testbar; Vorhersage nachrüsten, falls Messungen es verlangen |
+| Wind (Phase 5) | deterministische Funktion aus Zonendaten und Server-Weltzeit statt repliziertem Windfeld | keine Netzlast, Server und Client sehen denselben Wind |
+| Gold (Phase 5) | jede Änderung über `currency_ledger` mit Idempotenzschlüssel, Kauf und Buchung in einer Transaktion | kein Gold aus dem Nichts, Wiederholungen buchen nicht doppelt |
 | Zonenübergänge (Phase 4) | `zone_links` (Daten) statt Ziel im Kartenobjekt; Ankunft = PlayerStart-Tag | Land/See-Übergang des Originals UNKNOWN; Übergänge änderbar ohne Karten anzufassen |
 
 ### Login-Ablauf

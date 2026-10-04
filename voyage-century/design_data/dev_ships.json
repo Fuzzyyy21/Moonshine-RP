@@ -1,0 +1,21 @@
+{
+  "_comment": "ENTWICKLUNGSWERTE (Priorität 6). Alle Schiffswerte, Preise und das Segelmodell des Originals sind UNKNOWN (SHIP-STATS). Belegt: drei Klassen mit Profil (SHIPCLASS-*: Kriegsschiff hält am meisten aus, Erkundungsschiff ist am schnellsten mit den meisten Matrosen, Handelsschiff ist am langsamsten mit der größten Ladung), ein Anfängerschiff (SHIP-TIERS-INTL), mehr Matrosen = schneller und mehr Proviantverbrauch (SAILOR-SYSTEM). Die Werte unten halten diese Rangfolgen ein, die Zahlen selbst sind erfunden und gekennzeichnet (DEV_). Startbesatzung = Hälfte der Kapazität nach dem Community-Rat in SAILOR-SYSTEM (Rat, keine Regel). Geschwindigkeiten in cm/s, Wendigkeit in Grad/s.",
+  "source": "SRC-DESIGN",
+  "tuning": {
+    "polar": [ [0, 0.8], [45, 0.95], [90, 1.0], [120, 0.6], [150, 0.0], [180, 0.0] ],
+    "crew_min_factor": 0.5,
+    "min_steerage_factor": 0.2,
+    "provisions_per_sailor_per_minute": 0.1,
+    "no_provisions_factor": 0.5,
+    "start_crew_share": 0.5
+  },
+  "wind": [
+    { "zone": "SEA_DEV", "base_direction_deg": 45, "base_strength": 1.0, "direction_swing_deg": 30, "strength_swing": 0.25, "period_seconds": 900 }
+  ],
+  "ships": [
+    { "code": "DEV_STARTER_SHIP", "class": "BEGINNER", "name_de": "Anfängerschiff (Test)", "level": 1, "hull_hp": 500, "max_speed": 900, "acceleration": 120, "deceleration": 200, "turn_rate": 18, "crew_min": 4, "crew_max": 12, "cargo": 50, "wind_efficiency": 0.8, "cost_gold": 0, "one_per_character": true, "start_provisions": 200 },
+    { "code": "DEV_BATTLE_SLOOP", "class": "BATTLE", "name_de": "Kriegsschaluppe (Test)", "level": 2, "hull_hp": 1500, "max_speed": 1000, "acceleration": 90, "deceleration": 180, "turn_rate": 14, "crew_min": 10, "crew_max": 30, "cargo": 80, "wind_efficiency": 0.9, "cost_gold": 5000, "one_per_character": false, "start_provisions": 400 },
+    { "code": "DEV_RAIDER_CUTTER", "class": "RAIDER", "name_de": "Erkundungskutter (Test)", "level": 2, "hull_hp": 900, "max_speed": 1300, "acceleration": 140, "deceleration": 220, "turn_rate": 22, "crew_min": 12, "crew_max": 40, "cargo": 60, "wind_efficiency": 0.9, "cost_gold": 5000, "one_per_character": false, "start_provisions": 400 },
+    { "code": "DEV_MERCHANT_COG", "class": "MERCHANT", "name_de": "Handelskogge (Test)", "level": 2, "hull_hp": 1200, "max_speed": 750, "acceleration": 60, "deceleration": 150, "turn_rate": 10, "crew_min": 8, "crew_max": 20, "cargo": 300, "wind_efficiency": 0.9, "cost_gold": 5000, "one_per_character": false, "start_provisions": 400 }
+  ]
+}

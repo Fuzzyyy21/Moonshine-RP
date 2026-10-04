@@ -8,7 +8,7 @@ public class VCServer : ModuleRules
 	public VCServer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "DeveloperSettings", "GameplayAbilities", "GameplayTags", "VCCore", "VCNet", "VCRules", "VCAbilities", "VoyageCentury" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "DeveloperSettings", "GameplayAbilities", "GameplayTags", "VCCore", "VCNet", "VCRules", "VCAbilities", "VoyageCentury", "VCWorld", "VCNaval" });
 		PrivateDependencyModuleNames.AddRange(new string[] { "Json" });
 	}
 }

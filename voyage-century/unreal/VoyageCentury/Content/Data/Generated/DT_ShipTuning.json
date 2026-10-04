@@ -1,0 +1,25 @@
+[
+  {
+    "Name": "Default",
+    "PolarAngles": [
+      0,
+      45,
+      90,
+      120,
+      150,
+      180
+    ],
+    "PolarEfficiencies": [
+      0.8,
+      0.95,
+      1.0,
+      0.6,
+      0.0,
+      0.0
+    ],
+    "CrewMinFactor": 0.5,
+    "MinSteerageFactor": 0.2,
+    "ProvisionsPerSailorPerMinute": 0.1,
+    "NoProvisionsFactor": 0.5
+  }
+]

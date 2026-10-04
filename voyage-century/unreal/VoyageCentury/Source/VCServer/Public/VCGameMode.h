@@ -56,6 +56,10 @@ public:
 	virtual void HandleHotbarChange(APlayerController* Player, int32 Slot, FName AbilityCode) override;
 	virtual void HandleZoneExit(APawn* Pawn, FName ExitCode) override;
 	virtual void HandleDiscovery(APawn* Pawn, FName DiscoveryCode) override;
+	virtual void HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
+
+	/** Auf See (Zonenart SEA) und mit aktivem Schiff ist das Schiff die Spielfigur, sonst die Figur an Land. */
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
 
 	/** Charakter-XP vergeben (z. B. aus Kampf oder Quest, ab Phase 3). Nur Server. */
 	void GrantExperience(APlayerController* PC, int64 Amount, const FString& Source);
@@ -94,10 +98,29 @@ private:
 		FString ArrivalTag;
 		/** Bereits entdeckt (aus dem Charakterzustand) oder Meldung unterwegs: nicht erneut melden. */
 		TSet<FName> Discoveries;
+		/** Schiffe laut Backend (Stand des letzten Ladens, Kaufs bzw. Speicherns). */
+		struct FShip
+		{
+			int64 InstanceId = 0;
+			FName Code;
+			bool bActive = false;
+			int32 HullHp = 0;
+			int32 HullMax = 0;
+			int32 Crew = 0;
+			int32 Provisions = 0;
+
+			static bool FromJson(const TSharedPtr<FJsonObject>& Json, FShip& Out);
+		};
+		TArray<FShip> Ships;
+		int64 Gold = 0;
+		bool bShipRequestInFlight = false;
 	};
 
 	/** PvP-Regel der Zone; bis das Backend antwortet, ist PvP aus. */
 	bool bPvPAllowed = false;
+
+	/** Zonenart (SEA, CITY, …) aus dem Backend; bis zur Antwort leer (dann keine Schiffe). */
+	FString ZoneKind;
 
 	TMap<TObjectKey<APlayerController>, FPlayerSession> Sessions;
 	FTimerHandle SaveTimer;
@@ -114,6 +137,13 @@ private:
 
 	/** bFinal: letzter Stand beim Ausloggen, gibt die Anwesenheit im World Directory frei. */
 	void SaveSession(const APlayerController* PC, const FPlayerSession& Session, const APawn& Pawn, bool bFinal) const;
+
+	/**
+	 * Schiff (falls die Spielfigur eines ist) und danach Charakter speichern; Done bekommt das Ergebnis des Charakters.
+	 * Reihenfolge ist wichtig: Der letzte Charakter-Stand gibt die Anwesenheit frei, danach nimmt das Backend nichts mehr an.
+	 */
+	static void SaveShipThenCharacter(const APlayerController* PC, int64 CharacterId, int64 AccountId, const APawn& Pawn, bool bFinal,
+		TFunction<void(const FVCHttpResult&)> Done);
 
 	void RegisterWithDirectory();
 	void SendHeartbeat();

@@ -20,6 +20,7 @@ nutzen `BuildSettingsVersion.Latest`, damit kein versionsspezifischer Wert festg
 | `VCRules` | Kampfformeln ohne Engine-Abhängigkeit |
 | `VCAbilities` | Attribute, Kampfablauf (`FVCCombat`), Grundangriff, Fähigkeiten, Statuseffekte, Hotbar, Kampfdaten (`UVCCombatSettings`) |
 | `VCAI` | `AVCMonster`, `AVCMonsterAIController`, `AVCMonsterSpawner` |
+| `VCNaval` | `AVCShip` (Schiff als Spielfigur, Fahrt über `VCShipRules`), Schiffsdaten (`UVCNavalSettings`) |
 | `VCWorld` | Objekte in Karten: `AVCZoneExit` (Zonenausgang), `AVCNpc`, `AVCDiscoveryPoint`; Weltdaten (`UVCWorldSettings`) |
 
 Targets: `VoyageCentury` (Game), `VoyageCenturyEditor`, `VoyageCenturyServer`, `VoyageCenturyClient`.
@@ -135,6 +136,32 @@ oder in der Konsole `VCPlay <characterId>`. Dann zum Ausgang `TO_LONDON` laufen 
 Was der Server verhindert: zweites Einloggen desselben Charakters (Meldung „Charakter ist bereits online“),
 direktes Verbinden in eine Zone, in der der Charakter nicht steht, und Speichern durch den alten Server nach
 einem Wechsel.
+
+## Schiffe (Phase 5, Iteration 1)
+
+| Data Table | Row-Struktur | Pfad |
+|---|---|---|
+| `DT_Ships.json` | `VCShipRow` | `/Game/Data/DT_Ships` |
+| `DT_ShipTuning.json` | `VCShipTuningRow` | `/Game/Data/DT_ShipTuning` |
+| `DT_ZoneWind.json` | `VCZoneWindRow` | `/Game/Data/DT_ZoneWind` |
+
+`DT_ShipClasses` neu importieren (Klasse `BEGINNER`). In `L_SeaDev` eine große ebene Fläche auf Höhe 0 als Wasser-
+Platzhalter (keine Kollision mit dem Schiff nötig; `SeaLevelZ` in *Voyage Century Naval*), Anleger als Hindernisse.
+
+Testen (Server für Athen und Seezone laufen, siehe Phase 4):
+
+```
+VCPlay <id>                     → in Athen (oder über die Seezone dorthin)
+zum Werftmeister gehen
+VCBuyShip DEV_STARTER_SHIP      → kostenlos, wird aktiv
+VCAdmin "givegold 6000"         → (Admin) Gold, dann z. B. VCBuyShip DEV_RAIDER_CUTTER
+VCShips                         → Schiffe, aktives mit *; VCSetShip <nummer> wechselt (nur an Land)
+Ausgang HARBOR                  → Seezone: Spielfigur ist jetzt das Schiff
+W/S Segel in Vierteln, A/D Ruder; HUD unten rechts: Fahrt, Kurs, Wind, Rumpf, Matrosen, Proviant
+```
+
+Erwartung: gegen den Wind (Winkel zum Wind ≥ 150°) keine Fahrt, halber Wind am schnellsten; Proviant sinkt
+(Anfängerschiff mit 6 Matrosen: 0,6 je Minute); Auflaufen stoppt. Nach Neustart sind Schiff und Werte gespeichert.
 
 ## NPCs und Entdeckungen (Phase 4, Iteration 2)
 

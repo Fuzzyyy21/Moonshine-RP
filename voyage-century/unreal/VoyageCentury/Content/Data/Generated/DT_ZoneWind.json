@@ -1,0 +1,10 @@
+[
+  {
+    "Name": "SEA_DEV",
+    "BaseDirectionDeg": 45,
+    "BaseStrength": 1.0,
+    "DirectionSwingDeg": 30,
+    "StrengthSwing": 0.25,
+    "PeriodSeconds": 900
+  }
+]

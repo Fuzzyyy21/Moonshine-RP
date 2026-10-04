@@ -44,4 +44,7 @@ public:
 
 	/** Eine Spielfigur hat einen Entdeckungspunkt betreten (AVCDiscoveryPoint). Zählt das Backend einmal je Charakter. */
 	virtual void HandleDiscovery(APawn* Pawn, FName DiscoveryCode) = 0;
+
+	/** Schiffsbefehle eines Spielers: "list", "buy <SCHIFF>" (beim Werftmeister in der Nähe), "activate <instanceId>". */
+	virtual void HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument) = 0;
 };

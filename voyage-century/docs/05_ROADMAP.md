@@ -115,9 +115,22 @@ Erste Seezone und zwei Häfen (Kandidaten: London, Athen, weil am besten belegt)
 
 **Abnahme Iteration 1 (Vorschlag)**: Drei Server (Testzone, London, Seezone) und Backend laufen; Client verbindet ohne Adresse über das World Directory; Ausgang in London führt auf die Seezone an den Ankunftspunkt LONDON; derselbe Charakter kann sich nicht gleichzeitig ein zweites Mal einloggen; nach dem Wechsel kann der alte Server den Charakter nicht mehr speichern; ein Neustart von Server und Backend lässt den Charakter in der neuen Zone weiterspielen.
 
-## Phase 5 – Schiffe
+## Phase 5 – Schiffe (Iteration 1 fertig)
 
 Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Matrosen, Seekampf, Entern. Lasttest für große Seeschlachten.
+
+| Schritt | Status | Prüfung |
+|---|---|---|
+| Segelregeln (`VCShipRules`): Wind, Polare, Matrosen, Proviant, Beschleunigen, Wenden | ✅ It. 1 | `tools/test_rules.sh` (7 weitere Fälle) |
+| Schiffsdaten: Klasse BEGINNER (Anfängerschiff), 4 Entwicklungsschiffe mit belegten Rangfolgen, Segel-Tuning, Wind je Seezone; `V0010` | ✅ It. 1 | Export `--check` (prüft Rangfolgen), Schematest |
+| Backend: Gold mit Ledger, Admin-Gold, Kauf beim Werftmeister der eigenen Zone, aktives Schiff, Schiffszustand (nur sinkend) | ✅ It. 1 | `ShipTests` (6 Tests) |
+| UE: Modul `VCNaval` – Schiff als Spielfigur auf See, Fahrt nur auf dem Server, Steuerung, Wind, HUD; Kauf und Befehle | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal |
+| Matrosen anheuern, Proviant kaufen, Reparatur | ❌ Iteration 2 | Kosten im Original UNKNOWN |
+| Seekampf (Kanonen, Schaden, Sinken), Entern | ❌ Iteration 2/3 | Schadensmodell UNKNOWN |
+| Wasser-Optik, Strömung, Wetter | ❌ | braucht Assets |
+| Lasttest große Seeschlachten | ❌ | |
+
+**Abnahme Iteration 1 (Vorschlag)**: In Athen beim Werftmeister das Anfängerschiff erhalten; über den Hafen auf die Seezone → man steuert das Schiff; gegen den Wind keine Fahrt, mit halbem Wind am schnellsten; Proviant sinkt mit der Zeit; nach Neustart sind Schiff, Rumpf, Matrosen und Proviant gespeichert; ein zweites Anfängerschiff gibt es nicht.
 
 ## Phase 6 – Wirtschaft
 

@@ -23,6 +23,8 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCAdmin "givexp <menge>"   | "giveskillxp <SKILL> <menge>"
  *   VCAbilities                                          alle Fähigkeiten mit Voraussetzungen
  *   VCHotbar <platz 1-10> <CODE|leer>                    Hotbar belegen (Server prüft und speichert)
+ *   VCShips | VCBuyShip <SCHIFF> | VCSetShip <nummer>    eigene Schiffe, Kauf beim Werftmeister, aktives Schiff
+ *   VCAdmin "givegold <menge>"
  *
  * Passwörter in der Konsole sind nur für die Entwicklung gedacht; die Login-Oberfläche folgt.
  */
@@ -85,12 +87,24 @@ public:
 	UFUNCTION(Exec)
 	void VCHotbar(const FString& Slot, const FString& AbilityCode);
 
+	UFUNCTION(Exec)
+	void VCShips();
+
+	UFUNCTION(Exec)
+	void VCBuyShip(const FString& ShipCode);
+
+	UFUNCTION(Exec)
+	void VCSetShip(const FString& InstanceId);
+
 protected:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerAdminCommand(const FString& CommandLine);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerSetHotbarSlot(int32 Slot, FName AbilityCode);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerShipCommand(const FString& Command, const FString& Argument);
 
 private:
 	class UVCSessionSubsystem* Session() const;

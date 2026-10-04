@@ -23,7 +23,12 @@
 #include "VCCombatRules.h"
 #include "VCCombatant.h"
 #include "VCGameplayTags.h"
+#include "EngineUtils.h"
+#include "VCNavalData.h"
+#include "VCNpc.h"
 #include "VCServerBackend.h"
+#include "VCShip.h"
+#include "VCWorldData.h"
 #include "VCServerSettings.h"
 
 namespace
@@ -176,6 +181,7 @@ void AVCGameMode::BeginPlay()
 			FString Mode;
 			if (WeakThis.IsValid() && Result.IsOk() && Result.Json.IsValid() && Result.Json->TryGetStringField(TEXT("pvpMode"), Mode))
 			{
+				Result.Json->TryGetStringField(TEXT("zoneKind"), WeakThis->ZoneKind);
 				WeakThis->bPvPAllowed = Mode == TEXT("FREE");
 				UE_LOG(LogVC, Display, TEXT("PvP in dieser Zone: %s"), WeakThis->bPvPAllowed ? TEXT("erlaubt") : TEXT("aus"));
 			}
@@ -395,6 +401,22 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 	}
 	if (FPlayerSession* Session = Sessions.Find(PC))
 	{
+		const TArray<TSharedPtr<FJsonValue>>* ShipValues = nullptr;
+		if (Result.Json->TryGetArrayField(TEXT("ships"), ShipValues) && ShipValues)
+		{
+			for (const TSharedPtr<FJsonValue>& Value : *ShipValues)
+			{
+				FPlayerSession::FShip Ship;
+				if (Value.IsValid() && FPlayerSession::FShip::FromJson(Value->AsObject(), Ship))
+				{
+					Session->Ships.Add(Ship);
+				}
+			}
+		}
+		double Gold = 0.0;
+		Result.Json->TryGetNumberField(TEXT("gold"), Gold);
+		Session->Gold = static_cast<int64>(Gold);
+
 		const TArray<TSharedPtr<FJsonValue>>* Found = nullptr;
 		if (Result.Json->TryGetArrayField(TEXT("discoveries"), Found) && Found)
 		{
@@ -486,6 +508,22 @@ void AVCGameMode::SpawnAuthenticatedPlayer(APlayerController* PC, const TOptiona
 			Character->ServerSetAppearance(Session->Appearance);
 			Character->ServerSetEquippedWeapon(Session->EquippedWeapon);
 		}
+		if (AVCShip* Ship = Cast<AVCShip>(Pawn))
+		{
+			for (const FPlayerSession::FShip& Owned : Session->Ships)
+			{
+				if (Owned.bActive)
+				{
+					FVCShipLoadout Loadout;
+					Loadout.InstanceId = Owned.InstanceId;
+					Loadout.ShipCode = Owned.Code;
+					Loadout.HullHp = Owned.HullHp;
+					Loadout.Crew = Owned.Crew;
+					Loadout.Provisions = Owned.Provisions;
+					Ship->ServerInit(Loadout, FName(*UVCServerSettings::GetZoneId()));
+				}
+			}
+		}
 		Pawn->OnDestroyed.AddDynamic(this, &AVCGameMode::OnPlayerPawnDestroyed);
 	}
 	UE_LOG(LogVC, Display, TEXT("Charakter %lld (Konto %lld) betritt Zone %s"),
@@ -547,14 +585,41 @@ void AVCGameMode::SaveSession(const APlayerController* PC, const FPlayerSession&
 		return; // Anwesenheit liegt beim Zielserver; das Backend würde ohnehin ablehnen
 	}
 	const int64 CharacterId = Session.CharacterId;
-	FVCServerBackend::SaveCharacter(CharacterId, Session.AccountId, UVCServerSettings::GetZoneId(),
-		Pawn.GetActorLocation(), Pawn.GetActorRotation().Yaw, CurrentVitals(PC), bFinal, [CharacterId](const FVCHttpResult& Result)
+	SaveShipThenCharacter(PC, CharacterId, Session.AccountId, Pawn, bFinal, [CharacterId](const FVCHttpResult& Result)
+	{
+		if (!Result.IsOk())
 		{
-			if (!Result.IsOk())
+			UE_LOG(LogVC, Error, TEXT("Speichern von Charakter %lld fehlgeschlagen: %s"), CharacterId, *Result.ErrorMessage());
+		}
+	});
+}
+
+void AVCGameMode::SaveShipThenCharacter(const APlayerController* PC, int64 CharacterId, int64 AccountId, const APawn& Pawn, bool bFinal,
+	TFunction<void(const FVCHttpResult&)> Done)
+{
+	// Werte jetzt festhalten: der Pawn kann bis zur Antwort verschwunden sein.
+	const FVector Location = Pawn.GetActorLocation();
+	const float Yaw = Pawn.GetActorRotation().Yaw;
+	const FIntVector4 Vitals = CurrentVitals(PC);
+	auto SaveCharacter = [CharacterId, AccountId, Location, Yaw, Vitals, bFinal](TFunction<void(const FVCHttpResult&)> Then)
+	{
+		FVCServerBackend::SaveCharacter(CharacterId, AccountId, UVCServerSettings::GetZoneId(), Location, Yaw, Vitals, bFinal, MoveTemp(Then));
+	};
+	const AVCShip* Ship = Cast<AVCShip>(&Pawn);
+	if (!Ship)
+	{
+		SaveCharacter(MoveTemp(Done));
+		return;
+	}
+	const FVCShipLoadout Loadout = Ship->GetLoadout();
+	FVCServerBackend::SaveShip(CharacterId, AccountId, Loadout.InstanceId, Loadout.HullHp, Loadout.Crew, Loadout.Provisions,
+		[SaveCharacter, Done = MoveTemp(Done), CharacterId](const FVCHttpResult& ShipResult) mutable
+		{
+			if (!ShipResult.IsOk())
 			{
-				UE_LOG(LogVC, Error, TEXT("Speichern von Charakter %lld fehlgeschlagen: %s"),
-					CharacterId, *Result.ErrorMessage());
+				UE_LOG(LogVC, Error, TEXT("Schiff von Charakter %lld nicht gespeichert: %s"), CharacterId, *ShipResult.ErrorMessage());
 			}
+			SaveCharacter(MoveTemp(Done)); // Charakter trotzdem speichern (und beim Ausloggen freigeben)
 		});
 }
 
@@ -628,6 +693,37 @@ void AVCGameMode::HandleAdminCommand(APlayerController* Issuer, const FString& C
 	else if (Command == TEXT("giveskillxp") && Args.Num() == 2)
 	{
 		AdminGiveXp(Issuer, *Session, Args[0].ToUpper(), Args[1]);
+	}
+	else if (Command == TEXT("givegold") && Args.Num() == 1)
+	{
+		int64 Amount = 0;
+		if (!LexTryParseString(Amount, *Args[0]) || Amount <= 0)
+		{
+			Issuer->ClientMessage(TEXT("Aufruf: VCAdmin \"givegold <menge>\""));
+			return;
+		}
+		// Rechteprüfung, Ledger-Buchung und Audit erledigt das Backend in einer Transaktion.
+		TWeakObjectPtr<AVCGameMode> WeakThis(this);
+		TWeakObjectPtr<APlayerController> WeakPC(Issuer);
+		FVCServerBackend::AdminGrantGold(Session->CharacterId, Amount, AdminContext(Issuer, *Session), [WeakThis, WeakPC](const FVCHttpResult& Result)
+		{
+			APlayerController* PC = WeakPC.Get();
+			double Gold = 0.0;
+			if (!PC || !WeakThis.IsValid())
+			{
+				return;
+			}
+			if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetNumberField(TEXT("gold"), Gold))
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+				return;
+			}
+			if (FPlayerSession* S = WeakThis->Sessions.Find(PC))
+			{
+				S->Gold = static_cast<int64>(Gold);
+			}
+			PC->ClientMessage(FString::Printf(TEXT("Gold: %lld"), static_cast<int64>(Gold)));
+		});
 	}
 	else if (Command == TEXT("equip") && Args.Num() == 1 && Session->AdminLevel >= GetDefault<UVCServerSettings>()->TeleportAdminLevel)
 	{
@@ -1106,8 +1202,7 @@ void AVCGameMode::HandleZoneExit(APawn* Pawn, FName ExitCode)
 	TWeakObjectPtr<APlayerController> WeakPC(PC);
 
 	// 1. Letzten Stand dieser Zone speichern (Leben, Ausdauer), solange die Anwesenheit noch hier liegt.
-	FVCServerBackend::SaveCharacter(CharacterId, AccountId, UVCServerSettings::GetZoneId(), Pawn->GetActorLocation(),
-		Pawn->GetActorRotation().Yaw, CurrentVitals(PC), false,
+	SaveShipThenCharacter(PC, CharacterId, AccountId, *Pawn, false,
 		[WeakThis, WeakPC, CharacterId, AccountId, Exit](const FVCHttpResult& Saved)
 		{
 			AVCGameMode* Self = WeakThis.Get();
@@ -1221,4 +1316,156 @@ void AVCGameMode::HandleDiscovery(APawn* Pawn, FName DiscoveryCode)
 				VCPC->ClientDiscovered(DiscoveryCode, static_cast<int64>(Xp));
 			}
 		});
+}
+
+bool AVCGameMode::FPlayerSession::FShip::FromJson(const TSharedPtr<FJsonObject>& Json, FShip& Out)
+{
+	FString Code;
+	double Hull = 0.0, HullMax = 0.0, Crew = 0.0, Provisions = 0.0;
+	if (!Json.IsValid() || !FVCHttp::TryGetId(Json, TEXT("instanceId"), Out.InstanceId) || !Json->TryGetStringField(TEXT("shipCode"), Code)
+		|| !Json->TryGetBoolField(TEXT("active"), Out.bActive) || !Json->TryGetNumberField(TEXT("hullHp"), Hull)
+		|| !Json->TryGetNumberField(TEXT("crew"), Crew) || !Json->TryGetNumberField(TEXT("provisions"), Provisions))
+	{
+		return false;
+	}
+	Json->TryGetNumberField(TEXT("hullMax"), HullMax);
+	Out.Code = FName(*Code);
+	Out.HullHp = static_cast<int32>(Hull);
+	Out.HullMax = static_cast<int32>(HullMax);
+	Out.Crew = static_cast<int32>(Crew);
+	Out.Provisions = static_cast<int32>(Provisions);
+	return true;
+}
+
+UClass* AVCGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
+{
+	const FPlayerSession* Session = Sessions.Find(Cast<APlayerController>(InController));
+	if (Session && ZoneKind == TEXT("SEA") && FVCNavalData::IsAvailable())
+	{
+		for (const FPlayerSession::FShip& Ship : Session->Ships)
+		{
+			if (Ship.bActive && FVCNavalData::FindShip(Ship.Code))
+			{
+				return AVCShip::StaticClass();
+			}
+		}
+	}
+	return Super::GetDefaultPawnClassForController_Implementation(InController);
+}
+
+void AVCGameMode::HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument)
+{
+	FPlayerSession* Session = Player ? Sessions.Find(Player) : nullptr;
+	if (!Session || !Session->bAuthenticated || !Session->bClaimed)
+	{
+		return;
+	}
+	if (Command == TEXT("list"))
+	{
+		Player->ClientMessage(FString::Printf(TEXT("Gold: %lld"), Session->Gold));
+		for (const FPlayerSession::FShip& Ship : Session->Ships)
+		{
+			const FVCShipRow* Row = FVCNavalData::FindShip(Ship.Code);
+			Player->ClientMessage(FString::Printf(TEXT("%s#%lld %s – Rumpf %d/%d, Matrosen %d, Proviant %d"),
+				Ship.bActive ? TEXT("* ") : TEXT("  "), Ship.InstanceId, Row ? *Row->NameDe : *Ship.Code.ToString(),
+				Ship.HullHp, Ship.HullMax, Ship.Crew, Ship.Provisions));
+		}
+		return;
+	}
+	if (Session->bShipRequestInFlight)
+	{
+		Player->ClientMessage(TEXT("Bitte warten, die letzte Anfrage läuft noch."));
+		return;
+	}
+
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(Player);
+	if (Command == TEXT("buy"))
+	{
+		// Nur beim Werftmeister in Reichweite (SHIP-ACQUISITION); welches Schiff er verkauft, prüft das Backend.
+		const APawn* Pawn = Player->GetPawn();
+		const float Range = GetDefault<UVCWorldSettings>()->InteractRangeCm + 50.f;
+		FName Shipyard;
+		for (TActorIterator<AVCNpc> It(GetWorld()); It && Pawn; ++It)
+		{
+			const FVCNpcRow* Row = FVCWorldData::FindNpc(It->NpcCode);
+			if (Row && Row->Role == EVCNpcRole::Shipyard && FVector::Dist(Pawn->GetActorLocation(), It->GetActorLocation()) <= Range)
+			{
+				Shipyard = It->NpcCode;
+				break;
+			}
+		}
+		if (Shipyard.IsNone())
+		{
+			Player->ClientMessage(TEXT("Schiffe gibt es nur beim Werftmeister – näher herangehen."));
+			return;
+		}
+		Session->bShipRequestInFlight = true;
+		FVCServerBackend::BuyShip(Session->CharacterId, Session->AccountId, Shipyard.ToString(), Argument.ToUpper(), FGuid::NewGuid(),
+			[WeakThis, WeakPC](const FVCHttpResult& Result)
+			{
+				APlayerController* PC = WeakPC.Get();
+				FPlayerSession* S = WeakThis.IsValid() && PC ? WeakThis->Sessions.Find(PC) : nullptr;
+				if (!S)
+				{
+					return;
+				}
+				S->bShipRequestInFlight = false;
+				const TSharedPtr<FJsonObject>* ShipJson = nullptr;
+				FPlayerSession::FShip Ship;
+				double Gold = 0.0;
+				if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetObjectField(TEXT("ship"), ShipJson) || !ShipJson
+					|| !FPlayerSession::FShip::FromJson(*ShipJson, Ship) || !Result.Json->TryGetNumberField(TEXT("gold"), Gold))
+				{
+					PC->ClientMessage(FString::Printf(TEXT("Kauf abgelehnt: %s"), *Result.ErrorMessage()));
+					return;
+				}
+				S->Gold = static_cast<int64>(Gold);
+				if (!S->Ships.ContainsByPredicate([&Ship](const FPlayerSession::FShip& Owned) { return Owned.InstanceId == Ship.InstanceId; }))
+				{
+					S->Ships.Add(Ship);
+				}
+				PC->ClientMessage(FString::Printf(TEXT("Schiff #%lld gekauft%s. Gold: %lld"), Ship.InstanceId,
+					Ship.bActive ? TEXT(" (aktiv)") : TEXT(""), S->Gold));
+			});
+		return;
+	}
+	if (Command == TEXT("activate"))
+	{
+		int64 InstanceId = 0;
+		if (!LexTryParseString(InstanceId, *Argument) || !Session->Ships.ContainsByPredicate(
+			[InstanceId](const FPlayerSession::FShip& Ship) { return Ship.InstanceId == InstanceId; }))
+		{
+			Player->ClientMessage(TEXT("Unbekanntes Schiff (VCShips zeigt deine Schiffe)"));
+			return;
+		}
+		if (Cast<AVCShip>(Player->GetPawn()))
+		{
+			Player->ClientMessage(TEXT("Das aktive Schiff wechselt man im Hafen, nicht auf See."));
+			return;
+		}
+		Session->bShipRequestInFlight = true;
+		FVCServerBackend::SetActiveShip(Session->CharacterId, Session->AccountId, InstanceId, [WeakThis, WeakPC, InstanceId](const FVCHttpResult& Result)
+		{
+			APlayerController* PC = WeakPC.Get();
+			FPlayerSession* S = WeakThis.IsValid() && PC ? WeakThis->Sessions.Find(PC) : nullptr;
+			if (!S)
+			{
+				return;
+			}
+			S->bShipRequestInFlight = false;
+			if (!Result.IsOk())
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+				return;
+			}
+			for (FPlayerSession::FShip& Ship : S->Ships)
+			{
+				Ship.bActive = Ship.InstanceId == InstanceId;
+			}
+			PC->ClientMessage(FString::Printf(TEXT("Schiff #%lld ist jetzt aktiv."), InstanceId));
+		});
+		return;
+	}
+	Player->ClientMessage(TEXT("Schiffsbefehle: VCShips, VCBuyShip <SCHIFF>, VCSetShip <nummer>"));
 }

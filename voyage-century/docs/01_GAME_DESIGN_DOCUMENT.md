@@ -149,6 +149,12 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Ein Schiff mit NULL in einem **bewegungsrelevanten** Feld (Speed, Turning, HullHP) kann nicht ausgegeben werden. So wird nie mit erfundenen Werten gespielt.
 * Schiffs-Instanz trägt Rumpf-HP, Segel-HP, Matrosen (gesund/verletzt), Proviant, Umbaurichtung und -stufe sowie XP der drei Schiffs-Skills.
 
+**Umgesetzt (Phase 5, Iteration 1)** `[DESIGN]`, Werte in `design_data/dev_ships.json`
+* Vier Entwicklungsschiffe (`DEV_…`): Anfängerschiff (eigene Klasse BEGINNER, kostenlos, eins je Charakter – Bezugsweg im Original UNKNOWN) und je eins der drei Klassen für 5000 Gold. Die Werte halten die belegten Rangfolgen ein (Erkundungsschiff am schnellsten und mit den meisten Matrosen, Handelsschiff am langsamsten mit der größten Ladung, Kriegsschiff hält am meisten aus); der Export prüft das.
+* Kauf nur beim Werftmeister in derselben Zone (Abstand prüft der Server), Gold im Ledger, jeder Kauf genau einmal. Das erste Schiff wird aktiv; das aktive Schiff wechselt man an Land.
+* Startbesatzung = Hälfte der Kapazität (Community-Rat aus `SAILOR-SYSTEM`), Startproviant aus den Daten. Anheuern, Proviant kaufen und Reparatur folgen; bis dahin können Rumpf, Matrosen und Proviant nur sinken (Backend lehnt höhere Werte ab).
+* Gold: Startguthaben des Originals UNKNOWN (0); Admins können Gold gutschreiben (`givegold`, protokolliert).
+
 **Offen**: alle Schiffsnamen und Werte, Bedingungen für den Schiffsstufen-Aufstieg.
 
 ---
@@ -166,6 +172,13 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Wellen und Wetter: visuell (Water-Plugin, Niagara) plus ein serverseitiger Wetterzustand, der Sicht und Tempo beeinflussen kann.
 * Steuerung: Ruder links/rechts, Segelstufen (z. B. 0 / ¼ / ½ / voll), Anker.
 * Alle Faktoren als Kurven in Data Assets, damit sie nach Videoanalyse an das Original angepasst werden können.
+
+**Umgesetzt (Phase 5, Iteration 1)** `[DESIGN]`, Regeln in `VCShipRules` (getestet), Werte in `design_data/dev_ships.json`
+* Zielgeschwindigkeit = Höchstfahrt × Segel × Windfaktor × Matrosenfaktor × Proviantfaktor. Windfaktor = (1 − Windabhängigkeit) + Windabhängigkeit × Polare(Winkel zum Wind) × Windstärke. Polare: vor dem Wind 0,8, halber Wind 1,0, ab 150° (gegen den Wind) 0.
+* Matrosenfaktor: unter Mindestbesatzung keine Fahrt, sonst 0,5 bis 1,0 bei voller Besatzung. Proviant: 0,1 je Matrose und Minute; ohne Proviant halbe Fahrt (Wirkung im Original UNKNOWN).
+* Wendigkeit wächst mit der Fahrt (im Stand 20 %). Segel in Vierteln (W/S), Ruder A/D.
+* Wind je Seezone: pendelt langsam um eine Grundrichtung; deterministisch aus Zeit und Zonendaten, daher gleich auf Server und Client ohne Replikation. Strömung und Wetter folgen.
+* Fahrt rechnet nur der Server; der Client sendet Segel und Ruder. Auflaufen stoppt das Schiff (Schaden folgt mit dem Seekampf).
 
 **Offen**: Gibt es im Original Wind? Wie war die Steuerung? Wie stark wirkte Matrosenzahl?
 

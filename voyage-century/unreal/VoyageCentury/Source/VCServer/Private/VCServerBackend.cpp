@@ -120,6 +120,56 @@ void FVCServerBackend::ReleaseCharacter(int64 CharacterId)
 	});
 }
 
+namespace
+{
+	FString CharacterUrl(int64 CharacterId)
+	{
+		return FString::Printf(TEXT("%s/internal/v1/characters/%lld"), *UVCBackendSettings::GetGameDataBaseUrl(), CharacterId);
+	}
+
+	TSharedRef<FJsonObject> OwnerBody(int64 AccountId)
+	{
+		const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+		Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
+		Body->SetStringField(TEXT("serverId"), UVCServerSettings::GetServerId());
+		return Body;
+	}
+}
+
+void FVCServerBackend::BuyShip(int64 CharacterId, int64 AccountId, const FString& NpcCode, const FString& ShipCode,
+	const FGuid& PurchaseKey, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetStringField(TEXT("npcCode"), NpcCode);
+	Body->SetStringField(TEXT("shipCode"), ShipCode);
+	Body->SetStringField(TEXT("purchaseKey"), PurchaseKey.ToString(EGuidFormats::DigitsWithHyphens));
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/ships"), Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::SetActiveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, FVCHttpCallback Callback)
+{
+	FVCHttp::Send(TEXT("PUT"), FString::Printf(TEXT("%s/ships/%lld/active"), *CharacterUrl(CharacterId), InstanceId),
+		OwnerBody(AccountId), Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::SaveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, int32 HullHp, int32 Crew, int32 Provisions,
+	FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetNumberField(TEXT("hullHp"), HullHp);
+	Body->SetNumberField(TEXT("crew"), Crew);
+	Body->SetNumberField(TEXT("provisions"), Provisions);
+	FVCHttp::Send(TEXT("PUT"), FString::Printf(TEXT("%s/ships/%lld/state"), *CharacterUrl(CharacterId), InstanceId),
+		Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::AdminGrantGold(int64 CharacterId, int64 Amount, const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback)
+{
+	AdminContext->SetNumberField(TEXT("amount"), static_cast<double>(Amount));
+	AdminContext->SetStringField(TEXT("idempotencyKey"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/gold"), AdminContext, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::ReportDiscovery(int64 CharacterId, int64 AccountId, const FString& DiscoveryCode, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
@@ -232,6 +282,10 @@ void FVCServerBackend::ClaimCharacter(int64, int64, FVCHttpCallback Callback) { 
 void FVCServerBackend::ReleaseCharacter(int64) {}
 void FVCServerBackend::RequestTransfer(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportDiscovery(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::BuyShip(int64, int64, const FString&, const FString&, const FGuid&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::SetActiveShip(int64, int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::SaveShip(int64, int64, int64, int32, int32, int32, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::AdminGrantGold(int64, int64, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }

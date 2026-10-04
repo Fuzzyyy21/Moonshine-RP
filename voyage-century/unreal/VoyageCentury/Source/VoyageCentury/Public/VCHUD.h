@@ -47,6 +47,8 @@ private:
 	void OnNpcDialog(FName NpcCode);
 	void OnDiscovered(FName DiscoveryCode, int64 XpAwarded);
 	void DrawNpcDialog();
+	/** Am Steuer eines Schiffs: Fahrt, Kurs, Segel, Ruder, Wind, Rumpf, Matrosen, Proviant. */
+	void DrawShipPanel();
 
 	double LocalNow() const;
 	double ServerNow() const;

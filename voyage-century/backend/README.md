@@ -65,6 +65,9 @@ Fehlende oder ungültige Pflichtwerte verhindern den Start.
 | GameData | `PUT /internal/v1/world/servers/{serverId}/heartbeat`, `DELETE …/{serverId}` | `X-Service-Key`; Lebenszeichen bzw. Abmelden |
 | GameData | `POST /internal/v1/world/characters/{id}/claim`, `DELETE …/claim?serverId=` | `X-Service-Key`; Charakter auf diesem Server ONLINE setzen (409, wenn anderswo online oder in anderer Zone) bzw. freigeben |
 | GameData | `POST /internal/v1/world/discoveries` | `X-Service-Key`; Entdeckung (`discoveryCode`) einmal je Charakter, nur vom Server mit Anwesenheit in der Zone des Punktes; XP aus `discoveries.xp_reward`; `GET …/state` liefert `discoveries` |
+| GameData | `POST /internal/v1/characters/{id}/ships` | `X-Service-Key`; Kauf (`npcCode`, `shipCode`, `purchaseKey`) nur beim Werftmeister der Zone, in der der Charakter auf diesem Server ist; Gold über den Ledger |
+| GameData | `PUT …/ships/{instanceId}/active`, `PUT …/ships/{instanceId}/state` | `X-Service-Key`; aktives Schiff; Rumpf/Matrosen/Proviant (dürfen nicht steigen); `GET …/state` liefert `ships`, `gold` |
+| GameData | `POST /internal/v1/characters/{id}/gold` | Admin (`Progression:AdminMinLevel`), Ledger und Audit in einer Transaktion, idempotent |
 | GameData | `POST /internal/v1/world/transfers` | `X-Service-Key`; Zonenwechsel über Ausgang (`exitCode`) → Zielserver, Ankunftspunkt |
 | GameData | `POST /internal/v1/admin-audit` | `X-Service-Key`, Konto braucht `admin_level > 0` |
 | GameData | `POST /internal/v1/characters/{id}/experience` | `X-Service-Key`; `amount`, `source`, `idempotencyKey`, `serverId` |

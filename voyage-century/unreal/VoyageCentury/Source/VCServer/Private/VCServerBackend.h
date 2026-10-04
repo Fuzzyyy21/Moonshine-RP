@@ -37,6 +37,16 @@ public:
 	/** Entdeckung melden. Antwort: firstTime, xpAwarded, progress (Belohnung legt das Backend fest). */
 	static void ReportDiscovery(int64 CharacterId, int64 AccountId, const FString& DiscoveryCode, FVCHttpCallback Callback);
 
+	/** Schiff beim Werftmeister kaufen; PurchaseKey macht Wiederholungen unschädlich. Antwort: duplicate, ship, gold. */
+	static void BuyShip(int64 CharacterId, int64 AccountId, const FString& NpcCode, const FString& ShipCode, const FGuid& PurchaseKey,
+		FVCHttpCallback Callback);
+	static void SetActiveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, FVCHttpCallback Callback);
+	/** Rumpf, Besatzung, Proviant nach der Fahrt (können ohne Werft nur sinken). */
+	static void SaveShip(int64 CharacterId, int64 AccountId, int64 InstanceId, int32 HullHp, int32 Crew, int32 Provisions,
+		FVCHttpCallback Callback);
+	/** Admin: Gold gutschreiben; Rechte, Ledger und Audit prüft/schreibt das Backend in einer Transaktion. */
+	static void AdminGrantGold(int64 CharacterId, int64 Amount, const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback);
+
 	/** Zonenwechsel über einen Ausgang. Antwort: zoneId, address, arrivalTag. */
 	static void RequestTransfer(int64 CharacterId, int64 AccountId, const FString& ExitCode, FVCHttpCallback Callback);
 	static void WriteAdminAudit(const TSharedRef<FJsonObject>& Entry, FVCHttpCallback Callback);

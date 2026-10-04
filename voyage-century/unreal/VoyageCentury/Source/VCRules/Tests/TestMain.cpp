@@ -71,6 +71,8 @@ int main()
 	vctest::Run(vctest::CombatRulesCases());
 	std::printf("== Fähigkeiten und Statuseffekte\n");
 	vctest::Run(vctest::AbilityRulesCases());
+	std::printf("== Segeln\n");
+	vctest::Run(vctest::ShipRulesCases());
 	std::printf("%d Prüfungen, %d Fehler\n", vctest::Checks, vctest::Failures);
 	return vctest::Failures == 0 ? 0 : 1;
 }

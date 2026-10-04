@@ -12,7 +12,9 @@
 #include "VCCombatData.h"
 #include "VCCombatant.h"
 #include "VCPlayerController.h"
+#include "VCNavalData.h"
 #include "VCPlayerState.h"
+#include "VCShip.h"
 #include "VCWorldData.h"
 #include "VCProgressionComponent.h"
 
@@ -140,6 +142,7 @@ void AVCHUD::DrawHUD()
 	DrawFloatingTexts();
 	DrawNotice();
 	DrawNpcDialog();
+	DrawShipPanel();
 }
 
 void AVCHUD::DrawBar(float X, float Y, float Width, float Height, double Value, double Max, const FLinearColor& Color, const FString& Label)
@@ -351,5 +354,36 @@ void AVCHUD::DrawNpcDialog()
 	for (int32 Index = 0; Index < Lines.Num(); ++Index)
 	{
 		DrawText(Lines[Index], Index == 0 ? FLinearColor::Yellow : FLinearColor::White, X + 10.f, Y + 8.f + Index * LineHeight, SmallFont());
+	}
+}
+
+void AVCHUD::DrawShipPanel()
+{
+	const AVCShip* Ship = Cast<AVCShip>(PlayerOwner->GetPawn());
+	if (!Ship)
+	{
+		return;
+	}
+	const FVCShipRow* Row = FVCNavalData::FindShip(Ship->GetShipCode());
+	const vc::rules::FWind Wind = Ship->GetWind();
+	const double Heading = vc::rules::NormalizeDeg(Ship->GetActorRotation().Yaw);
+	const double OffWind = vc::rules::AngleOffWindDeg(Heading, Wind.DirectionDeg);
+	const double MetersPerSecond = Ship->GetSpeed() / 100.0;
+
+	TArray<FString> Lines;
+	Lines.Add(Row ? Row->NameDe : Ship->GetShipCode().ToString());
+	Lines.Add(FString::Printf(TEXT("Fahrt %.1f m/s (%.1f kn)   Kurs %.0f°"), MetersPerSecond, MetersPerSecond * 1.94384, Heading));
+	Lines.Add(FString::Printf(TEXT("Segel %.0f %%   Ruder %+.0f %%"), Ship->GetSailLevel() * 100.0, Ship->GetRudder() * 100.0));
+	Lines.Add(FString::Printf(TEXT("Wind nach %.0f°, Stärke %.2f – %.0f° zum Wind"), Wind.DirectionDeg, Wind.Strength, OffWind));
+	Lines.Add(FString::Printf(TEXT("Rumpf %d / %d"), Ship->GetHullHp(), Row ? Row->HullHp : 0));
+	Lines.Add(FString::Printf(TEXT("Matrosen %d (min. %d, max. %d)   Proviant %d"), Ship->GetCrew(), Row ? Row->CrewMin : 0,
+		Row ? Row->CrewMax : 0, Ship->GetProvisions()));
+
+	const float X = Canvas->ClipX - 360.f;
+	const float Y = Canvas->ClipY - 170.f;
+	DrawRect(Panel, X - 8.f, Y - 6.f, 350.f, 18.f * Lines.Num() + 12.f);
+	for (int32 Index = 0; Index < Lines.Num(); ++Index)
+	{
+		DrawText(Lines[Index], Index == 0 ? FLinearColor::Yellow : FLinearColor::White, X, Y + Index * 18.f, SmallFont());
 	}
 }

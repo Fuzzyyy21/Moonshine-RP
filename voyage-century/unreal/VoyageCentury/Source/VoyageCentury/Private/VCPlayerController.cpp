@@ -260,3 +260,32 @@ void AVCPlayerController::ServerSetHotbarSlot_Implementation(int32 Slot, FName A
 		Hooks->HandleHotbarChange(this, Slot, AbilityCode);
 	}
 }
+
+void AVCPlayerController::VCShips()
+{
+	ServerShipCommand(TEXT("list"), FString());
+}
+
+void AVCPlayerController::VCBuyShip(const FString& ShipCode)
+{
+	ServerShipCommand(TEXT("buy"), ShipCode);
+}
+
+void AVCPlayerController::VCSetShip(const FString& InstanceId)
+{
+	ServerShipCommand(TEXT("activate"), InstanceId);
+}
+
+bool AVCPlayerController::ServerShipCommand_Validate(const FString& Command, const FString& Argument)
+{
+	return Command.Len() <= 16 && Argument.Len() <= 64;
+}
+
+void AVCPlayerController::ServerShipCommand_Implementation(const FString& Command, const FString& Argument)
+{
+	UWorld* World = GetWorld();
+	if (IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr))
+	{
+		Hooks->HandleShipCommand(this, Command, Argument);
+	}
+}

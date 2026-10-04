@@ -108,6 +108,12 @@ def build_rows(records: dict[str, dict], ui_groups: dict[str, str]) -> dict[str,
         for r in by_entity.get("SHIP_CLASS", [])
     ]
 
+    # Anfängerschiff: als Sonderschiff belegt (SHIP-TIERS-INTL), Klasse im Original UNKNOWN → eigene Klasse BEGINNER.
+    tiers = records.get("SHIP-TIERS-INTL")
+    if tiers and "Anfängerschiff" in (tiers["data"].get("special_ships") or []):
+        rows["ship_classes"].append({"code": "BEGINNER", "zh": None, "en": None, "de": "Anfängerschiff", "leveled_by": None,
+                                     "recon_id": tiers["id"], "confidence": tiers["confidence"]})
+
     # Sammeleinträge (z. B. CITY-LIST-17173) haben keine Einzelstadt und werden übersprungen.
     rows["cities"] = [
         {"code": strip_prefix(r["id"]), **names(r), "coord_as_given": known(r["data"].get("coord_as_given")),
@@ -301,7 +307,7 @@ def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: lis
 
 
 def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict,
-               world: dict, discoveries: dict) -> str:
+               world: dict, discoveries: dict, ships: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
     city_zones = {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]}
 
@@ -376,6 +382,18 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
                                               "range_cm", "target", "applies")},
                  "is_dev": True, "confidence": "UNKNOWN"}
                 for a in sorted(abilities["abilities"], key=lambda a: a["code"])]),
+        "-- Entwicklungsschiffe (design_data/dev_ships.json, is_dev = TRUE).\n",
+        upsert("ships", "code", ["code", "name_de", "ship_class_id", "ship_level", "hull_hp", "speed", "acceleration", "deceleration",
+                                 "turning", "crew_min", "crew_capacity", "cargo_capacity", "wind_efficiency", "cost_gold",
+                                 "one_per_character", "start_crew", "start_provisions", "is_dev", "confidence"],
+               [{"code": sh["code"], "name_de": sh["name_de"],
+                 "ship_class_id": SqlExpr(f"(SELECT ship_class_id FROM ship_classes WHERE code = {sql_literal(sh['class'])})"),
+                 "ship_level": sh["level"], "hull_hp": sh["hull_hp"], "speed": sh["max_speed"], "acceleration": sh["acceleration"],
+                 "deceleration": sh["deceleration"], "turning": sh["turn_rate"], "crew_min": sh["crew_min"],
+                 "crew_capacity": sh["crew_max"], "cargo_capacity": sh["cargo"], "wind_efficiency": sh["wind_efficiency"],
+                 "cost_gold": sh["cost_gold"], "one_per_character": sh["one_per_character"],
+                 "start_crew": start_crew(sh, ships), "start_provisions": sh["start_provisions"], "is_dev": True,
+                 "confidence": "UNKNOWN"} for sh in sorted(ships["ships"], key=lambda sh: sh["code"])]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -391,12 +409,68 @@ def ue_common(row: dict) -> dict:
     }
 
 
+def start_crew(ship: dict, ships: dict) -> int:
+    """Hälfte der Kapazität (Community-Rat, SAILOR-SYSTEM), mindestens die Mindestbesatzung."""
+    return max(ship["crew_min"], round(ship["crew_max"] * ships["tuning"]["start_crew_share"]))
+
+
+def check_ships(ships: dict, class_codes: set[str], zone_ids: set[str]) -> None:
+    problems = []
+    angles = [a for a, _ in ships["tuning"]["polar"]]
+    if angles != sorted(set(angles)) or any(not 0 <= e <= 1 for _, e in ships["tuning"]["polar"]):
+        problems.append("Polare: Winkel aufsteigend, Werte 0 … 1")
+    for sh in ships["ships"]:
+        if sh["class"] not in class_codes:
+            problems.append(f"{sh['code']}: unbekannte Klasse {sh['class']}")
+        if not 0 <= sh["crew_min"] <= sh["crew_max"]:
+            problems.append(f"{sh['code']}: Mindestbesatzung > Kapazität")
+    for w in ships["wind"]:
+        if w["zone"] not in zone_ids:
+            problems.append(f"Wind: unbekannte Zone {w['zone']}")
+    # Belegte Rangfolgen (SHIPCLASS-*) dürfen die Entwicklungswerte nicht verletzen.
+    by_class = {sh["class"]: sh for sh in ships["ships"]}
+    if {"BATTLE", "RAIDER", "MERCHANT"} <= by_class.keys():
+        b, r, m = by_class["BATTLE"], by_class["RAIDER"], by_class["MERCHANT"]
+        if not (r["max_speed"] > b["max_speed"] and r["max_speed"] > m["max_speed"] and m["max_speed"] < b["max_speed"]):
+            problems.append("Rangfolge Geschwindigkeit: Erkundungsschiff am schnellsten, Handelsschiff am langsamsten")
+        if not (b["hull_hp"] > r["hull_hp"] and b["hull_hp"] > m["hull_hp"]):
+            problems.append("Rangfolge Haltbarkeit: Kriegsschiff hält am meisten aus")
+        if not (r["crew_max"] > b["crew_max"] and r["crew_max"] > m["crew_max"]):
+            problems.append("Rangfolge Matrosen: Erkundungsschiff hat die meisten")
+        if not (m["cargo"] > b["cargo"] and m["cargo"] > r["cargo"]):
+            problems.append("Rangfolge Ladung: Handelsschiff hat die größte")
+    if problems:
+        raise SystemExit("design_data/dev_ships.json:\n  " + "\n  ".join(problems))
+
+
 NPC_ROLE_UE = {"SHIPYARD": "Shipyard", "OFFICER_EXCHANGE": "OfficerExchange"}
 
 
+SHIP_CLASS_UE = {"BATTLE": "Battle", "RAIDER": "Raider", "MERCHANT": "Merchant", "BEGINNER": "Beginner"}
+
+
 def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abilities: dict,
-              discoveries: dict) -> dict[str, list[dict]]:
+              discoveries: dict, ships: dict) -> dict[str, list[dict]]:
+    t = ships["tuning"]
     return {
+        "DT_Ships.json": [
+            {"Name": sh["code"], "NameDe": sh["name_de"], "ShipClass": SHIP_CLASS_UE[sh["class"]], "Level": sh["level"],
+             "HullHp": sh["hull_hp"], "MaxSpeed": sh["max_speed"], "Acceleration": sh["acceleration"],
+             "Deceleration": sh["deceleration"], "TurnRateDeg": sh["turn_rate"], "CrewMin": sh["crew_min"],
+             "CrewMax": sh["crew_max"], "Cargo": sh["cargo"], "WindEfficiency": sh["wind_efficiency"],
+             "CostGold": sh["cost_gold"], "bIsDev": True}
+            for sh in sorted(ships["ships"], key=lambda sh: sh["code"])
+        ],
+        "DT_ShipTuning.json": [
+            {"Name": "Default", "PolarAngles": [a for a, _ in t["polar"]], "PolarEfficiencies": [e for _, e in t["polar"]],
+             "CrewMinFactor": t["crew_min_factor"], "MinSteerageFactor": t["min_steerage_factor"],
+             "ProvisionsPerSailorPerMinute": t["provisions_per_sailor_per_minute"], "NoProvisionsFactor": t["no_provisions_factor"]}
+        ],
+        "DT_ZoneWind.json": [
+            {"Name": w["zone"], "BaseDirectionDeg": w["base_direction_deg"], "BaseStrength": w["base_strength"],
+             "DirectionSwingDeg": w["direction_swing_deg"], "StrengthSwing": w["strength_swing"], "PeriodSeconds": w["period_seconds"]}
+            for w in sorted(ships["wind"], key=lambda w: w["zone"])
+        ],
         "DT_Npcs.json": [
             {"Name": n["code"], **ue_common(n), "Role": NPC_ROLE_UE[n["role"]], "CityCode": n["city"]}
             for n in sorted(rows["npcs"], key=lambda n: n["code"])
@@ -484,8 +558,10 @@ def outputs() -> dict[Path, str]:
     for d in discoveries["discoveries"]:
         if d["zone"] not in zone_ids or not TAG_RE.match(d["code"]):
             raise SystemExit(f"design_data/dev_discoveries.json: {d['code']} (Zone {d['zone']} unbekannt oder Code ungültig)")
-    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries)}
-    for name, table in render_ue(rows, appearance, combat, abilities, discoveries).items():
+    ships = json.loads((DESIGN_DIR / "dev_ships.json").read_text(encoding="utf-8"))
+    check_ships(ships, {c["code"] for c in rows["ship_classes"]}, zone_ids)
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships)}
+    for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files
 
