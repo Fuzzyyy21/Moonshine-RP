@@ -28,7 +28,7 @@ public sealed record Position(double X, double Y, double Z, float Yaw);
 public sealed record CharacterState(
     long CharacterId, long AccountId, string Name, short Level, long Experience, string ProfessionCode, string? ZoneId,
     Position? Position, IReadOnlyList<SkillState> Skills, string Gender, IReadOnlyDictionary<string, int> Appearance,
-    Vitals? Vitals = null);
+    Vitals? Vitals = null, IReadOnlyList<HotbarSlot>? Hotbar = null);
 public sealed record SaveStateRequest(
     long AccountId, string? ZoneId, double X, double Y, double Z, float Yaw,
     int? Health = null, int? MaxHealth = null, int? Stamina = null, int? MaxStamina = null);
@@ -79,6 +79,7 @@ public static partial class GameDataApp
         internalApi.MapPost("/admin-audit", WriteAdminAudit);
         ProgressionEndpoints.Map(internalApi);
         CombatEndpoints.Map(internalApi);
+        HotbarEndpoints.Map(internalApi);
         return app;
     }
 
@@ -192,7 +193,8 @@ public static partial class GameDataApp
             new CharacterSummary(characterId, name, req.ProfessionCode!, 1, null));
     }
 
-    private static async Task<IResult> GetState(long characterId, long accountId, NpgsqlDataSource db, CancellationToken ct)
+    private static async Task<IResult> GetState(
+        long characterId, long accountId, NpgsqlDataSource db, IOptions<ContentOptions> content, CancellationToken ct)
     {
         await using var conn = await db.OpenConnectionAsync(ct);
         CharacterState state;
@@ -221,7 +223,11 @@ public static partial class GameDataApp
                 reader.GetString(11), JsonSerializer.Deserialize<Dictionary<string, int>>(reader.GetString(12)) ?? [],
                 reader.IsDBNull(13) ? null : new Vitals(reader.GetInt32(13), reader.GetInt32(14), reader.GetInt32(15), reader.GetInt32(16)));
         }
-        return Results.Ok(state with { Skills = await ProgressionEndpoints.LoadSkills(conn, characterId, ct) });
+        return Results.Ok(state with
+        {
+            Skills = await ProgressionEndpoints.LoadSkills(conn, characterId, ct),
+            Hotbar = await HotbarEndpoints.LoadHotbar(conn, characterId, content.Value.AllowDevContent, ct),
+        });
     }
 
     private static async Task<IResult> SaveState(long characterId, SaveStateRequest req, NpgsqlDataSource db, CancellationToken ct)

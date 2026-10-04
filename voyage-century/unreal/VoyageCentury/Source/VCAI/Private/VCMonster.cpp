@@ -10,6 +10,7 @@
 #include "VCAbility_BasicAttack.h"
 #include "VCAttributeSet.h"
 #include "VCCombatData.h"
+#include "VCCombatStateComponent.h"
 #include "VCCore.h"
 #include "VCGameplayTags.h"
 #include "VCMonsterAIController.h"
@@ -26,6 +27,7 @@ AVCMonster::AVCMonster()
 	// Minimal: Gegner brauchen keine Effektreplikation, nur Attribute und Tags.
 	AbilitySystem->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	Attributes = CreateDefaultSubobject<UVCAttributeSet>(TEXT("Attributes"));
+	CombatState = CreateDefaultSubobject<UVCCombatStateComponent>(TEXT("CombatState"));
 
 	PlaceholderBody = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlaceholderBody"));
 	PlaceholderBody->SetupAttachment(GetCapsuleComponent());
@@ -96,12 +98,19 @@ bool AVCMonster::GetAttack(vc::rules::FWeaponDef& OutWeapon, FName& OutSkillCode
 	return true;
 }
 
+FText AVCMonster::GetCombatName() const
+{
+	const FVCMonsterRow* Row = GetRow();
+	return FText::FromString(Row && !Row->NameDe.IsEmpty() ? Row->NameDe : MonsterCode.ToString());
+}
+
 void AVCMonster::HandleOutOfHealth(AActor* Killer)
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
+	CombatState->ServerClearAll();
 	AbilitySystem->AddLooseGameplayTag(TAG_VC_State_Dead);
 	GetCharacterMovement()->DisableMovement();
 	SetActorEnableCollision(false);

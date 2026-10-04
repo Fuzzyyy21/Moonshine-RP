@@ -198,6 +198,10 @@ Dokumentation aktualisieren → erst dann nächstes System.
 | Kampfregeln (Phase 3) | Formeln in `VCRules` ohne Unreal-Typen; GAS ruft sie auf | Regeln lassen sich ohne Engine testen (CI mit GCC und Clang); Zufall wird übergeben, daher reproduzierbar |
 | Ability System (Phase 3) | Spieler: ASC am PlayerState (Mixed); Gegner: ASC am Gegner (Minimal); Grundangriff nur auf dem Server | Attribute überdauern Tod/Respawn; Clients rechnen nie Schaden |
 | Gegner-KI (Phase 3) | C++-Zustandsautomat statt Behavior Tree | keine Binär-Assets nötig; Umstieg auf StateTree/BT, sobald Asset-Arbeit möglich ist |
+| Kampfablauf (Phase 3, It. 2) | Eine Stelle `FVCCombat`: würfelt, rechnet über `VCRules`, wendet Schaden per Gameplay Effect an, sendet Kampftext | Grundangriff, Fähigkeiten und Schaden über Zeit verhalten sich gleich; Ergebnis (z. B. Ausgewichen) steht sofort für Statuseffekte bereit |
+| Fähigkeiten (Phase 3, It. 2) | Eine Ability-Klasse `UVCAbility_UseSkill` für alle Fähigkeiten, Werte aus `DT_Abilities`; Code reist als Target Data im Event | neue Fähigkeiten nur als Daten; Prüfung in getesteten Regeln |
+| Statuseffekte (Phase 3, It. 2) | Serverzustand in `UVCCombatStateComponent` (Regeln aus `VCRules`), Clients bekommen eine Anzeige-Kopie; keine Gameplay Effects | Stapeln, Ticks, Ablauf und Kill-Zuordnung ohne Engine testbar; Tempo wird auch auf dem Client gesetzt, damit die Bewegungsvorhersage stimmt |
+| Hotbar (Phase 3, It. 2) | Am PlayerState, nur Besitzer sieht sie; Änderung erst nach Bestätigung durch das Backend | Anzeige und Datenbank stimmen immer überein; Client nennt beim Einsatz nur den Platz |
 
 ### Login-Ablauf
 

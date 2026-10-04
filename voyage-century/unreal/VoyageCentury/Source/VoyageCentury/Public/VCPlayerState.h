@@ -6,6 +6,7 @@
 #include "VCPlayerState.generated.h"
 
 class UAbilitySystemComponent;
+class UVCAbilityStateComponent;
 class UVCAttributeSet;
 class UVCProgressionComponent;
 
@@ -26,6 +27,7 @@ public:
 
 	UVCProgressionComponent* GetProgression() const { return Progression; }
 	UVCAttributeSet* GetAttributes() const { return Attributes; }
+	UVCAbilityStateComponent* GetAbilityState() const { return AbilityState; }
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Progression")
@@ -36,4 +38,8 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UVCAttributeSet> Attributes;
+
+	/** Hotbar und Abklingzeiten; überdauern Tod und Respawn wie das Ability System. */
+	UPROPERTY(VisibleAnywhere, Category = "Abilities")
+	TObjectPtr<UVCAbilityStateComponent> AbilityState;
 };

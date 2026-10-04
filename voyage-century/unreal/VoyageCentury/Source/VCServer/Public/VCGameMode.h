@@ -23,6 +23,7 @@ class FJsonObject;
  * Speichern: periodisch, beim Zerstören des Pawns (Logout) und nach Admin-Teleport.
  * Progression: XP vergibt nur dieser Server über den GameData-Dienst; übernommen wird nur, was das
  *   Backend bestätigt. Clients können Level, XP und Skills nicht setzen.
+ * Hotbar: wird beim Laden übernommen; Änderungen erst nach Bestätigung durch das Backend.
  * Admin: jedes Kommando wird protokolliert, bevor es wirkt (Teleport/XP: erst Audit, dann Aktion;
  *   setlevel/setskill: Backend schreibt Änderung und Audit in einer Transaktion).
  */
@@ -45,7 +46,8 @@ public:
 	virtual void HandleAdminCommand(APlayerController* Issuer, const FString& CommandLine) override;
 	virtual bool IsPvPAllowed() const override { return bPvPAllowed; }
 	virtual void HandleKill(AActor* Killer, AActor* Victim) override;
-	virtual void HandleWeaponHit(AActor* Attacker, FName SkillCode) override;
+	virtual void HandleSkillUse(AActor* User, FName SkillCode) override;
+	virtual void HandleHotbarChange(APlayerController* Player, int32 Slot, FName AbilityCode) override;
 
 	/** Charakter-XP vergeben (z. B. aus Kampf oder Quest, ab Phase 3). Nur Server. */
 	void GrantExperience(APlayerController* PC, int64 Amount, const FString& Source);
@@ -72,6 +74,8 @@ private:
 		FIntVector4 SavedVitals = FIntVector4(0, 0, 0, 0);
 		/** Ausgerüstete Waffe; überdauert Tod und Respawn. */
 		FName EquippedWeapon;
+		/** Eine Hotbar-Speicherung zur Zeit; weitere Änderungen werden bis zur Antwort abgewiesen. */
+		bool bHotbarSaveInFlight = false;
 	};
 
 	/** PvP-Regel der Zone; bis das Backend antwortet, ist PvP aus. */

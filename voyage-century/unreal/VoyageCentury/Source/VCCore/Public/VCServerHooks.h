@@ -32,6 +32,9 @@ public:
 	/** Ein Kämpfer ist gestorben. Killer ist die verursachende Spielfigur oder null. Meldet ans Backend, steuert Respawn. */
 	virtual void HandleKill(AActor* Killer, AActor* Victim) = 0;
 
-	/** Ein Spieler hat mit einer Waffe getroffen; der Server vergibt dafür Skill-XP. */
-	virtual void HandleWeaponHit(AActor* Attacker, FName SkillCode) = 0;
+	/** Ein Spieler hat einen Skill erfolgreich eingesetzt (Waffentreffer oder Fähigkeit); der Server vergibt Skill-XP. */
+	virtual void HandleSkillUse(AActor* User, FName SkillCode) = 0;
+
+	/** Ein Spieler will einen Hotbar-Platz belegen (Code None = leeren). Prüfen, speichern, dann übernehmen. */
+	virtual void HandleHotbarChange(APlayerController* Player, int32 Slot, FName AbilityCode) = 0;
 };

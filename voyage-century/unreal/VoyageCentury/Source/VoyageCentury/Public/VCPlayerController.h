@@ -17,6 +17,8 @@
  *   VCAdmin "teleport <x> <y> <z>"                       nur mit Adminrecht, wird protokolliert
  *   VCAdmin "setlevel <stufe>" | "setskill <SKILL> <stufe>"
  *   VCAdmin "givexp <menge>"   | "giveskillxp <SKILL> <menge>"
+ *   VCAbilities                                          alle Fähigkeiten mit Voraussetzungen
+ *   VCHotbar <platz 1-10> <CODE|leer>                    Hotbar belegen (Server prüft und speichert)
  *
  * Passwörter in der Konsole sind nur für die Entwicklung gedacht; die Login-Oberfläche folgt.
  */
@@ -52,9 +54,20 @@ public:
 	UFUNCTION(Exec)
 	void VCAdmin(const FString& CommandLine);
 
+	/** Listet die Fähigkeiten aus DT_Abilities mit Skill, Stufe, Waffe, Ausdauer und Abklingzeit. */
+	UFUNCTION(Exec)
+	void VCAbilities();
+
+	/** Hotbar-Platz (1–10) belegen; "leer" oder "-" leert ihn. */
+	UFUNCTION(Exec)
+	void VCHotbar(const FString& Slot, const FString& AbilityCode);
+
 protected:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerAdminCommand(const FString& CommandLine);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSetHotbarSlot(int32 Slot, FName AbilityCode);
 
 private:
 	class UVCSessionSubsystem* Session() const;

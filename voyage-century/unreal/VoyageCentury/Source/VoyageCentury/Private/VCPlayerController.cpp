@@ -7,7 +7,9 @@
 #include "Engine/GameViewportClient.h"
 #include "SVCCharacterScreen.h"
 #include "AbilitySystemComponent.h"
+#include "VCAbilityStateComponent.h"
 #include "VCAttributeSet.h"
+#include "VCCombatData.h"
 #include "VCPlayerState.h"
 #include "VCProgressionComponent.h"
 #include "VCServerHooks.h"
@@ -16,6 +18,27 @@
 namespace
 {
 	constexpr int32 MaxAdminCommandLength = 256;
+
+	void ShowLine(const FString& Line, const FColor& Color = FColor::Cyan)
+	{
+		UE_LOG(LogVC, Display, TEXT("%s"), *Line);
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 8.f, Color, Line);
+		}
+	}
+
+	const TCHAR* WeaponName(EVCWeaponClass Class)
+	{
+		switch (Class)
+		{
+		case EVCWeaponClass::Sword: return TEXT("Schwert");
+		case EVCWeaponClass::Blade: return TEXT("Klinge");
+		case EVCWeaponClass::Axe: return TEXT("Axt");
+		case EVCWeaponClass::Firearm: return TEXT("Schusswaffe");
+		default: return TEXT("unbewaffnet");
+		}
+	}
 }
 
 void AVCPlayerController::BeginPlay()
@@ -161,5 +184,52 @@ void AVCPlayerController::ServerAdminCommand_Implementation(const FString& Comma
 	else
 	{
 		UE_LOG(LogVC, Warning, TEXT("Admin-Kommando ohne Server-GameMode verworfen"));
+	}
+}
+
+void AVCPlayerController::VCAbilities()
+{
+	if (!FVCCombatData::AreAbilitiesAvailable())
+	{
+		ShowLine(TEXT("Keine Fähigkeitsdaten (DT_Abilities/DT_StatusEffects importieren)."), FColor::Red);
+		return;
+	}
+	for (const FName& Code : FVCCombatData::AbilityCodes())
+	{
+		const FVCAbilityRow* Row = FVCCombatData::FindAbility(Code);
+		if (!Row)
+		{
+			continue;
+		}
+		ShowLine(FString::Printf(TEXT("%s (%s): %s ab Stufe %d, %s, Ausdauer %.0f, Abklingzeit %.0f s%s"),
+			*Code.ToString(), *Row->NameDe, *Row->SkillCode.ToString(), Row->RequiredSkillLevel,
+			Row->bRequiresWeaponClass ? WeaponName(Row->RequiredWeaponClass) : TEXT("jede Waffe"),
+			Row->StaminaCost, Row->CooldownSeconds, Row->bIsDev ? TEXT(" [DEV]") : TEXT("")));
+	}
+}
+
+void AVCPlayerController::VCHotbar(const FString& Slot, const FString& AbilityCode)
+{
+	int32 Number = 0;
+	if (!LexTryParseString(Number, *Slot) || Number < 1 || Number > UVCAbilityStateComponent::HotbarSlots)
+	{
+		ShowLine(TEXT("Aufruf: VCHotbar <1-10> <CODE|leer>"), FColor::Red);
+		return;
+	}
+	const bool bClear = AbilityCode.IsEmpty() || AbilityCode == TEXT("-") || AbilityCode.Equals(TEXT("leer"), ESearchCase::IgnoreCase);
+	ServerSetHotbarSlot(Number - 1, bClear ? NAME_None : FName(*AbilityCode.ToUpper()));
+}
+
+bool AVCPlayerController::ServerSetHotbarSlot_Validate(int32 Slot, FName AbilityCode)
+{
+	return Slot >= 0 && Slot < UVCAbilityStateComponent::HotbarSlots && AbilityCode.GetStringLength() <= 64;
+}
+
+void AVCPlayerController::ServerSetHotbarSlot_Implementation(int32 Slot, FName AbilityCode)
+{
+	UWorld* World = GetWorld();
+	if (IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr))
+	{
+		Hooks->HandleHotbarChange(this, Slot, AbilityCode);
 	}
 }

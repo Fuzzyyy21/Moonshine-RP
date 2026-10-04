@@ -27,7 +27,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | Accounts | – | **accounts**, account_sessions |
 | Welt | continents, regions, zones, **cities**, **ports** | – |
 | Charakter | professions, level_table, titles, achievements | **characters**, **character_stats**, character_titles, character_reputation, character_achievements |
-| Skills | **skills**, skill_stages, abilities | **skill_progress**, character_abilities |
+| Skills | **skills**, skill_stages, abilities | **skill_progress**, character_abilities, character_hotbar |
 | Geld | currencies | character_wallets, currency_ledger |
 | Items | **items**, item_sets, **materials** | **item_instances**, Sichten **inventory**, **equipment** |
 | NPC/Gegner | **npcs**, **monsters**, loot_tables, loot_entries | – |
@@ -68,6 +68,8 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 * `character_stats.attributes` ist JSON, weil die Originalattribute UNKNOWN sind. Sobald sie bekannt sind, werden sie zu Spalten.
 * `items.rarity` ist Freitext ohne CHECK, weil die Originalstufen UNKNOWN sind.
 * `officer_instances.role` ist Freitext aus demselben Grund.
+* Statuseffekte haben keine Tabelle: Sie leben nur auf dem Zonen-Server (`DT_StatusEffects`) und enden mit Tod oder Ausloggen.
+
 ## Migrationen
 
 | Datei | Inhalt |
@@ -78,7 +80,8 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0004__progression.sql` | `level_table.is_dev`, `skill_level_table`, `game_rules` (z. B. `SKILL_TOTAL_CAP`), `progression_grants` (Idempotenz jeder XP-Vergabe) |
 | `V0005__appearance.sql` | `appearance_slots` (Merkmale der Charaktererstellung und Anzahl Optionen, Designdaten) |
 | `V0006__land_combat.sql` | `items.is_dev`, `monsters.is_dev`/`xp_reward`, `zones.pvp_mode` (Testzone = FREE), `combat_kills` (Kill-Protokoll, Idempotenz) |
-| `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Sets) |
+| `V0007__abilities_hotbar.sql` | `abilities.is_dev`, `character_hotbar` (Platz 0–9, jede Fähigkeit einmal), entfernt die nie benutzte Spalte `character_abilities.hotbar_slot` |
+| `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);
 Änderungen kommen als neue Datei. `R__content.sql` wird nur über `tools/export_content.py`

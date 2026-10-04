@@ -5,6 +5,7 @@
     "HealthPerLevel": 10,
     "BaseStamina": 50,
     "StaminaPerLevel": 5,
+    "StaminaRegenPerSecond": 2,
     "AttackPerLevel": 2,
     "DefensePerLevel": 1,
     "SkillDamageBonusPerLevel": 0.01,

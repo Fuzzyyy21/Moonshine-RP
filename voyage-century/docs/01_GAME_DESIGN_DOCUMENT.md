@@ -107,8 +107,8 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 
 **Design**
 * **Tab-Target mit Auto-Attack und Hotbar-Skills** als Ausgangsbasis `[DESIGN]` – passt zum MMO-Stil der Zeit, muss per Video bestätigt werden. Die Architektur (GAS) trägt auch Action-Kampf.
-* Schadensformel serverseitig in einer Gameplay Effect Execution; alle Koeffizienten aus Data Tables.
-* Kritische Treffer, Block, Ausweichen als Attribute im AttributeSet; Buffs, Debuffs, Statuseffekte als Gameplay Effects mit Gameplay Tags.
+* Schadensformel serverseitig (`FVCCombat` → `VCRules`); der Gameplay Effect wendet nur den fertigen Schaden an. Alle Koeffizienten aus Data Tables.
+* Kritische Treffer, Block, Ausweichen als Attribute im AttributeSet; Buffs, Debuffs und Statuseffekte als serverseitiger Zustand je Kämpfer (Regeln in `VCRules`, Anzeige repliziert). Geändert in Iteration 2 gegenüber „Gameplay Effects mit Tags“, weil Stapeln, Ticks und Kill-Zuordnung so ohne Engine testbar sind.
 * Waffen: Damage, Attack Speed, Range, Animation (Montage-Referenz), Skills, Requirements, Durability – alles in `items` bzw. `DT_Weapons`.
 * NPC-KI: StateTree je Gegnerprofil (Patrouille, Aggro, Flucht, Rückkehr). Aggro-Liste serverseitig.
 * PvP und PvE nutzen dieselbe Pipeline; PvP-Regeln (Zonen, Strafen) siehe Abschnitt 17.
@@ -122,7 +122,16 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * PvP nur in Zonen mit `pvp_mode = FREE` (die Testzone ist FREE). PvP gibt keine XP.
 * Tod: Respawn nach 5 s am PlayerStart mit vollem Leben, ohne Verlust (Todesstrafen des Originals UNKNOWN).
 
-**Offen**: Kampfmodell des Originals, Combo-System (im Original nicht belegt), Spezialwaffen, alle Originalwerte.
+**Umgesetzt (Phase 3, Iteration 2)** `[DESIGN]`, Regeln in `VCAbilityRules`, Werte in `design_data/dev_abilities.json`
+* Fähigkeiten hängen an einem Skill und werden über dessen Stufe freigeschaltet; manche brauchen eine Waffenart. Kosten: Ausdauer, Abklingzeit. Schaden = Waffenschaden × Faktor, dann derselbe Ablauf wie beim Grundangriff (Ausweichen → Block → Krit).
+* Einsatzprüfung in fester Reihenfolge, der erste Grund wird dem Spieler angezeigt: tot → betäubt → falsche Waffe → Skillstufe → Abklingzeit → Ausdauer → kein Ziel → kein Feind → zu weit.
+* Statuseffekte haben Dauer und Stapelgrenze; erneutes Anwenden frischt die Dauer auf und erhöht den Stapel. Wirkung je Stapel: Angriff, Verteidigung, Chancen (additiv), Tempo (multiplikativ), Betäubung, Schaden oder Heilung je Tick. Weicht das Ziel aus, wirkt kein Statuseffekt.
+* Ein Kill durch Schaden über Zeit zählt für den, der den Effekt gesetzt hat.
+* Ausdauer regeneriert 2 pro Sekunde (Entwicklungswert). Statuseffekte enden mit dem Tod und werden nicht gespeichert.
+* Hotbar mit 10 Plätzen (Tasten 1–0), je Charakter gespeichert; jede Fähigkeit höchstens einmal.
+* Entwicklungsfähigkeiten (alle `DEV_…`, Namen ohne Originalbeleg): Wuchtschlag (Schwert), Sehnenschnitt (Klinge; Verlangsamung + Blutung), Rüstungsbrecher (Axt; −5 Verteidigung je Stapel, bis 3), Gezielter Schuss (Schusswaffe, 20 m), Betäubungsschlag (unbewaffnet, ab Stufe 10; 2 s Betäubung), Erste Hilfe (Medizin; Heilung über Zeit auf sich selbst).
+
+**Offen**: Kampfmodell des Originals, Liste der Originalfähigkeiten je Skill, Combo-System (im Original nicht belegt), Spezialwaffen, alle Originalwerte, Anzahl der Hotbar-Plätze.
 
 ---
 

@@ -6,6 +6,7 @@
     "health_per_level": { "from_recon": "LVL-PER-LEVEL-BONUS", "field": "hp_per_level" },
     "base_stamina": 50,
     "stamina_per_level": { "from_recon": "LVL-PER-LEVEL-BONUS", "field": "sp_per_level" },
+    "stamina_regen_per_second": 2,
     "attack_per_level": 2,
     "defense_per_level": 1,
     "skill_damage_bonus_per_level": 0.01,

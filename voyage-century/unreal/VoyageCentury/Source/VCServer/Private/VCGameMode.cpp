@@ -8,11 +8,13 @@
 #include "TimerManager.h"
 #include "VCCharacter.h"
 #include "VCCore.h"
+#include "VCHUD.h"
 #include "VCHttp.h"
 #include "VCPlayerController.h"
 #include "VCPlayerState.h"
 #include "VCProgressionComponent.h"
 #include "AbilitySystemComponent.h"
+#include "VCAbilityStateComponent.h"
 #include "VCAttributeSet.h"
 #include "VCCombatData.h"
 #include "VCCombatRules.h"
@@ -42,6 +44,36 @@ namespace
 	{
 		const AVCPlayerState* PS = PC ? PC->GetPlayerState<AVCPlayerState>() : nullptr;
 		return PS ? PS->GetAbilitySystemComponent() : nullptr;
+	}
+
+	UVCAbilityStateComponent* AbilityStateOf(const APlayerController* PC)
+	{
+		const AVCPlayerState* PS = PC ? PC->GetPlayerState<AVCPlayerState>() : nullptr;
+		return PS ? PS->GetAbilityState() : nullptr;
+	}
+
+	/** Hotbar aus der Backend-Antwort [{slot, abilityCode}]; unbekannte Codes (nicht in DT_Abilities) bleiben leer. */
+	TArray<FName> ParseHotbar(const TSharedPtr<FJsonObject>& Json)
+	{
+		TArray<FName> Slots;
+		Slots.SetNum(UVCAbilityStateComponent::HotbarSlots);
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (!Json.IsValid() || !Json->TryGetArrayField(TEXT("hotbar"), Values) || !Values)
+		{
+			return Slots;
+		}
+		for (const TSharedPtr<FJsonValue>& Value : *Values)
+		{
+			const TSharedPtr<FJsonObject> Entry = Value.IsValid() ? Value->AsObject() : nullptr;
+			double Slot = -1.0;
+			FString Code;
+			if (Entry.IsValid() && Entry->TryGetNumberField(TEXT("slot"), Slot) && Entry->TryGetStringField(TEXT("abilityCode"), Code)
+				&& Slots.IsValidIndex(static_cast<int32>(Slot)) && FVCCombatData::FindAbility(FName(*Code)))
+			{
+				Slots[static_cast<int32>(Slot)] = FName(*Code);
+			}
+		}
+		return Slots;
 	}
 
 	/** Kampfwerte aus Stufe und Kampfregeln neu setzen (nach Laden und Stufenaufstieg). */
@@ -112,6 +144,7 @@ AVCGameMode::AVCGameMode()
 	PlayerControllerClass = AVCPlayerController::StaticClass();
 	PlayerStateClass = AVCPlayerState::StaticClass();
 	DefaultPawnClass = AVCCharacter::StaticClass();
+	HUDClass = AVCHUD::StaticClass();
 }
 
 void AVCGameMode::BeginPlay()
@@ -311,6 +344,11 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 			}
 		}
 		Progression->ServerSetSkills(Skills);
+	}
+
+	if (UVCAbilityStateComponent* AbilityState = AbilityStateOf(PC))
+	{
+		AbilityState->ServerSetHotbar(ParseHotbar(Result.Json));
 	}
 
 	// Leben/Ausdauer: gespeicherten Stand übernehmen, sonst (oder nach Tod) voll.
@@ -733,15 +771,76 @@ void AVCGameMode::RequestGrant(APlayerController* PC, const FString& SkillCode, 
 		});
 }
 
-void AVCGameMode::HandleWeaponHit(AActor* Attacker, FName SkillCode)
+void AVCGameMode::HandleSkillUse(AActor* User, FName SkillCode)
 {
 	const FVCCombatTuningRow* Tuning = FVCCombatData::TuningRow();
-	const APawn* Pawn = Cast<APawn>(Attacker);
+	const APawn* Pawn = Cast<APawn>(User);
 	APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
 	if (PC && Tuning && Tuning->SkillXpPerHit >= 1.0)
 	{
 		GrantSkillExperience(PC, SkillCode, static_cast<int64>(Tuning->SkillXpPerHit), TEXT("hit"));
 	}
+}
+
+void AVCGameMode::HandleHotbarChange(APlayerController* Player, int32 Slot, FName AbilityCode)
+{
+	UVCAbilityStateComponent* AbilityState = AbilityStateOf(Player);
+	if (!AbilityState || Slot < 0 || Slot >= UVCAbilityStateComponent::HotbarSlots)
+	{
+		return;
+	}
+	if (!AbilityCode.IsNone() && !FVCCombatData::FindAbility(AbilityCode))
+	{
+		Player->ClientMessage(TEXT("Unbekannte Fähigkeit (VCAbilities zeigt alle)"));
+		return;
+	}
+	// Eine Fähigkeit liegt höchstens auf einem Platz (wie im Backend): vom alten Platz entfernen.
+	TArray<FName> Slots = AbilityState->GetHotbar();
+	Slots.SetNum(UVCAbilityStateComponent::HotbarSlots);
+	for (FName& Existing : Slots)
+	{
+		Existing = Existing == AbilityCode ? NAME_None : Existing;
+	}
+	Slots[Slot] = AbilityCode;
+
+	if (!IsAuthRequired())
+	{
+		AbilityState->ServerSetHotbar(Slots); // PIE ohne Backend: nur für diese Sitzung
+		return;
+	}
+	FPlayerSession* Session = Sessions.Find(Player);
+	if (!Session || !Session->bAuthenticated)
+	{
+		return;
+	}
+	if (Session->bHotbarSaveInFlight)
+	{
+		Player->ClientMessage(TEXT("Hotbar wird noch gespeichert, bitte kurz warten."));
+		return;
+	}
+	Session->bHotbarSaveInFlight = true;
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(Player);
+	FVCServerBackend::SaveHotbar(Session->CharacterId, Session->AccountId, Slots, [WeakThis, WeakPC, Slots](const FVCHttpResult& Result)
+	{
+		APlayerController* PC = WeakPC.Get();
+		FPlayerSession* S = WeakThis.IsValid() && PC ? WeakThis->Sessions.Find(PC) : nullptr;
+		if (!S)
+		{
+			return;
+		}
+		S->bHotbarSaveInFlight = false;
+		if (!Result.IsOk())
+		{
+			PC->ClientMessage(FString::Printf(TEXT("Hotbar nicht gespeichert: %s"), *Result.ErrorMessage()));
+			return;
+		}
+		// Erst nach Bestätigung übernehmen: Anzeige und Datenbank stimmen immer überein.
+		if (UVCAbilityStateComponent* State = AbilityStateOf(PC))
+		{
+			State->ServerSetHotbar(Slots);
+		}
+	});
 }
 
 void AVCGameMode::HandleKill(AActor* Killer, AActor* Victim)

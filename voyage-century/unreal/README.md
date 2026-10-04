@@ -18,7 +18,7 @@ nutzen `BuildSettingsVersion.Latest`, damit kein versionsspezifischer Wert festg
 | `VoyageCentury` | Primärmodul: `AVCPlayerController` (Konsolenbefehle, Admin-RPC), `AVCCharacter` (Bewegung, Kamera), `AVCPlayerState` + `UVCProgressionComponent` (replizierte Progression) |
 | `VCServer` | `AVCGameMode`: Ticketprüfung, Laden/Speichern, Admin-Audit, Kills, Respawn; `UVCServerSettings` |
 | `VCRules` | Kampfformeln ohne Engine-Abhängigkeit |
-| `VCAbilities` | Attribute, Schadensberechnung, Grundangriff, Kampfdaten (`UVCCombatSettings`) |
+| `VCAbilities` | Attribute, Kampfablauf (`FVCCombat`), Grundangriff, Fähigkeiten, Statuseffekte, Hotbar, Kampfdaten (`UVCCombatSettings`) |
 | `VCAI` | `AVCMonster`, `AVCMonsterAIController`, `AVCMonsterSpawner` |
 
 Targets: `VoyageCentury` (Game), `VoyageCenturyEditor`, `VoyageCenturyServer`, `VoyageCenturyClient`.
@@ -100,6 +100,40 @@ können sich in der Testzone bekämpfen (PvP-Zone); nach dem Tod Respawn nach 5 
 
 Hinweis: In älteren Engine-Versionen muss `UAbilitySystemGlobals::Get().InitGlobalData()` beim Start
 aufgerufen werden; in 5.6 sollte das nicht nötig sein – bei Fehlermeldungen zu Target Data bitte melden.
+
+## Fähigkeiten, Statuseffekte, Hotbar (Phase 3, Iteration 2)
+
+Zusätzliche Data Tables (Pfade in `DefaultGame.ini`):
+
+| Data Table | Row-Struktur | Pfad |
+|---|---|---|
+| `DT_Abilities.json` | `VCAbilityRow` | `/Game/Data/DT_Abilities` |
+| `DT_StatusEffects.json` | `VCStatusEffectRow` | `/Game/Data/DT_StatusEffects` |
+
+`DT_CombatTuning` neu importieren (neues Feld `StaminaRegenPerSecond`). Fehlen die beiden neuen Tabellen,
+gibt es nur den Grundangriff (Log: „nur Grundangriff verfügbar“).
+
+Das HUD (`AVCHUD`) setzt der GameMode automatisch: Leben/Ausdauer und eigene Statuseffekte unten links,
+Zielrahmen oben, Hotbar unten (Abklingzeit als Abdunkelung), Kampftexte über den Köpfen.
+
+Testen (Adminkonto, Backend in Development):
+
+```
+VCAbilities                          → alle Fähigkeiten mit Voraussetzungen
+VCAdmin "equip DEV_SWORD"            → Schwert
+VCHotbar 1 DEV_POWER_STRIKE          → Platz 1 belegen (Backend speichert)
+VCHotbar 2 DEV_FIRST_AID
+Tab, dann 1                          → Wuchtschlag auf das Ziel; sofort erneut 1 → „Noch nicht bereit“
+2                                    → Erste Hilfe (nach erlittenem Schaden): Heilung alle 2 s, grüne Zahlen
+VCAdmin "equip DEV_BLADE"            → Klinge; VCAdmin "setskill FALCHION 5"
+VCHotbar 3 DEV_CRIPPLING_SLASH       → Übungspirat wird langsamer und blutet (orange Zahlen)
+VCAdmin "equip DEV_UNARMED"          → unbewaffnet; mit VCAdmin "setskill BAREHAND 10" dann
+VCHotbar 4 DEV_STUNNING_BLOW         → Betäubungsschlag: Ziel 2 s betäubt
+VCHotbar 3 leer                      → Platz leeren
+```
+
+Nach Neustart von Server und Backend ist die Hotbar wieder belegt. Abklingzeiten und Statuseffekte
+überdauern keinen Neustart (Absicht: Laufzeitzustand). Betäubte Gegner bleiben stehen und greifen nicht an.
 
 ## Charaktererstellung (Phase 2, Iteration 2)
 

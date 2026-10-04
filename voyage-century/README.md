@@ -7,8 +7,8 @@ PostgreSQL.
 
 Unabhängig vom FiveM-Framework im Repo-Wurzelverzeichnis.
 
-**Aktueller Stand: Phase 3 – Landkampf (Iteration 1).** Backend (Login, Charaktere,
-Progression, Kampfergebnisse) und die Kampfregeln sind getestet; der Unreal-Code ist
+**Aktueller Stand: Phase 3 – Landkampf (Iteration 2: Fähigkeiten, Statuseffekte, Hotbar, HUD).**
+Backend (Login, Charaktere, Progression, Kampfergebnisse, Hotbar) und die Kampf- und Fähigkeitsregeln sind getestet; der Unreal-Code ist
 geschrieben, aber noch nicht kompiliert (siehe [`unreal/README.md`](unreal/README.md)).
 Stand je Phase: [`docs/05_ROADMAP.md`](docs/05_ROADMAP.md).
 

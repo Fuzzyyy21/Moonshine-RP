@@ -152,11 +152,48 @@ def resolve_tuning(tuning: dict, records: dict[str, dict]) -> tuple[dict, dict]:
     return values, origins
 
 
+TARGET_UE = {"ENEMY": "Enemy", "SELF": "Caster"}
+STATUS_KIND_UE = {"BUFF": "Buff", "DEBUFF": "Debuff"}
+STATUS_MODIFIERS = ("attack_power", "defense", "crit_chance", "block_chance", "dodge_chance", "move_speed_multiplier", "stunned")
+
+
+def check_abilities(abilities: dict, skill_codes: set[str]) -> None:
+    """Querverweise prüfen: Skills, Waffenarten, Ziele und Statuseffekte müssen existieren."""
+    status_codes = {s["code"] for s in abilities["status_effects"]}
+    problems = []
+    for s in abilities["status_effects"]:
+        if s["kind"] not in STATUS_KIND_UE:
+            problems.append(f"{s['code']}: unbekannte Art {s['kind']}")
+        if s["max_stacks"] < 1 or s["duration_seconds"] <= 0:
+            problems.append(f"{s['code']}: Dauer und Stapel müssen positiv sein")
+        for key in s["modifiers"]:
+            if key not in STATUS_MODIFIERS:
+                problems.append(f"{s['code']}: unbekannter Modifikator {key}")
+    for a in abilities["abilities"]:
+        if a["skill"] not in skill_codes:
+            problems.append(f"{a['code']}: Skill {a['skill']} nicht in der Reconstruction Database")
+        if a["weapon_class"] is not None and a["weapon_class"] not in WEAPON_CLASS_UE:
+            problems.append(f"{a['code']}: unbekannte Waffenart {a['weapon_class']}")
+        if a["target"] not in TARGET_UE:
+            problems.append(f"{a['code']}: unbekanntes Ziel {a['target']}")
+        for code in a["applies"]:
+            if code not in status_codes:
+                problems.append(f"{a['code']}: Statuseffekt {code} fehlt")
+    if problems:
+        raise SystemExit("design_data/dev_abilities.json:\n  " + "\n  ".join(problems))
+
+
 def camel(key: str) -> str:
     return "".join(part.capitalize() for part in key.split("_"))
 
 
+class SqlExpr(str):
+    """Wird unverändert ins SQL übernommen (z. B. Unterabfrage für Fremdschlüssel)."""
+
+
 def sql_literal(value) -> str:
+    if isinstance(value, SqlExpr):
+        return str(value)
     if value is None:
         return "NULL"
     if isinstance(value, dict):
@@ -188,7 +225,7 @@ def upsert(table: str, key: str, columns: list[str], rows: list[dict]) -> str:
     )
 
 
-def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict) -> str:
+def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
 
     def renamed(table_rows):
@@ -230,6 +267,18 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
                                              "aggro_radius_cm", "leash_radius_cm", "respawn_seconds")},
                  "xp_reward": m["xp_reward"], "is_dev": True, "confidence": "UNKNOWN"}
                 for m in combat["monsters"]]),
+        "-- Entwicklungsfähigkeiten (design_data/dev_abilities.json, is_dev = TRUE). Statuseffekte sind reine\n"
+        "-- Laufzeit des Zonen-Servers (DT_StatusEffects) und werden nicht gespeichert.\n",
+        upsert("abilities", "code", ["code", "skill_id", "name_de", "ability_kind", "domain", "required_skill_level",
+                                     "gas_ability_class", "params", "is_dev", "confidence"],
+               [{"code": a["code"],
+                 "skill_id": SqlExpr(f"(SELECT skill_id FROM skills WHERE code = {sql_literal(a['skill'])})"),
+                 "name_de": a["name_de"], "ability_kind": "ACTIVE", "domain": "LAND",
+                 "required_skill_level": a["required_skill_level"], "gas_ability_class": "VCAbility_UseSkill",
+                 "params": {k: a[k] for k in ("weapon_class", "stamina_cost", "cooldown_seconds", "damage_multiplier",
+                                              "range_cm", "target", "applies")},
+                 "is_dev": True, "confidence": "UNKNOWN"}
+                for a in sorted(abilities["abilities"], key=lambda a: a["code"])]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -245,8 +294,29 @@ def ue_common(row: dict) -> dict:
     }
 
 
-def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict) -> dict[str, list[dict]]:
+def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abilities: dict) -> dict[str, list[dict]]:
     return {
+        "DT_Abilities.json": [
+            {"Name": a["code"], "NameDe": a["name_de"], "SkillCode": a["skill"], "RequiredSkillLevel": a["required_skill_level"],
+             "bRequiresWeaponClass": a["weapon_class"] is not None,
+             "RequiredWeaponClass": WEAPON_CLASS_UE[a["weapon_class"] or "UNARMED"],
+             "StaminaCost": a["stamina_cost"], "CooldownSeconds": a["cooldown_seconds"],
+             "DamageMultiplier": a["damage_multiplier"], "RangeCm": a["range_cm"], "TargetMode": TARGET_UE[a["target"]],
+             "AppliedStatuses": a["applies"], "bIsDev": True}
+            for a in sorted(abilities["abilities"], key=lambda a: a["code"])
+        ],
+        "DT_StatusEffects.json": [
+            {"Name": s["code"], "NameDe": s["name_de"], "Kind": STATUS_KIND_UE[s["kind"]],
+             "DurationSeconds": s["duration_seconds"], "MaxStacks": s["max_stacks"],
+             "AttackPower": s["modifiers"].get("attack_power", 0), "Defense": s["modifiers"].get("defense", 0),
+             "CritChance": s["modifiers"].get("crit_chance", 0), "BlockChance": s["modifiers"].get("block_chance", 0),
+             "DodgeChance": s["modifiers"].get("dodge_chance", 0),
+             "MoveSpeedMultiplier": s["modifiers"].get("move_speed_multiplier", 1),
+             "bStunned": s["modifiers"].get("stunned", False),
+             "TickIntervalSeconds": s["tick_interval_seconds"], "DamagePerTick": s["damage_per_tick"],
+             "HealPerTick": s["heal_per_tick"], "bIsDev": True}
+            for s in sorted(abilities["status_effects"], key=lambda s: s["code"])
+        ],
         "DT_CombatTuning.json": [
             {"Name": "Default", **{camel(k): v for k, v in combat["tuning"].items()},
              "ReconSources": ", ".join(f"{camel(k)}={v}" for k, v in sorted(combat["tuning_origins"].items()))}
@@ -296,8 +366,10 @@ def outputs() -> dict[Path, str]:
     appearance = json.loads((DESIGN_DIR / "appearance.json").read_text(encoding="utf-8"))
     combat = json.loads((DESIGN_DIR / "dev_combat.json").read_text(encoding="utf-8"))
     combat["tuning"], combat["tuning_origins"] = resolve_tuning(combat["tuning"], load_records())
-    files = {SEED_FILE: render_sql(rows, curves, appearance, combat)}
-    for name, table in render_ue(rows, appearance, combat).items():
+    abilities = json.loads((DESIGN_DIR / "dev_abilities.json").read_text(encoding="utf-8"))
+    check_abilities(abilities, {r["code"] for r in rows["skills"]})
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities)}
+    for name, table in render_ue(rows, appearance, combat, abilities).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files
 

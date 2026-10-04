@@ -9,6 +9,7 @@
 
 class UCameraComponent;
 class UInputAction;
+class UVCCombatStateComponent;
 class UInputMappingContext;
 class USpringArmComponent;
 class UStaticMeshComponent;
@@ -19,7 +20,8 @@ struct FInputActionValue;
  * der Server rechnet nach und korrigiert. Der Client sendet nur Eingaben, keine Positionen.
  *
  * Steuerung (Enhanced Input, zur Laufzeit erzeugt, damit keine Binär-Assets nötig sind):
- *   WASD bewegen, Maus umsehen, Leertaste springen, Tab Ziel wechseln, linke Maustaste angreifen.
+ *   WASD bewegen, Maus umsehen, Leertaste springen, Tab Ziel wechseln, linke Maustaste angreifen,
+ *   1–0 Hotbar-Fähigkeiten.
  * Laufgeschwindigkeit und Sprunghöhe des Originals sind UNKNOWN; es gelten die Engine-Standardwerte.
  */
 UCLASS()
@@ -47,6 +49,8 @@ public:
 	virtual bool IsAlive() const override;
 	virtual bool IsPlayerCharacter() const override { return true; }
 	virtual bool GetAttack(vc::rules::FWeaponDef& OutWeapon, FName& OutSkillCode, int32& OutSkillLevel) const override;
+	virtual int32 GetSkillLevel(FName SkillCode) const override;
+	virtual FText GetCombatName() const override;
 	virtual void HandleOutOfHealth(AActor* Killer) override;
 
 	/** Nur Server: ausgerüstete Waffe (Code aus DT_Weapons). Ausrüstung über das Inventar folgt. */
@@ -66,6 +70,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Appearance)
 	FVCAppearance Appearance;
+
+	UPROPERTY(VisibleAnywhere, Category = "Kampf")
+	TObjectPtr<UVCCombatStateComponent> CombatState;
 
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -91,6 +98,10 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> AttackAction;
 
+	/** Eine Aktion für alle Hotbar-Tasten; der Wert (1–10) sagt, welche Taste gedrückt wurde. */
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> HotbarAction;
+
 	/** Code aus DT_Weapons; leer = unbewaffnet (UVCCombatSettings::UnarmedWeapon). */
 	UPROPERTY(Replicated)
 	FName EquippedWeapon;
@@ -100,9 +111,14 @@ private:
 	void InitAbilityActorInfo();
 	void CycleTarget();
 	void Attack();
+	void UseHotbar(const FInputActionValue& Value);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestAttack(AActor* Target);
+
+	/** Der Client nennt nur Platz und Ziel; welche Fähigkeit dort liegt und ob sie geht, entscheidet der Server. */
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerUseHotbarSlot(int32 Slot, AActor* Target);
 
 	UFUNCTION()
 	void OnRep_Appearance();

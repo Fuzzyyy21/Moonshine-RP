@@ -1,0 +1,53 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/HUD.h"
+#include "VCAbilityStateComponent.h"
+#include "VCCombatStateComponent.h"
+#include "VCHUD.generated.h"
+
+/**
+ * Einfaches Kampf-HUD ohne Assets (Canvas): eigene Leben/Ausdauer und Statuseffekte, Zielrahmen,
+ * Hotbar mit Abklingzeiten, Kampftexte über den Köpfen und Hinweise, warum eine Fähigkeit nicht ging.
+ * Platzhalter, bis das UI nach der Screenshot-Analyse mit UMG gebaut wird (siehe GDD, UI).
+ * Zeigt nur an, was der Server repliziert; nichts davon ist spielentscheidend.
+ */
+UCLASS()
+class VOYAGECENTURY_API AVCHUD : public AHUD
+{
+	GENERATED_BODY()
+
+public:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void DrawHUD() override;
+
+private:
+	struct FFloatingText
+	{
+		TWeakObjectPtr<AActor> Actor;
+		FString Text;
+		FLinearColor Color;
+		double StartTime = 0.0;
+	};
+
+	TArray<FFloatingText> FloatingTexts;
+	FString Notice;
+	double NoticeUntil = 0.0;
+	FDelegateHandle CombatTextHandle;
+	FDelegateHandle BlockedHandle;
+	TWeakObjectPtr<UVCAbilityStateComponent> BoundAbilityState;
+
+	void OnCombatText(AActor* Target, EVCCombatText Kind, int32 Amount);
+	void OnAbilityBlocked(FName Code, EVCAbilityBlock Reason);
+
+	double LocalNow() const;
+	double ServerNow() const;
+	void DrawBar(float X, float Y, float Width, float Height, double Value, double Max, const FLinearColor& Color, const FString& Label);
+	void DrawStatuses(float X, float Y, const UVCCombatStateComponent* State);
+	void DrawOwnFrame();
+	void DrawTargetFrame();
+	void DrawHotbar();
+	void DrawFloatingTexts();
+	void DrawNotice();
+};

@@ -69,24 +69,31 @@ Charaktererstellung, Bewegung, Kamera, Animation, Attribute, Level, XP, Skills (
 Zonenwechsel ist in der Abnahme enthalten, es gibt aber noch nur eine Zone. Getestet ist die gleichwertige
 Bedingung „Dienst-Neustart“; der echte Zonenwechsel folgt mit dem World Directory.
 
-## Phase 3 – Landkampf (Iteration 1 fertig)
+## Phase 3 – Landkampf (Iteration 2 fertig)
 
 Waffen, Angriffe, Fähigkeiten (GAS), Schaden, NPC-KI, PvE, PvP-Grundregeln.
 
 | Schritt | Status | Prüfung |
 |---|---|---|
 | Kampfregeln als reines C++ (`VCRules`): Werte ableiten, Waffenschaden mit Skillbonus, Ausweichen → Block → Krit, Reichweite, Angriffsintervall | ✅ | `tools/test_rules.sh` (14 Fälle, GCC und Clang, Unreal-Compilerflags) |
+| Regeln für Fähigkeiten und Statuseffekte (`VCAbilityRules`): Einsatzprüfung in fester Reihenfolge, Abklingzeit mit Toleranz, Stapeln/Auffrischen/Ablauf, Modifikatoren, Schaden/Heilung über Zeit | ✅ It. 2 | `tools/test_rules.sh` (16 weitere Fälle) |
 | Kampfdaten: Tuning, 5 Entwicklungswaffen, 2 Entwicklungsgegner (`is_dev`); HP/SP pro Stufe aus der Reconstruction DB | ✅ | Export `--check`, Schematest |
+| Fähigkeitsdaten: 6 Entwicklungsfähigkeiten, 5 Statuseffekte, Ausdauer-Regeneration (`design_data/dev_abilities.json`); `V0007` (Hotbar, `abilities.is_dev`) | ✅ It. 2 | Export `--check` (prüft Querverweise), Schematest |
+| Backend: Hotbar speichern/laden (ganze Belegung, Besitzprüfung, nur bekannte und freigegebene Fähigkeiten) | ✅ It. 2 | `HotbarTests` (9 Tests) |
 | Backend: Kill melden (XP aus Gegnerdaten, Idempotenz), PvP nur in `FREE`-Zonen, PvP-Statistik, Zoneninfo, Leben/Ausdauer speichern | ✅ | `CombatTests` (11 Tests) |
 | UE: GAS – Attribute, Schadensberechnung über `VCRules`, Grundangriff (nur Server) | ⚠️ geschrieben, nicht kompiliert | lokal |
 | UE: Zielwahl (Tab), Angriff (linke Maustaste), Tod, Respawn, Skill-XP pro Treffer | ⚠️ geschrieben, nicht kompiliert | lokal |
 | UE: Gegner, Zustandsautomat-KI (Aggro, Verfolgen, Angriff, Leine), Spawner | ⚠️ geschrieben, nicht kompiliert | lokal, braucht NavMesh |
-| Weitere Fähigkeiten, Buffs/Debuffs, Statuseffekte, Combos | ❌ Iteration 2 | |
-| Trefferanzeige (Ausgewichen/Geblockt/Krit), Ziel-HUD | ❌ Iteration 2 | |
+| UE: ein Kampfablauf für alle Angriffe (`FVCCombat`), Fähigkeiten aus Daten (`UVCAbility_UseSkill`), Statuseffekte (`UVCCombatStateComponent`), Betäubung/Verlangsamung auch für Gegner-KI | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
+| UE: Hotbar (Tasten 1–0, `VCHotbar`), Speicherung über das Backend, Abklingzeiten | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
+| UE: HUD (Leben/Ausdauer, Zielrahmen, Statuseffekte, Hotbar, Kampftexte, Hinweis bei abgelehnter Fähigkeit) | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
+| Fähigkeiten für Gegner, Combos | ❌ Combos im Original nicht belegt; Gegnerfähigkeiten folgen mit belegten Gegnern | |
 | Beute/Drops | ❌ mit dem Inventar (Phase 6) | |
 | Originalwerte für Waffen, Gegner, Formeln | ❌ blockiert | UNKNOWN |
 
 **Abnahme (Vorschlag)**: Spieler besiegt einen Gegner und erhält die im Backend hinterlegte XP; Waffenskill steigt durch Treffer; PvP-Kill nur in PvP-Zonen; Tod führt zu Respawn; manipulierte Schadens- oder Reichweitenangaben des Clients haben keine Wirkung (der Client sendet nur das Ziel).
+
+**Abnahme Iteration 2 (Vorschlag)**: Fähigkeit auf die Hotbar legen, Server und Backend neu starten → Belegung ist noch da; Fähigkeit kostet Ausdauer und startet die Abklingzeit, zweiter Einsatz vorher wird mit Hinweis abgelehnt; ohne passende Waffe oder Skillstufe keine Wirkung; Blutung tickt und ein Kill durch Blutung zählt für den Verursacher; Betäubung stoppt Bewegung und Angriffe auch bei Gegnern; der Client kann nur einen Hotbar-Platz und ein Ziel nennen.
 
 ## Phase 4 – Welt
 

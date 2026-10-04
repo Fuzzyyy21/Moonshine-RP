@@ -1,70 +1,13 @@
-// Tests der Kampfregeln. Kleiner eigener Testlauf, damit keine Fremdbibliothek nötig ist.
-#include "VCCombatRules.h"
-
-#include <cmath>
-#include <cstdio>
-#include <functional>
-#include <vector>
+// Tests der Kampfregeln (VCCombatRules).
+#include "TestHarness.h"
 
 using namespace vc::rules;
+using vctest::NoLuck;
+using vctest::Tuning;
 
-namespace
+const std::vector<vctest::FCase>& vctest::CombatRulesCases()
 {
-	int Failures = 0;
-	int Checks = 0;
-
-	void Check(bool Condition, const char* Expression, const char* File, int Line)
-	{
-		++Checks;
-		if (!Condition)
-		{
-			++Failures;
-			std::printf("  FEHLER %s:%d: %s\n", File, Line, Expression);
-		}
-	}
-
-#define CHECK(Expr) Check((Expr), #Expr, __FILE__, __LINE__)
-#define CHECK_NEAR(A, B) Check(std::fabs((A) - (B)) < 1e-9, #A " == " #B, __FILE__, __LINE__)
-
-	FCombatTuning Tuning()
-	{
-		FCombatTuning T;
-		T.BaseHealth = 100.0;
-		T.HealthPerLevel = 10.0;
-		T.BaseStamina = 50.0;
-		T.StaminaPerLevel = 5.0;
-		T.AttackPerLevel = 2.0;
-		T.DefensePerLevel = 1.0;
-		T.SkillDamageBonusPerLevel = 0.01;
-		T.DefenseConstant = 100.0;
-		T.MinDamage = 1.0;
-		T.DamageVariance = 0.1;
-		T.BaseCritChance = 0.05;
-		T.CritMultiplier = 1.5;
-		T.BaseBlockChance = 0.05;
-		T.BlockReduction = 0.5;
-		T.BaseDodgeChance = 0.05;
-		T.MaxCritChance = 0.5;
-		T.MaxBlockChance = 0.4;
-		T.MaxDodgeChance = 0.4;
-		T.RangeToleranceCm = 50.0;
-		T.IntervalTolerance = 0.1;
-		return T;
-	}
-
-	FAttackRolls NoLuck()
-	{
-		// Mittlere Streuung, kein Ausweichen/Blocken/Krit.
-		return FAttackRolls{ 0.99, 0.99, 0.99, 0.5 };
-	}
-
-	struct FCase
-	{
-		const char* Name;
-		std::function<void()> Body;
-	};
-
-	const std::vector<FCase> Cases = {
+	static const std::vector<FCase> Cases = {
 		{ "Tuning wird geprüft", []
 		{
 			CHECK(IsValidTuning(Tuning()));
@@ -196,16 +139,5 @@ namespace
 			CHECK_NEAR(ClampHealth(10.0, -1.0), 0.0);
 		} },
 	};
-}
-
-int main()
-{
-	for (const FCase& Case : Cases)
-	{
-		const int Before = Failures;
-		Case.Body();
-		std::printf("%s %s\n", Failures == Before ? "ok  " : "FAIL", Case.Name);
-	}
-	std::printf("%d Prüfungen, %d Fehler\n", Checks, Failures);
-	return Failures == 0 ? 0 : 1;
+	return Cases;
 }

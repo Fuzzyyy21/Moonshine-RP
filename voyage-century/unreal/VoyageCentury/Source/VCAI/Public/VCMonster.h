@@ -9,6 +9,7 @@
 class UAbilitySystemComponent;
 class UStaticMeshComponent;
 class UVCAttributeSet;
+class UVCCombatStateComponent;
 struct FVCMonsterRow;
 
 /**
@@ -32,6 +33,7 @@ public:
 	virtual bool IsPlayerCharacter() const override { return false; }
 	virtual bool GetAttack(vc::rules::FWeaponDef& OutWeapon, FName& OutSkillCode, int32& OutSkillLevel) const override;
 	virtual FName GetMonsterCode() const override { return MonsterCode; }
+	virtual FText GetCombatName() const override;
 	virtual void HandleOutOfHealth(AActor* Killer) override;
 
 	/** Vor dem Spawnen (SpawnActorDeferred) oder im Level setzen. */
@@ -50,6 +52,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UVCAttributeSet> Attributes;
+
+	UPROPERTY(VisibleAnywhere, Category = "Kampf")
+	TObjectPtr<UVCCombatStateComponent> CombatState;
 
 	UPROPERTY(VisibleAnywhere, Category = "Visual")
 	TObjectPtr<UStaticMeshComponent> PlaceholderBody;

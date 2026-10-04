@@ -142,6 +142,7 @@ struct VCDATA_API FVCCombatTuningRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Leben") double HealthPerLevel = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Leben") double BaseStamina = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Leben") double StaminaPerLevel = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Leben") double StaminaRegenPerSecond = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Angriff") double AttackPerLevel = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Angriff") double DefensePerLevel = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Angriff") double SkillDamageBonusPerLevel = 0.0;
@@ -201,5 +202,69 @@ struct VCDATA_API FVCMonsterRow : public FTableRowBase
 	/** Nur Anzeige: die verbindliche Belohnung legt das Backend fest. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Belohnung") int64 XpReward = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn") double RespawnSeconds = 30.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
+};
+
+/** Wen eine Fähigkeit trifft. */
+UENUM(BlueprintType)
+enum class EVCAbilityTarget : uint8
+{
+	Enemy,
+	Caster
+};
+
+/** Nur für die Anzeige (Rahmenfarbe); die Wirkung steht in den Werten. */
+UENUM(BlueprintType)
+enum class EVCStatusKind : uint8
+{
+	Buff,
+	Debuff
+};
+
+/** Aktive Fähigkeit (DT_Abilities). Herkunft: design_data/dev_abilities.json; Originalfähigkeiten sind UNKNOWN. */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCAbilityRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fähigkeit") FString NameDe;
+	/** Skill, dessen Stufe die Fähigkeit freischaltet und der beim Einsatz XP erhält (DT_Skills). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fähigkeit") FName SkillCode;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fähigkeit") int32 RequiredSkillLevel = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fähigkeit") bool bRequiresWeaponClass = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fähigkeit") EVCWeaponClass RequiredWeaponClass = EVCWeaponClass::Unarmed;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kosten") double StaminaCost = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Kosten") double CooldownSeconds = 0.0;
+	/** Vielfaches des Waffenschadens; 0 = kein Schaden. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wirkung") double DamageMultiplier = 0.0;
+	/** 0 = Reichweite der Waffe. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wirkung") double RangeCm = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wirkung") EVCAbilityTarget TargetMode = EVCAbilityTarget::Enemy;
+	/** Statuseffekte (DT_StatusEffects), die bei einem Treffer bzw. auf den Anwender wirken. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wirkung") TArray<FName> AppliedStatuses;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
+};
+
+/** Statuseffekt (DT_StatusEffects). Wirkung je Stapel; Tempo wird je Stapel multipliziert. */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCStatusEffectRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status") FString NameDe;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status") EVCStatusKind Kind = EVCStatusKind::Debuff;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status") double DurationSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status") int32 MaxStacks = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Werte") double AttackPower = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Werte") double Defense = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Werte") double CritChance = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Werte") double BlockChance = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Werte") double DodgeChance = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Werte") double MoveSpeedMultiplier = 1.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Werte") bool bStunned = false;
+	/** 0 = keine periodische Wirkung. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Periodisch") double TickIntervalSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Periodisch") double DamagePerTick = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Periodisch") double HealPerTick = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
 };

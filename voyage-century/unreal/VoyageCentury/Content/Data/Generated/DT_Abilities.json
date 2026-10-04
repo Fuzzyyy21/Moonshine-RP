@@ -1,0 +1,101 @@
+[
+  {
+    "Name": "DEV_AIMED_SHOT",
+    "NameDe": "Gezielter Schuss",
+    "SkillCode": "SHOOTING",
+    "RequiredSkillLevel": 1,
+    "bRequiresWeaponClass": true,
+    "RequiredWeaponClass": "Firearm",
+    "StaminaCost": 15,
+    "CooldownSeconds": 12,
+    "DamageMultiplier": 2.0,
+    "RangeCm": 2000,
+    "TargetMode": "Enemy",
+    "AppliedStatuses": [],
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_CRIPPLING_SLASH",
+    "NameDe": "Sehnenschnitt",
+    "SkillCode": "FALCHION",
+    "RequiredSkillLevel": 5,
+    "bRequiresWeaponClass": true,
+    "RequiredWeaponClass": "Blade",
+    "StaminaCost": 12,
+    "CooldownSeconds": 10,
+    "DamageMultiplier": 1.0,
+    "RangeCm": 0,
+    "TargetMode": "Enemy",
+    "AppliedStatuses": [
+      "DEV_SLOW",
+      "DEV_BLEED"
+    ],
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_FIRST_AID",
+    "NameDe": "Erste Hilfe",
+    "SkillCode": "MEDICINE",
+    "RequiredSkillLevel": 1,
+    "bRequiresWeaponClass": false,
+    "RequiredWeaponClass": "Unarmed",
+    "StaminaCost": 20,
+    "CooldownSeconds": 30,
+    "DamageMultiplier": 0,
+    "RangeCm": 0,
+    "TargetMode": "Caster",
+    "AppliedStatuses": [
+      "DEV_REGEN"
+    ],
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_POWER_STRIKE",
+    "NameDe": "Wuchtschlag",
+    "SkillCode": "SWORD",
+    "RequiredSkillLevel": 1,
+    "bRequiresWeaponClass": true,
+    "RequiredWeaponClass": "Sword",
+    "StaminaCost": 10,
+    "CooldownSeconds": 6,
+    "DamageMultiplier": 1.8,
+    "RangeCm": 0,
+    "TargetMode": "Enemy",
+    "AppliedStatuses": [],
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_STUNNING_BLOW",
+    "NameDe": "Betäubungsschlag",
+    "SkillCode": "BAREHAND",
+    "RequiredSkillLevel": 10,
+    "bRequiresWeaponClass": true,
+    "RequiredWeaponClass": "Unarmed",
+    "StaminaCost": 20,
+    "CooldownSeconds": 20,
+    "DamageMultiplier": 0.5,
+    "RangeCm": 0,
+    "TargetMode": "Enemy",
+    "AppliedStatuses": [
+      "DEV_STUN"
+    ],
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_SUNDER",
+    "NameDe": "Rüstungsbrecher",
+    "SkillCode": "AXE",
+    "RequiredSkillLevel": 5,
+    "bRequiresWeaponClass": true,
+    "RequiredWeaponClass": "Axe",
+    "StaminaCost": 15,
+    "CooldownSeconds": 8,
+    "DamageMultiplier": 1.2,
+    "RangeCm": 0,
+    "TargetMode": "Enemy",
+    "AppliedStatuses": [
+      "DEV_ARMOR_BREAK"
+    ],
+    "bIsDev": true
+  }
+]

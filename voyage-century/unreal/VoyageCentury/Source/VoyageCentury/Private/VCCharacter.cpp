@@ -21,9 +21,11 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "EngineUtils.h"
-#include "Engine/Engine.h"
+#include "VCAbilityStateComponent.h"
+#include "VCAbility_UseSkill.h"
 #include "VCAttributeSet.h"
 #include "VCCombatData.h"
+#include "VCCombatStateComponent.h"
 #include "VCGameplayTags.h"
 #include "VCPlayerState.h"
 #include "VCProgressionComponent.h"
@@ -67,6 +69,9 @@ AVCCharacter::AVCCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	CombatState = CreateDefaultSubobject<UVCCombatStateComponent>(TEXT("CombatState"));
+	CombatState->bRegenerateStamina = true;
 }
 
 void AVCCharacter::CreateInputObjects()
@@ -110,6 +115,18 @@ void AVCCharacter::CreateInputObjects()
 	AttackAction = NewObject<UInputAction>(this, TEXT("IA_Attack"));
 	AttackAction->ValueType = EInputActionValueType::Boolean;
 	InputContext->MapKey(AttackAction, EKeys::LeftMouseButton);
+
+	// Tasten 1–9 und 0 → Plätze 1–10. Der Scalar-Modifier macht aus "gedrückt" (1.0) die Platznummer.
+	HotbarAction = NewObject<UInputAction>(this, TEXT("IA_Hotbar"));
+	HotbarAction->ValueType = EInputActionValueType::Axis1D;
+	const TArray<FKey> HotbarKeys = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five,
+		EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine, EKeys::Zero };
+	for (int32 Index = 0; Index < HotbarKeys.Num(); ++Index)
+	{
+		UInputModifierScalar* SlotNumber = NewObject<UInputModifierScalar>(this);
+		SlotNumber->Scalar = FVector(static_cast<double>(Index + 1), 1.0, 1.0);
+		InputContext->MapKey(HotbarAction, HotbarKeys[Index]).Modifiers.Add(SlotNumber);
+	}
 }
 
 void AVCCharacter::PawnClientRestart()
@@ -143,6 +160,7 @@ void AVCCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 	Input->BindAction(TargetAction, ETriggerEvent::Started, this, &AVCCharacter::CycleTarget);
 	Input->BindAction(AttackAction, ETriggerEvent::Started, this, &AVCCharacter::Attack);
+	Input->BindAction(HotbarAction, ETriggerEvent::Started, this, &AVCCharacter::UseHotbar);
 }
 
 void AVCCharacter::Move(const FInputActionValue& Value)
@@ -280,18 +298,29 @@ bool AVCCharacter::GetAttack(vc::rules::FWeaponDef& OutWeapon, FName& OutSkillCo
 	}
 	OutWeapon = FVCCombatData::ToRules(*Row);
 	OutSkillCode = Row->SkillCode;
-	OutSkillLevel = 1;
+	OutSkillLevel = GetSkillLevel(Row->SkillCode);
+	return true;
+}
+
+int32 AVCCharacter::GetSkillLevel(FName SkillCode) const
+{
 	if (const AVCPlayerState* PS = GetPlayerState<AVCPlayerState>())
 	{
 		for (const FVCSkillState& Skill : PS->GetProgression()->GetSkills())
 		{
-			if (Skill.Code == Row->SkillCode)
+			if (Skill.Code == SkillCode)
 			{
-				OutSkillLevel = Skill.Level;
+				return Skill.Level;
 			}
 		}
 	}
-	return true;
+	return 1;
+}
+
+FText AVCCharacter::GetCombatName() const
+{
+	const APlayerState* PS = GetPlayerState();
+	return FText::FromString(PS ? PS->GetPlayerName() : GetName());
 }
 
 void AVCCharacter::HandleOutOfHealth(AActor* Killer)
@@ -300,6 +329,7 @@ void AVCCharacter::HandleOutOfHealth(AActor* Killer)
 	{
 		return;
 	}
+	CombatState->ServerClearAll();
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 	{
 		ASC->AddLooseGameplayTag(TAG_VC_State_Dead);
@@ -344,11 +374,7 @@ void AVCCharacter::CycleTarget()
 		return FVector::DistSquared(Here, A.GetActorLocation()) < FVector::DistSquared(Here, B.GetActorLocation());
 	});
 	const int32 Current = Candidates.IndexOfByKey(CurrentTarget.Get());
-	CurrentTarget = Candidates[(Current + 1) % Candidates.Num()];
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Ziel: %s"), *CurrentTarget->GetName()));
-	}
+	CurrentTarget = Candidates[(Current + 1) % Candidates.Num()]; // Anzeige im Zielrahmen des HUD
 }
 
 void AVCCharacter::Attack()
@@ -370,4 +396,30 @@ void AVCCharacter::ServerRequestAttack_Implementation(AActor* Target)
 	Payload.Instigator = this;
 	Payload.Target = Target;
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, TAG_VC_Event_Attack, Payload);
+}
+
+void AVCCharacter::UseHotbar(const FInputActionValue& Value)
+{
+	const int32 Slot = FMath::RoundToInt(Value.Get<float>()) - 1;
+	if (Slot >= 0 && Slot < UVCAbilityStateComponent::HotbarSlots)
+	{
+		ServerUseHotbarSlot(Slot, CurrentTarget.Get());
+	}
+}
+
+bool AVCCharacter::ServerUseHotbarSlot_Validate(int32 Slot, AActor* Target)
+{
+	return Slot >= 0 && Slot < UVCAbilityStateComponent::HotbarSlots;
+}
+
+void AVCCharacter::ServerUseHotbarSlot_Implementation(int32 Slot, AActor* Target)
+{
+	const UVCAbilityStateComponent* State = UVCAbilityStateComponent::Find(this);
+	const FName Code = State ? State->GetHotbarSlot(Slot) : NAME_None;
+	if (Code.IsNone() || !IsAlive())
+	{
+		return;
+	}
+	FGameplayEventData Payload = UVCAbility_UseSkill::MakeRequest(this, Code, Target);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, TAG_VC_Event_UseAbility, Payload);
 }

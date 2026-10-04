@@ -6,8 +6,8 @@
 
 /**
  * Grundangriff. Läuft nur auf dem Server und wird durch das Ereignis VC.Event.Attack ausgelöst
- * (Ziel im Payload). Prüft: beide leben, Ziel ist feindlich (PvP nur, wenn die Zone es erlaubt),
- * Ziel in Waffenreichweite, Angriffsintervall abgelaufen – alles mit den Regeln aus VCRules.
+ * (Ziel im Payload). Prüft: beide leben, Angreifer nicht betäubt, Ziel ist feindlich (PvP nur, wenn die
+ * Zone es erlaubt), Ziel in Waffenreichweite, Angriffsintervall abgelaufen – alles mit den Regeln aus VCRules.
  */
 UCLASS()
 class VCABILITIES_API UVCAbility_BasicAttack : public UGameplayAbility
@@ -19,9 +19,6 @@ public:
 
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-
-	/** Darf Attacker den Verteidiger überhaupt angreifen? (Spieler ↔ Gegner immer, Spieler ↔ Spieler nur in PvP-Zonen) */
-	static bool IsHostile(const AActor* Attacker, const AActor* Defender);
 
 private:
 	double LastAttackTime = -1.0;

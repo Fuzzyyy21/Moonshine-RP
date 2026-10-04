@@ -2,6 +2,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
+#include "VCCombat.h"
 #include "VCCombatant.h"
 #include "VCDataRows.h"
 #include "VCGameplayTags.h"
@@ -55,9 +56,9 @@ void AVCMonsterAIController::Think()
 {
 	AVCMonster* Monster = Cast<AVCMonster>(GetPawn());
 	const FVCMonsterRow* Row = Monster ? Monster->GetRow() : nullptr;
-	if (!Monster || !Row || !Monster->IsAlive())
+	if (!Monster || !Row || !Monster->IsAlive() || FVCCombat::IsStunned(Monster))
 	{
-		StopMovement();
+		StopMovement(); // Betäubt: weder laufen noch angreifen; Verlangsamung wirkt über die Laufgeschwindigkeit
 		return;
 	}
 

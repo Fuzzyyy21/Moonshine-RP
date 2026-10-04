@@ -1,10 +1,8 @@
 #include "VCAbility_BasicAttack.h"
-#include "AbilitySystemBlueprintLibrary.h"
-#include "AbilitySystemComponent.h"
 #include "Engine/World.h"
+#include "VCCombat.h"
 #include "VCCombatData.h"
 #include "VCCombatant.h"
-#include "VCDamage.h"
 #include "VCGameplayTags.h"
 #include "VCServerHooks.h"
 
@@ -28,33 +26,13 @@ void UVCAbility_BasicAttack::ActivateAbility(const FGameplayAbilitySpecHandle Ha
 	EndAbility(Handle, ActorInfo, ActivationInfo, true, !bHit);
 }
 
-bool UVCAbility_BasicAttack::IsHostile(const AActor* Attacker, const AActor* Defender)
-{
-	const IVCCombatant* A = Cast<IVCCombatant>(Attacker);
-	const IVCCombatant* D = Cast<IVCCombatant>(Defender);
-	if (!A || !D || Attacker == Defender)
-	{
-		return false;
-	}
-	if (A->IsPlayerCharacter() != D->IsPlayerCharacter())
-	{
-		return true; // Spieler gegen Gegner
-	}
-	if (!A->IsPlayerCharacter())
-	{
-		return false; // Gegner untereinander nicht
-	}
-	const UWorld* World = Attacker->GetWorld();
-	const IVCServerHooks* Hooks = World ? Cast<IVCServerHooks>(World->GetAuthGameMode()) : nullptr;
-	return Hooks && Hooks->IsPvPAllowed();
-}
-
 bool UVCAbility_BasicAttack::PerformAttack(const FGameplayAbilityActorInfo* ActorInfo, AActor* Target)
 {
 	AActor* Avatar = ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr;
 	const IVCCombatant* Self = Cast<IVCCombatant>(Avatar);
 	const IVCCombatant* Other = Cast<IVCCombatant>(Target);
-	if (!FVCCombatData::IsAvailable() || !Self || !Other || !Self->IsAlive() || !Other->IsAlive() || !IsHostile(Avatar, Target))
+	if (!FVCCombatData::IsAvailable() || !Self || !Other || !Self->IsAlive() || !Other->IsAlive()
+		|| FVCCombat::IsStunned(Avatar) || !FVCCombat::IsHostile(Avatar, Target))
 	{
 		return false;
 	}
@@ -75,26 +53,15 @@ bool UVCAbility_BasicAttack::PerformAttack(const FGameplayAbilityActorInfo* Acto
 	}
 	LastAttackTime = Now;
 
-	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target);
-	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
-	if (!TargetASC || !SourceASC)
-	{
-		return false;
-	}
-	const FGameplayEffectSpecHandle Spec = MakeOutgoingGameplayEffectSpec(UVCDamageEffect::StaticClass(), 1.f);
-	if (!Spec.IsValid())
-	{
-		return false;
-	}
-	Spec.Data->SetSetByCallerMagnitude(TAG_VC_Data_WeaponDamage,
-		static_cast<float>(vc::rules::WeaponDamage(Weapon, SkillLevel, Tuning)));
-	SourceASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
+	const vc::rules::FAttackOutcome Outcome =
+		FVCCombat::Strike(Avatar, Target, vc::rules::WeaponDamage(Weapon, SkillLevel, Tuning));
 
-	if (!SkillCode.IsNone())
+	// Skill-XP nur für Treffer (auch geblockte), nicht für Ausweichen.
+	if (!SkillCode.IsNone() && Outcome.Result != vc::rules::EHitResult::Dodged)
 	{
 		if (IVCServerHooks* Hooks = Cast<IVCServerHooks>(Avatar->GetWorld()->GetAuthGameMode()))
 		{
-			Hooks->HandleWeaponHit(Avatar, SkillCode);
+			Hooks->HandleSkillUse(Avatar, SkillCode);
 		}
 	}
 	return true;

@@ -151,6 +151,27 @@ ON CONFLICT (code) DO UPDATE SET
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 
+-- Entwicklungsfähigkeiten (design_data/dev_abilities.json, is_dev = TRUE). Statuseffekte sind reine
+-- Laufzeit des Zonen-Servers (DT_StatusEffects) und werden nicht gespeichert.
+
+INSERT INTO abilities (code, skill_id, name_de, ability_kind, domain, required_skill_level, gas_ability_class, params, is_dev, confidence) VALUES
+    ('DEV_AIMED_SHOT', (SELECT skill_id FROM skills WHERE code = 'SHOOTING'), 'Gezielter Schuss', 'ACTIVE', 'LAND', 1, 'VCAbility_UseSkill', '{"applies": [], "cooldown_seconds": 12, "damage_multiplier": 2.0, "range_cm": 2000, "stamina_cost": 15, "target": "ENEMY", "weapon_class": "FIREARM"}'::jsonb, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_CRIPPLING_SLASH', (SELECT skill_id FROM skills WHERE code = 'FALCHION'), 'Sehnenschnitt', 'ACTIVE', 'LAND', 5, 'VCAbility_UseSkill', '{"applies": ["DEV_SLOW", "DEV_BLEED"], "cooldown_seconds": 10, "damage_multiplier": 1.0, "range_cm": 0, "stamina_cost": 12, "target": "ENEMY", "weapon_class": "BLADE"}'::jsonb, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_FIRST_AID', (SELECT skill_id FROM skills WHERE code = 'MEDICINE'), 'Erste Hilfe', 'ACTIVE', 'LAND', 1, 'VCAbility_UseSkill', '{"applies": ["DEV_REGEN"], "cooldown_seconds": 30, "damage_multiplier": 0, "range_cm": 0, "stamina_cost": 20, "target": "SELF", "weapon_class": null}'::jsonb, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_POWER_STRIKE', (SELECT skill_id FROM skills WHERE code = 'SWORD'), 'Wuchtschlag', 'ACTIVE', 'LAND', 1, 'VCAbility_UseSkill', '{"applies": [], "cooldown_seconds": 6, "damage_multiplier": 1.8, "range_cm": 0, "stamina_cost": 10, "target": "ENEMY", "weapon_class": "SWORD"}'::jsonb, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_STUNNING_BLOW', (SELECT skill_id FROM skills WHERE code = 'BAREHAND'), 'Betäubungsschlag', 'ACTIVE', 'LAND', 10, 'VCAbility_UseSkill', '{"applies": ["DEV_STUN"], "cooldown_seconds": 20, "damage_multiplier": 0.5, "range_cm": 0, "stamina_cost": 20, "target": "ENEMY", "weapon_class": "UNARMED"}'::jsonb, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_SUNDER', (SELECT skill_id FROM skills WHERE code = 'AXE'), 'Rüstungsbrecher', 'ACTIVE', 'LAND', 5, 'VCAbility_UseSkill', '{"applies": ["DEV_ARMOR_BREAK"], "cooldown_seconds": 8, "damage_multiplier": 1.2, "range_cm": 0, "stamina_cost": 15, "target": "ENEMY", "weapon_class": "AXE"}'::jsonb, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    skill_id = EXCLUDED.skill_id,
+    name_de = EXCLUDED.name_de,
+    ability_kind = EXCLUDED.ability_kind,
+    domain = EXCLUDED.domain,
+    required_skill_level = EXCLUDED.required_skill_level,
+    gas_ability_class = EXCLUDED.gas_ability_class,
+    params = EXCLUDED.params,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO level_table (level, xp_required, is_dev, recon_id, confidence) VALUES
     (1, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),
     (2, 100, TRUE, NULL, 'UNKNOWN'::confidence_level),

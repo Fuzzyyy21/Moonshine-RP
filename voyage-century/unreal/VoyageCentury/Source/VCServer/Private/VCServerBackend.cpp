@@ -1,4 +1,5 @@
 #include "VCServerBackend.h"
+#include "Dom/JsonValue.h"
 #include "HAL/PlatformMisc.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "VCBackendSettings.h"
@@ -100,6 +101,28 @@ void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>& Kill, FVCHttpCa
 		Kill, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::SaveHotbar(int64 CharacterId, int64 AccountId, const TArray<FName>& Slots, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
+	TArray<TSharedPtr<FJsonValue>> Entries;
+	for (int32 Slot = 0; Slot < Slots.Num(); ++Slot)
+	{
+		if (Slots[Slot].IsNone())
+		{
+			continue;
+		}
+		const TSharedRef<FJsonObject> Entry = MakeShared<FJsonObject>();
+		Entry->SetNumberField(TEXT("slot"), Slot);
+		Entry->SetStringField(TEXT("abilityCode"), Slots[Slot].ToString());
+		Entries.Add(MakeShared<FJsonValueObject>(Entry));
+	}
+	Body->SetArrayField(TEXT("slots"), Entries);
+	const FString Url = FString::Printf(TEXT("%s/internal/v1/characters/%lld/hotbar"),
+		*UVCBackendSettings::GetGameDataBaseUrl(), CharacterId);
+	FVCHttp::Send(TEXT("PUT"), Url, Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::AdminSetLevel(int64 CharacterId, const FString& SkillCode, int32 Level,
 	const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback)
 {
@@ -129,6 +152,7 @@ void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refu
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::GrantExperience(int64, int64, const FString&, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::SaveHotbar(int64, int64, const TArray<FName>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminSetLevel(int64, const FString&, int32, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 
 #endif // WITH_SERVER_CODE

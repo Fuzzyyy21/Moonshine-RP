@@ -31,6 +31,9 @@ public:
 	/** Kill melden; das Backend vergibt XP aus den Gegnerdaten und führt die PvP-Statistik. */
 	static void ReportKill(const TSharedRef<FJsonObject>& Kill, FVCHttpCallback Callback);
 
+	/** Ganze Hotbar ersetzen (Index = Platz, None = leer). Das Backend prüft Besitz, Plätze und Fähigkeiten. */
+	static void SaveHotbar(int64 CharacterId, int64 AccountId, const TArray<FName>& Slots, FVCHttpCallback Callback);
+
 	/** Admin: Level bzw. Skillstufe setzen. Das Backend prüft Rechte und schreibt Audit in derselben Transaktion. */
 	static void AdminSetLevel(int64 CharacterId, const FString& SkillCode, int32 Level,
 		const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback);

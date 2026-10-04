@@ -1,0 +1,30 @@
+{
+  "_comment": "ENTWICKLUNGSWERTE (Priorität 6). Fähigkeiten und Statuseffekte des Originals sind UNKNOWN (Liste der Fähigkeiten je Skill offen, siehe GDD Abschnitt Skills). Diese Einträge dienen nur dazu, die Mechanik (Abklingzeit, Ausdauer, Statuseffekte, Hotbar) zu entwickeln und zu testen. Technische Namen DEV_…, weil keine Originalnamen belegt sind. Werden durch belegte Fähigkeiten ersetzt, sobald Quellen vorliegen.",
+  "source": "SRC-DESIGN",
+  "abilities": [
+    { "code": "DEV_POWER_STRIKE", "skill": "SWORD", "name_de": "Wuchtschlag", "required_skill_level": 1, "weapon_class": "SWORD",
+      "stamina_cost": 10, "cooldown_seconds": 6, "damage_multiplier": 1.8, "range_cm": 0, "target": "ENEMY", "applies": [] },
+    { "code": "DEV_CRIPPLING_SLASH", "skill": "FALCHION", "name_de": "Sehnenschnitt", "required_skill_level": 5, "weapon_class": "BLADE",
+      "stamina_cost": 12, "cooldown_seconds": 10, "damage_multiplier": 1.0, "range_cm": 0, "target": "ENEMY", "applies": ["DEV_SLOW", "DEV_BLEED"] },
+    { "code": "DEV_SUNDER", "skill": "AXE", "name_de": "Rüstungsbrecher", "required_skill_level": 5, "weapon_class": "AXE",
+      "stamina_cost": 15, "cooldown_seconds": 8, "damage_multiplier": 1.2, "range_cm": 0, "target": "ENEMY", "applies": ["DEV_ARMOR_BREAK"] },
+    { "code": "DEV_AIMED_SHOT", "skill": "SHOOTING", "name_de": "Gezielter Schuss", "required_skill_level": 1, "weapon_class": "FIREARM",
+      "stamina_cost": 15, "cooldown_seconds": 12, "damage_multiplier": 2.0, "range_cm": 2000, "target": "ENEMY", "applies": [] },
+    { "code": "DEV_STUNNING_BLOW", "skill": "BAREHAND", "name_de": "Betäubungsschlag", "required_skill_level": 10, "weapon_class": "UNARMED",
+      "stamina_cost": 20, "cooldown_seconds": 20, "damage_multiplier": 0.5, "range_cm": 0, "target": "ENEMY", "applies": ["DEV_STUN"] },
+    { "code": "DEV_FIRST_AID", "skill": "MEDICINE", "name_de": "Erste Hilfe", "required_skill_level": 1, "weapon_class": null,
+      "stamina_cost": 20, "cooldown_seconds": 30, "damage_multiplier": 0, "range_cm": 0, "target": "SELF", "applies": ["DEV_REGEN"] }
+  ],
+  "status_effects": [
+    { "code": "DEV_SLOW", "name_de": "Verlangsamt", "kind": "DEBUFF", "duration_seconds": 4, "max_stacks": 1,
+      "modifiers": { "move_speed_multiplier": 0.6 }, "tick_interval_seconds": 0, "damage_per_tick": 0, "heal_per_tick": 0 },
+    { "code": "DEV_BLEED", "name_de": "Blutung", "kind": "DEBUFF", "duration_seconds": 6, "max_stacks": 3,
+      "modifiers": {}, "tick_interval_seconds": 1, "damage_per_tick": 2, "heal_per_tick": 0 },
+    { "code": "DEV_ARMOR_BREAK", "name_de": "Rüstungsbruch", "kind": "DEBUFF", "duration_seconds": 10, "max_stacks": 3,
+      "modifiers": { "defense": -5 }, "tick_interval_seconds": 0, "damage_per_tick": 0, "heal_per_tick": 0 },
+    { "code": "DEV_STUN", "name_de": "Betäubt", "kind": "DEBUFF", "duration_seconds": 2, "max_stacks": 1,
+      "modifiers": { "stunned": true }, "tick_interval_seconds": 0, "damage_per_tick": 0, "heal_per_tick": 0 },
+    { "code": "DEV_REGEN", "name_de": "Wundversorgung", "kind": "BUFF", "duration_seconds": 10, "max_stacks": 1,
+      "modifiers": {}, "tick_interval_seconds": 2, "damage_per_tick": 0, "heal_per_tick": 8 }
+  ]
+}

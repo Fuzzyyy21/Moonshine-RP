@@ -92,7 +92,33 @@ DO $$ BEGIN
     ASSERT NOT EXISTS (SELECT 1 FROM skills WHERE name_zh = 'UNKNOWN'), 'UNKNOWN darf nicht als Text in der DB landen';
 END $$;
 
--- 9. Partitionierte Logs nehmen Zeilen an.
+-- 9. Hotbar: Platz 0–9, jeder Platz und jede Fähigkeit nur einmal je Charakter.
+INSERT INTO abilities (code, ability_kind, domain) VALUES ('TEST_ABILITY_A', 'ACTIVE', 'LAND'), ('TEST_ABILITY_B', 'ACTIVE', 'LAND');
+INSERT INTO character_hotbar (character_id, slot, ability_id)
+VALUES (1, 0, (SELECT ability_id FROM abilities WHERE code = 'TEST_ABILITY_A'));
+DO $$ BEGIN
+    INSERT INTO character_hotbar (character_id, slot, ability_id)
+    VALUES (1, 0, (SELECT ability_id FROM abilities WHERE code = 'TEST_ABILITY_B'));
+    RAISE EXCEPTION 'FEHLT: doppelter Hotbar-Platz wurde akzeptiert';
+EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'ok: Hotbar-Platz eindeutig';
+END $$;
+DO $$ BEGIN
+    INSERT INTO character_hotbar (character_id, slot, ability_id)
+    VALUES (1, 1, (SELECT ability_id FROM abilities WHERE code = 'TEST_ABILITY_A'));
+    RAISE EXCEPTION 'FEHLT: Fähigkeit doppelt auf der Hotbar wurde akzeptiert';
+EXCEPTION WHEN unique_violation THEN RAISE NOTICE 'ok: Fähigkeit nur einmal auf der Hotbar';
+END $$;
+DO $$ BEGIN
+    INSERT INTO character_hotbar (character_id, slot, ability_id)
+    VALUES (1, 10, (SELECT ability_id FROM abilities WHERE code = 'TEST_ABILITY_B'));
+    RAISE EXCEPTION 'FEHLT: Hotbar-Platz 10 wurde akzeptiert';
+EXCEPTION WHEN check_violation THEN RAISE NOTICE 'ok: Hotbar hat zehn Plätze';
+END $$;
+DO $$ BEGIN
+    ASSERT (SELECT count(*) FROM abilities WHERE code LIKE 'DEV_%' AND NOT is_dev) = 0, 'DEV-Fähigkeit ohne is_dev';
+END $$;
+
+-- 10. Partitionierte Logs nehmen Zeilen an.
 INSERT INTO game_event_log (character_id, action, new_value, server_id) VALUES (1, 'LEVEL_UP', '{"level":2}', 'test');
 INSERT INTO chat_log (channel, sender_character_id, message) VALUES ('WORLD', 1, 'Hallo');
 
