@@ -304,6 +304,21 @@ struct VCDATA_API FVCDiscoveryRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
 };
 
+/** Sammelpunkt-Art (DT_GatherNodes). Ausbeute und Skillprüfung macht das Backend; hier nur Zeiten und Anzeige. */
+USTRUCT(BlueprintType)
+struct VCDATA_API FVCGatherNodeRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sammeln") FString NameDe;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sammeln") FString SkillCode;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sammeln") int32 RequiredLevel = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sammeln") FString ItemCode;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sammeln") double GatherSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sammeln") double RespawnSeconds = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recon") bool bIsDev = false;
+};
+
 /** Schiffsklassen laut SHIPCLASS-* plus Anfängerschiff (SHIP-TIERS-INTL). */
 UENUM(BlueprintType)
 enum class EVCShipClass : uint8

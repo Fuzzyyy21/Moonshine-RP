@@ -74,6 +74,12 @@ public:
 	/** Action: equip, unequip (InstanceId), discard, sell (InstanceId, Quantity; sell mit NpcCode). Antwort: Inventar bzw. gold, total, inventory. */
 	static void InventoryAction(int64 CharacterId, int64 AccountId, const FString& Action, int64 InstanceId, int32 Quantity,
 		const FString& NpcCode, FVCHttpCallback Callback);
+	/** Sammeln abgeschlossen. Antwort: itemCode, nameDe, quantity, lost, skill, inventory. */
+	static void Gather(int64 CharacterId, int64 AccountId, const FString& NodeCode, FVCHttpCallback Callback);
+	/** Rezepte mit Material im Inventar und ob es reicht. Antwort: Liste. */
+	static void LoadRecipes(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback);
+	/** Herstellen (alles oder nichts). Antwort wie Gather plus goldCost, gold. */
+	static void Craft(int64 CharacterId, int64 AccountId, const FString& RecipeCode, int32 Times, FVCHttpCallback Callback);
 	/** Admin: Item ins Inventar; Rechte, Vergabe und Audit im Backend. Antwort: placed, lost, inventory. */
 	static void AdminGrantItem(int64 CharacterId, const FString& ItemCode, int32 Quantity, const TSharedRef<FJsonObject>& AdminContext,
 		FVCHttpCallback Callback);

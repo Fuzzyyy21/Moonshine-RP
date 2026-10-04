@@ -122,6 +122,10 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerInteract(AVCNpc* Npc);
 
+	/** Der Client nennt den Sammelpunkt; Abstand, Verfügbarkeit, Sammelzeit prüft der Server, Skill und Ausbeute das Backend. */
+	UFUNCTION(Server, Reliable)
+	void ServerGather(class AVCGatherNode* Node);
+
 	UFUNCTION(Server, Reliable)
 	void ServerRequestAttack(AActor* Target);
 

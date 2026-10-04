@@ -30,6 +30,8 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCInventory | VCEquip <nr> | VCUnequip               Inventar, Waffe aus dem Inventar ausrüsten/ablegen
  *   VCDiscard <nr> <menge> | VCSellItem <nr> <menge>     wegwerfen; an den Händler verkaufen
  *   VCAdmin "giveitem <ITEM> [menge]"
+ *   VCRecipes | VCCraft <REZEPT> [anzahl]                Rezepte; herstellen (Material, Gebühr, Skill prüft das Backend)
+ *   E an einem Sammelpunkt                               sammeln (Sammelzeit stillstehen)
  *
  * Passwörter in der Konsole sind nur für die Entwicklung gedacht; die Login-Oberfläche folgt.
  */
@@ -124,6 +126,12 @@ public:
 
 	UFUNCTION(Exec)
 	void VCSellItem(const FString& InstanceId, const FString& Quantity);
+
+	UFUNCTION(Exec)
+	void VCRecipes();
+
+	UFUNCTION(Exec)
+	void VCCraft(const FString& RecipeCode, const FString& Times);
 
 protected:
 	UFUNCTION(Server, Reliable, WithValidation)

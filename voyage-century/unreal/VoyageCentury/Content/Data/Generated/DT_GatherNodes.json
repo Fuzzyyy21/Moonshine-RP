@@ -1,0 +1,42 @@
+[
+  {
+    "Name": "DEV_NODE_FLAX",
+    "NameDe": "Flachsfeld (Test)",
+    "SkillCode": "PLANTING",
+    "RequiredLevel": 1,
+    "ItemCode": "DEV_MAT_CLOTH",
+    "GatherSeconds": 2,
+    "RespawnSeconds": 20,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_NODE_IRON",
+    "NameDe": "Eisenader (Test)",
+    "SkillCode": "MINING",
+    "RequiredLevel": 1,
+    "ItemCode": "DEV_MAT_IRON",
+    "GatherSeconds": 3,
+    "RespawnSeconds": 30,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_NODE_RICH_IRON",
+    "NameDe": "Reiche Eisenader (Test)",
+    "SkillCode": "MINING",
+    "RequiredLevel": 5,
+    "ItemCode": "DEV_MAT_IRON",
+    "GatherSeconds": 5,
+    "RespawnSeconds": 60,
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_NODE_TREE",
+    "NameDe": "Baum (Test)",
+    "SkillCode": "TIMBER",
+    "RequiredLevel": 1,
+    "ItemCode": "DEV_MAT_WOOD",
+    "GatherSeconds": 3,
+    "RespawnSeconds": 30,
+    "bIsDev": true
+  }
+]

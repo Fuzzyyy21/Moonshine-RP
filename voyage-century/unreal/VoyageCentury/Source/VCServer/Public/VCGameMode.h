@@ -61,6 +61,7 @@ public:
 	virtual void HandleDiscovery(APawn* Pawn, FName DiscoveryCode) override;
 	virtual void HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
 	virtual void HandleInventoryCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
+	virtual void HandleGather(APawn* Pawn, FName NodeCode, TFunction<void(bool)> Done) override;
 	virtual void HandleShipSunk(APawn* Ship, AActor* Killer) override;
 	virtual void HandleMonsterKill(AActor* Killer, FName MonsterCode) override;
 
@@ -82,6 +83,9 @@ private:
 
 	/** Inventar-Antwort des Backends anzeigen und die ausgerüstete Waffe übernehmen (nur was das Backend bestätigt). */
 	void ApplyInventory(APlayerController* PC, const TSharedPtr<FJsonObject>& Inventory, bool bPrint);
+
+	/** Antwort von Sammeln/Herstellen melden: Ausbeute, Verlust, Gebühr, Skill-Fortschritt, Inventar. */
+	void ApplyCraftResult(APlayerController* PC, const FVCHttpResult& Result, bool bCrafted);
 
 	struct FPlayerSession
 	{

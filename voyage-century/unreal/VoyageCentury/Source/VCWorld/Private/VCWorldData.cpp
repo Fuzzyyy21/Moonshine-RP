@@ -24,6 +24,12 @@ namespace
 		static UDataTable* Table = Load(GetDefault<UVCWorldSettings>()->DiscoveriesTable);
 		return Table;
 	}
+
+	UDataTable* GatherNodes()
+	{
+		static UDataTable* Table = Load(GetDefault<UVCWorldSettings>()->GatherNodesTable);
+		return Table;
+	}
 }
 
 const FVCNpcRow* FVCWorldData::FindNpc(FName Code)
@@ -36,6 +42,12 @@ const FVCDiscoveryRow* FVCWorldData::FindDiscovery(FName Code)
 {
 	UDataTable* Table = Discoveries();
 	return Table && !Code.IsNone() ? Table->FindRow<FVCDiscoveryRow>(Code, TEXT("VCWorldData"), false) : nullptr;
+}
+
+const FVCGatherNodeRow* FVCWorldData::FindGatherNode(FName Code)
+{
+	UDataTable* Table = GatherNodes();
+	return Table && !Code.IsNone() ? Table->FindRow<FVCGatherNodeRow>(Code, TEXT("VCWorldData"), false) : nullptr;
 }
 
 FString FVCWorldData::NpcDisplayName(FName Code)

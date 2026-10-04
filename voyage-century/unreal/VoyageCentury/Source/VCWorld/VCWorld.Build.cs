@@ -7,6 +7,6 @@ public class VCWorld : ModuleRules
 	public VCWorld(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "DeveloperSettings", "VCCore", "VCData" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "NetCore", "DeveloperSettings", "VCCore", "VCData" });
 	}
 }

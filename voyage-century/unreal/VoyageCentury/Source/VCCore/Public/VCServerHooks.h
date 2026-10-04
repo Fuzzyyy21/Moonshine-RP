@@ -54,6 +54,12 @@ public:
 	/** Inventarbefehle eines Spielers: "list", "equip <id>", "unequip", "discard <id> <n>", "sell <id> <n>" (beim Händler). */
 	virtual void HandleInventoryCommand(APlayerController* Player, const FString& Command, const FString& Argument) = 0;
 
+	/**
+	 * Ein Spieler hat an einem Sammelpunkt fertig gesammelt (Abstand und Sammelzeit hat der Punkt geprüft). Done(true), wenn das
+	 * Backend die Ausbeute bestätigt; bei false gibt der Punkt sich wieder frei.
+	 */
+	virtual void HandleGather(APawn* Pawn, FName NodeCode, TFunction<void(bool)> Done) = 0;
+
 	/** Ein Spielerschiff ist gesunken (Rumpf 0). Speichern und den Spieler an Land zurückschicken. */
 	virtual void HandleShipSunk(APawn* Ship, AActor* Killer) = 0;
 

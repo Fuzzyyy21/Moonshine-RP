@@ -1,0 +1,29 @@
+{
+  "_comment": "DESIGNENTSCHEIDUNG (Priorität 6). Belegt sind die Berufs-Skills (Sammeln: MINING, TIMBER, PLANTING, FISHING; Herstellen: FOUNDRY, SEWING, ALCHEMY, SHIPBUILDING) und dass Ausrüstungs-Sets aus Synthese-Materialien entstehen (SYS-EQUIP-SYNTHESIS). Sammelorte, Rezepte, Mengen, Zeiten, Gebühren und Skill-XP sind UNKNOWN. Alles hier ist Entwicklungsinhalt (DEV_, is_dev) für die Testzone. Fischen fehlt, bis es Sammelpunkte auf See gibt.",
+  "source": "SRC-DESIGN",
+  "materials": [
+    { "code": "DEV_MAT_WOOD", "name_de": "Holzscheit (Test)", "category": "WOOD", "max_stack": 99, "npc_price": 2 },
+    { "code": "DEV_MAT_CANVAS", "name_de": "Segeltuch (Test)", "category": "CLOTH", "max_stack": 99, "npc_price": 12 }
+  ],
+  "gather_nodes": [
+    { "code": "DEV_NODE_IRON", "name_de": "Eisenader (Test)", "skill": "MINING", "required_level": 1, "item": "DEV_MAT_IRON",
+      "min": 1, "max": 2, "gather_seconds": 3, "respawn_seconds": 30, "skill_xp": 10, "zones": ["DEV_TESTZONE"] },
+    { "code": "DEV_NODE_TREE", "name_de": "Baum (Test)", "skill": "TIMBER", "required_level": 1, "item": "DEV_MAT_WOOD",
+      "min": 2, "max": 3, "gather_seconds": 3, "respawn_seconds": 30, "skill_xp": 10, "zones": ["DEV_TESTZONE"] },
+    { "code": "DEV_NODE_FLAX", "name_de": "Flachsfeld (Test)", "skill": "PLANTING", "required_level": 1, "item": "DEV_MAT_CLOTH",
+      "min": 1, "max": 3, "gather_seconds": 2, "respawn_seconds": 20, "skill_xp": 8, "zones": ["DEV_TESTZONE"] },
+    { "code": "DEV_NODE_RICH_IRON", "name_de": "Reiche Eisenader (Test)", "skill": "MINING", "required_level": 5, "item": "DEV_MAT_IRON",
+      "min": 3, "max": 5, "gather_seconds": 5, "respawn_seconds": 60, "skill_xp": 25, "zones": ["DEV_TESTZONE"] }
+  ],
+  "recipes": [
+    { "code": "DEV_RECIPE_SWORD", "name_de": "Übungsschwert schmieden (Test)", "skill": "FOUNDRY", "required_level": 1,
+      "materials": [ { "item": "DEV_MAT_IRON", "quantity": 3 }, { "item": "DEV_MAT_WOOD", "quantity": 1 } ],
+      "result": "DEV_SWORD", "result_quantity": 1, "gold_cost": 10, "craft_seconds": 0, "skill_xp": 30 },
+    { "code": "DEV_RECIPE_AXE", "name_de": "Übungsaxt schmieden (Test)", "skill": "FOUNDRY", "required_level": 5,
+      "materials": [ { "item": "DEV_MAT_IRON", "quantity": 4 }, { "item": "DEV_MAT_WOOD", "quantity": 2 } ],
+      "result": "DEV_AXE", "result_quantity": 1, "gold_cost": 15, "craft_seconds": 0, "skill_xp": 40 },
+    { "code": "DEV_RECIPE_CANVAS", "name_de": "Segeltuch nähen (Test)", "skill": "SEWING", "required_level": 1,
+      "materials": [ { "item": "DEV_MAT_CLOTH", "quantity": 3 } ],
+      "result": "DEV_MAT_CANVAS", "result_quantity": 1, "gold_cost": 0, "craft_seconds": 0, "skill_xp": 15 }
+  ]
+}

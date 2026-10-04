@@ -138,13 +138,26 @@ public static class ProgressionEndpoints
         {
             return BadRequest("Unbekannter Skill");
         }
-        var state = await LoadOrCreateSkill(conn, tx, characterId, skillId.Value, ct);
-        var limits = await SkillLimits.Load(conn, tx, characterId, skillId.Value, state.Stage, options.Value.AllowDevCurves, ct);
+        var progress = await ApplySkillXp(conn, tx, characterId, skillId.Value, skillCode, req, options.Value.AllowDevCurves, ct);
+        await tx.CommitAsync(ct);
+        return Results.Ok(progress);
+    }
+
+    /// <summary>
+    /// Verbucht Skill-XP innerhalb einer laufenden Transaktion (Charakterzeile bereits gesperrt). Wird auch für XP aus
+    /// Sammeln und Herstellen benutzt.
+    /// </summary>
+    internal static async Task<SkillProgress> ApplySkillXp(
+        NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, short skillId, string skillCode, GrantRequest req,
+        bool allowDevCurves, CancellationToken ct)
+    {
+        var state = await LoadOrCreateSkill(conn, tx, characterId, skillId, ct);
+        var limits = await SkillLimits.Load(conn, tx, characterId, skillId, state.Stage, allowDevCurves, ct);
         var cap = limits.CapFor(state.Level);
 
         if (!await RecordGrant(conn, tx, req, characterId, "SKILL_XP", skillId, ct))
         {
-            return Results.Ok(new SkillProgress(skillCode, state.Level, state.Stage, state.Experience, cap, Duplicate: true));
+            return new SkillProgress(skillCode, state.Level, state.Stage, state.Experience, cap, Duplicate: true);
         }
 
         var xp = checked(state.Experience + req.Amount);
@@ -155,7 +168,7 @@ public static class ProgressionEndpoints
             upd.Parameters.AddWithValue("xp", xp);
             upd.Parameters.AddWithValue("lvl", level);
             upd.Parameters.AddWithValue("chr", characterId);
-            upd.Parameters.AddWithValue("sk", skillId.Value);
+            upd.Parameters.AddWithValue("sk", skillId);
             await upd.ExecuteNonQueryAsync(ct);
         }
         if (level != state.Level)
@@ -164,8 +177,7 @@ public static class ProgressionEndpoints
                 OldValue: new { skill = skillCode, level = state.Level },
                 NewValue: new { skill = skillCode, level, source = req.Source }), req.ServerId!, ct);
         }
-        await tx.CommitAsync(ct);
-        return Results.Ok(new SkillProgress(skillCode, level, state.Stage, xp, cap, Duplicate: false));
+        return new SkillProgress(skillCode, level, state.Stage, xp, cap, Duplicate: false);
     }
 
     private static async Task<IResult> AdminSetLevel(
@@ -308,7 +320,7 @@ public static class ProgressionEndpoints
         return await cmd.ExecuteNonQueryAsync(ct) == 1;
     }
 
-    private static async Task<short?> SkillId(NpgsqlConnection conn, NpgsqlTransaction tx, string code, CancellationToken ct)
+    internal static async Task<short?> SkillId(NpgsqlConnection conn, NpgsqlTransaction tx, string code, CancellationToken ct)
     {
         await using var cmd = new NpgsqlCommand("SELECT skill_id FROM skills WHERE code = @code", conn, tx);
         cmd.Parameters.AddWithValue("code", code.ToUpperInvariant());

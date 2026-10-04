@@ -301,15 +301,16 @@ def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: lis
         values.append("    (" + ", ".join(cells) + ")")
     keys = (key,) if isinstance(key, str) else key
     updates = ",\n    ".join(f"{c} = EXCLUDED.{c}" for c in columns if c not in keys and c not in insert_only)
+    action = f"DO UPDATE SET\n    {updates}" if updates else "DO NOTHING"
     return (
         f"INSERT INTO {table} ({', '.join(columns)}) VALUES\n"
         + ",\n".join(values)
-        + f"\nON CONFLICT ({', '.join(keys)}) DO UPDATE SET\n    {updates};\n"
+        + f"\nON CONFLICT ({', '.join(keys)}) {action};\n"
     )
 
 
 def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict,
-               world: dict, discoveries: dict, ships: dict, trade: dict, loot: dict) -> str:
+               world: dict, discoveries: dict, ships: dict, trade: dict, loot: dict, crafting: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
     city_zones = {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]}
 
@@ -433,10 +434,11 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
         upsert("items", "code", ["code", "item_type", "name_de", "stackable", "max_stack", "npc_price", "is_dev", "confidence"],
                [{"code": m["code"], "item_type": "MATERIAL", "name_de": m["name_de"], "stackable": True, "max_stack": m["max_stack"],
                  "npc_price": m["npc_price"], "is_dev": True, "confidence": "UNKNOWN"}
-                for m in sorted(loot["materials"], key=lambda m: m["code"])]),
+                for m in sorted(loot["materials"] + crafting["materials"], key=lambda m: m["code"])]),
         upsert("materials", "item_id", ["item_id", "material_category"],
                [{"item_id": SqlExpr(f"(SELECT item_id FROM items WHERE code = {sql_literal(m['code'])})"),
-                 "material_category": m["category"]} for m in sorted(loot["materials"], key=lambda m: m["code"])]),
+                 "material_category": m["category"]}
+                for m in sorted(loot["materials"] + crafting["materials"], key=lambda m: m["code"])]),
         "".join(f"UPDATE items SET npc_price = {sql_literal(price)} WHERE code = {sql_literal(code)};\n"
                 for code, price in sorted(loot["sell_prices"].items())),
         upsert("loot_tables", "code", ["code", "gold_min", "gold_max", "is_dev"],
@@ -453,6 +455,26 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
                 for t in sorted(loot["loot_tables"], key=lambda t: t["code"]) for code in sorted(t["monsters"])),
         upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
                [{"rule_key": "INVENTORY_SLOTS", "int_value": loot["inventory_slots"], "is_dev": True, "confidence": "UNKNOWN"}]),
+        "-- Herstellen und Sammeln (design_data/dev_crafting.json, is_dev = TRUE).\n",
+        upsert("recipes", "code", ["code", "name_de", "required_skill_id", "required_level", "craft_time_seconds", "result_item_id",
+                                   "result_quantity", "gold_cost", "skill_xp", "is_dev", "confidence"],
+               [{"code": r["code"], "name_de": r["name_de"], "required_skill_id": skill_ref(r["skill"]),
+                 "required_level": r["required_level"], "craft_time_seconds": r["craft_seconds"], "result_item_id": item_ref(r["result"]),
+                 "result_quantity": r["result_quantity"], "gold_cost": r["gold_cost"], "skill_xp": r["skill_xp"], "is_dev": True,
+                 "confidence": "UNKNOWN"} for r in sorted(crafting["recipes"], key=lambda r: r["code"])]),
+        upsert("recipe_materials", ("recipe_id", "item_id"), ["recipe_id", "item_id", "quantity"],
+               [{"recipe_id": SqlExpr(f"(SELECT recipe_id FROM recipes WHERE code = {sql_literal(r['code'])})"),
+                 "item_id": item_ref(m["item"]), "quantity": m["quantity"]}
+                for r in sorted(crafting["recipes"], key=lambda r: r["code"]) for m in sorted(r["materials"], key=lambda m: m["item"])]),
+        upsert("gather_nodes", "code", ["code", "name_de", "skill_id", "required_level", "item_id", "min_qty", "max_qty",
+                                        "gather_seconds", "respawn_seconds", "skill_xp", "is_dev", "confidence"],
+               [{"code": n["code"], "name_de": n["name_de"], "skill_id": skill_ref(n["skill"]), "required_level": n["required_level"],
+                 "item_id": item_ref(n["item"]), "min_qty": n["min"], "max_qty": n["max"], "gather_seconds": n["gather_seconds"],
+                 "respawn_seconds": n["respawn_seconds"], "skill_xp": n["skill_xp"], "is_dev": True, "confidence": "UNKNOWN"}
+                for n in sorted(crafting["gather_nodes"], key=lambda n: n["code"])]),
+        upsert("gather_node_zones", ("gather_node_id", "zone_id"), ["gather_node_id", "zone_id"],
+               [{"gather_node_id": SqlExpr(f"(SELECT gather_node_id FROM gather_nodes WHERE code = {sql_literal(n['code'])})"),
+                 "zone_id": zone} for n in sorted(crafting["gather_nodes"], key=lambda n: n["code"]) for zone in sorted(n["zones"])]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -497,6 +519,39 @@ def check_trade(trade: dict, city_zones: dict[str, str], port_cities: set[str]) 
             problems.append(f"Markt {key}: Preis und Gleichgewicht > 0, Auffüllen ≥ 0, Steuer 0 … <1")
     if problems:
         raise SystemExit("design_data/dev_trade.json:\n  " + "\n  ".join(problems))
+
+
+def skill_ref(code: str) -> SqlExpr:
+    return SqlExpr(f"(SELECT skill_id FROM skills WHERE code = {sql_literal(code)})")
+
+
+def item_ref(code: str) -> SqlExpr:
+    return SqlExpr(f"(SELECT item_id FROM items WHERE code = {sql_literal(code)})")
+
+
+def check_crafting(crafting: dict, item_codes: set[str], skill_categories: dict[str, str | None], zone_ids: set[str]) -> None:
+    problems = []
+    codes = item_codes | {m["code"] for m in crafting["materials"]}
+    for m in crafting["materials"]:
+        if not m["code"].startswith("DEV_") or not TAG_RE.match(m["code"]) or m["max_stack"] < 1 or m["npc_price"] < 0:
+            problems.append(f"{m['code']}: DEV_-Code, Stapel ≥ 1, Preis ≥ 0")
+    for n in crafting["gather_nodes"]:
+        if not n["code"].startswith("DEV_") or skill_categories.get(n["skill"]) != "GATHERING" or n["item"] not in codes:
+            problems.append(f"{n['code']}: DEV_-Code, Sammel-Skill (Kategorie GATHERING) und bekanntes Item nötig")
+        if not 1 <= n["min"] <= n["max"] or n["required_level"] < 1 or n["gather_seconds"] < 0 or n["respawn_seconds"] < 0:
+            problems.append(f"{n['code']}: 1 ≤ min ≤ max, Stufe ≥ 1, Zeiten ≥ 0")
+        if not n["zones"] or any(z not in zone_ids for z in n["zones"]):
+            problems.append(f"{n['code']}: Zonen fehlen oder unbekannt")
+    for r in crafting["recipes"]:
+        if not r["code"].startswith("DEV_") or skill_categories.get(r["skill"]) != "PRODUCTION" or r["result"] not in codes:
+            problems.append(f"{r['code']}: DEV_-Code, Herstell-Skill (Kategorie PRODUCTION) und bekanntes Ergebnis nötig")
+        if not r["materials"] or any(m["item"] not in codes or m["quantity"] < 1 for m in r["materials"]) \
+                or len({m["item"] for m in r["materials"]}) != len(r["materials"]):
+            problems.append(f"{r['code']}: Materialien bekannt, Menge ≥ 1, jedes nur einmal")
+        if r["result_quantity"] < 1 or r["gold_cost"] < 0 or r["required_level"] < 1 or r["craft_seconds"] < 0:
+            problems.append(f"{r['code']}: Menge ≥ 1, Gebühr ≥ 0, Stufe ≥ 1, Zeit ≥ 0")
+    if problems:
+        raise SystemExit("design_data/dev_crafting.json:\n  " + "\n  ".join(problems))
 
 
 def check_loot(loot: dict, item_codes: set[str], monster_codes: set[str]) -> None:
@@ -592,7 +647,7 @@ SHIP_CLASS_UE = {"BATTLE": "Battle", "RAIDER": "Raider", "MERCHANT": "Merchant",
 
 
 def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abilities: dict,
-              discoveries: dict, ships: dict, trade: dict) -> dict[str, list[dict]]:
+              discoveries: dict, ships: dict, trade: dict, crafting: dict) -> dict[str, list[dict]]:
     t = ships["tuning"]
     return {
         "DT_Ships.json": sorted(
@@ -631,6 +686,11 @@ def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abili
                             + [{"code": m["code"], "zh": None, "en": None, "de": m["name_de"], "recon_id": "",
                                 "confidence": "UNKNOWN", "role": "MERCHANT", "city": m["city"], "is_dev": True}
                                for m in trade["merchants"]], key=lambda n: n["code"])
+        ],
+        "DT_GatherNodes.json": [
+            {"Name": n["code"], "NameDe": n["name_de"], "SkillCode": n["skill"], "RequiredLevel": n["required_level"],
+             "ItemCode": n["item"], "GatherSeconds": n["gather_seconds"], "RespawnSeconds": n["respawn_seconds"], "bIsDev": True}
+            for n in sorted(crafting["gather_nodes"], key=lambda n: n["code"])
         ],
         "DT_Discoveries.json": [
             {"Name": d["code"], "NameDe": d["name_de"], "ZoneId": d["zone"], "XpReward": d["xp_reward"], "bIsDev": True}
@@ -723,8 +783,11 @@ def outputs() -> dict[Path, str]:
     loot = json.loads((DESIGN_DIR / "dev_loot.json").read_text(encoding="utf-8"))
     check_loot(loot, {w["code"] for w in combat["weapons"] if w["class"] != "UNARMED"} | {g["code"] for g in trade["goods"]},
                {m["code"] for m in combat["monsters"]} | {pr["code"] for pr in ships["pirates"]})
-    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade, loot)}
-    for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships, trade).items():
+    crafting = json.loads((DESIGN_DIR / "dev_crafting.json").read_text(encoding="utf-8"))
+    check_crafting(crafting, {w["code"] for w in combat["weapons"] if w["class"] != "UNARMED"} | {m["code"] for m in loot["materials"]},
+                   {r["code"]: r["category_cn"] for r in rows["skills"]}, zone_ids)
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade, loot, crafting)}
+    for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships, trade, crafting).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files
 

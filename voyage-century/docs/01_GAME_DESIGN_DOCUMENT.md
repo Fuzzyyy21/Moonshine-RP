@@ -315,6 +315,12 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 
 **Offen**: alle Rezepte, Materiallisten, Sammelorte.
 
+**Umgesetzt (Phase 6, Iteration 3)** `[DESIGN]`, Regeln in `backend/src/VC.GameData/CraftingRules.cs` (getestet), Werte in `design_data/dev_crafting.json`
+* Sammelpunkt-Arten mit Skill (Bergbau, Holzfällerei, Landwirtschaft), Mindeststufe, Ausbeute-Spanne, Sammelzeit, Nachwachszeit und Skill-XP; erlaubt nur in ihren Zonen (Testzone). Der Zonen-Server lässt immer nur einen Spieler sammeln, bricht ab, wenn er sich bewegt, und erschöpft den Punkt erst, wenn das Backend bestätigt.
+* Rezepte mit Herstell-Skill und Mindeststufe, Materialliste, Ergebnis, Gebühr (Gold-Senke `CRAFT_FEE`) und Skill-XP. Herstellen ist sofort und alles oder nichts: fehlt Material, Gold oder Platz, ändert sich nichts. Material wird aus den kleinsten Stapeln genommen.
+* Testrezepte: Übungsschwert (3 Eisen, 1 Holz, 10 Gold, Schmieden 1), Übungsaxt (Schmieden 5), Segeltuch (3 Stoff, Schneiderei 1).
+* Noch nicht: Fischen (braucht Punkte auf See), Alchemie, Schiffbau, Qualität, Herstellzeit, Bonus der Skillstufe auf die Ausbeute.
+
 ---
 
 ## 15. Ausrüstung und Verfeinerung

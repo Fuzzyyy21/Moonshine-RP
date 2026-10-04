@@ -30,6 +30,8 @@
 #include "VCShip.h"
 #include "VCWorldData.h"
 #include "VCServerSettings.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
 namespace
 {
@@ -1424,7 +1426,7 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 		}
 		NpcCode = Merchant.ToString();
 	}
-	if (Command != TEXT("list") && Command != TEXT("unequip") && (!bHasId || ((Command == TEXT("sell") || Command == TEXT("discard")) && !bHasAmount)))
+	if (Command != TEXT("list") && Command != TEXT("unequip") && Command != TEXT("recipes") && Command != TEXT("craft") && (!bHasId || ((Command == TEXT("sell") || Command == TEXT("discard")) && !bHasAmount)))
 	{
 		Player->ClientMessage(TEXT("VCInventory | VCEquip <nr> | VCUnequip | VCDiscard <nr> <menge> | VCSellItem <nr> <menge>"));
 		return;
@@ -1432,6 +1434,82 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 	if (Command == TEXT("equip") && Cast<AVCShip>(Player->GetPawn()))
 	{
 		Player->ClientMessage(TEXT("Waffen wechseln nur an Land."));
+		return;
+	}
+	TWeakObjectPtr<AVCGameMode> WeakSelf(this);
+	TWeakObjectPtr<APlayerController> WeakPlayer(Player);
+	if (Command == TEXT("recipes"))
+	{
+		Session->bShipRequestInFlight = true;
+		FVCServerBackend::LoadRecipes(Session->CharacterId, Session->AccountId, [WeakSelf, WeakPlayer](const FVCHttpResult& Result)
+		{
+			APlayerController* PC = WeakPlayer.Get();
+			FPlayerSession* S = WeakSelf.IsValid() && PC ? WeakSelf->Sessions.Find(PC) : nullptr;
+			if (!S)
+			{
+				return;
+			}
+			S->bShipRequestInFlight = false;
+			TArray<TSharedPtr<FJsonValue>> Recipes;
+			if (!Result.IsOk() || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Result.Body), Recipes))
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Rezepte nicht verfügbar: %s"), *Result.ErrorMessage()));
+				return;
+			}
+			for (const TSharedPtr<FJsonValue>& Value : Recipes)
+			{
+				const TSharedPtr<FJsonObject> R = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!R.IsValid())
+				{
+					continue;
+				}
+				FString Materials;
+				for (const TSharedPtr<FJsonValue>& M : R->GetArrayField(TEXT("materials")))
+				{
+					const TSharedPtr<FJsonObject> Mat = M->AsObject();
+					FString Name;
+					if (!Mat->TryGetStringField(TEXT("nameDe"), Name) || Name.IsEmpty())
+					{
+						Name = Mat->GetStringField(TEXT("code"));
+					}
+					Materials += FString::Printf(TEXT("%s%d × %s (%d)"), Materials.IsEmpty() ? TEXT("") : TEXT(", "),
+						static_cast<int32>(Mat->GetNumberField(TEXT("quantity"))), *Name, static_cast<int32>(Mat->GetNumberField(TEXT("have"))));
+				}
+				PC->ClientMessage(FString::Printf(TEXT("%s %s – %s %d/%d, %s, Gebühr %lld"),
+					R->GetBoolField(TEXT("canCraft")) ? TEXT("✔") : TEXT("✘"), *R->GetStringField(TEXT("code")),
+					*R->GetStringField(TEXT("skill")), static_cast<int32>(R->GetNumberField(TEXT("skillLevel"))),
+					static_cast<int32>(R->GetNumberField(TEXT("requiredLevel"))), *Materials,
+					static_cast<int64>(R->GetNumberField(TEXT("goldCost")))));
+			}
+		});
+		return;
+	}
+	if (Command == TEXT("craft"))
+	{
+		// "DEV_RECIPE_SWORD 2" – Rezept und Anzahl; nur an Land [DESIGN].
+		int32 Times = 1;
+		if (Parts.Num() < 1 || Parts.Num() > 2 || (Parts.Num() == 2 && (!LexTryParseString(Times, *Parts[1]) || Times < 1)))
+		{
+			Player->ClientMessage(TEXT("VCCraft <REZEPT> [anzahl] (VCRecipes zeigt die Rezepte)"));
+			return;
+		}
+		if (Cast<AVCShip>(Player->GetPawn()))
+		{
+			Player->ClientMessage(TEXT("Herstellen geht nur an Land."));
+			return;
+		}
+		Session->bShipRequestInFlight = true;
+		FVCServerBackend::Craft(Session->CharacterId, Session->AccountId, Parts[0].ToUpper(), Times,
+			[WeakSelf, WeakPlayer](const FVCHttpResult& Result)
+			{
+				APlayerController* PC = WeakPlayer.Get();
+				FPlayerSession* S = WeakSelf.IsValid() && PC ? WeakSelf->Sessions.Find(PC) : nullptr;
+				if (S)
+				{
+					S->bShipRequestInFlight = false;
+					WeakSelf->ApplyCraftResult(PC, Result, true);
+				}
+			});
 		return;
 	}
 
@@ -1473,6 +1551,76 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 	else
 	{
 		FVCServerBackend::InventoryAction(Session->CharacterId, Session->AccountId, Command, InstanceId, Quantity, NpcCode, MoveTemp(Done));
+	}
+}
+
+void AVCGameMode::HandleGather(APawn* Pawn, FName NodeCode, TFunction<void(bool)> Done)
+{
+	APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
+	FPlayerSession* Session = PC ? Sessions.Find(PC) : nullptr;
+	if (!Session || !Session->bAuthenticated || !Session->bClaimed || Session->bTransferring)
+	{
+		Done(false);
+		return;
+	}
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(PC);
+	FVCServerBackend::Gather(Session->CharacterId, Session->AccountId, NodeCode.ToString(),
+		[WeakThis, WeakPC, Done = MoveTemp(Done)](const FVCHttpResult& Result)
+		{
+			Done(Result.IsOk()); // Punkt erschöpfen nur, wenn das Backend die Ausbeute bestätigt
+			if (WeakThis.IsValid() && WeakPC.IsValid())
+			{
+				WeakThis->ApplyCraftResult(WeakPC.Get(), Result, false);
+			}
+		});
+}
+
+void AVCGameMode::ApplyCraftResult(APlayerController* PC, const FVCHttpResult& Result, bool bCrafted)
+{
+	FPlayerSession* Session = PC ? Sessions.Find(PC) : nullptr;
+	if (!Session)
+	{
+		return;
+	}
+	if (!Result.IsOk() || !Result.Json.IsValid())
+	{
+		PC->ClientMessage(FString::Printf(TEXT("%s: %s"), bCrafted ? TEXT("Herstellen abgelehnt") : TEXT("Sammeln ohne Ertrag"),
+			*Result.ErrorMessage()));
+		return;
+	}
+	FString Name;
+	if (!Result.Json->TryGetStringField(TEXT("nameDe"), Name) || Name.IsEmpty())
+	{
+		Name = Result.Json->GetStringField(TEXT("itemCode"));
+	}
+	const int32 Quantity = static_cast<int32>(Result.Json->GetNumberField(TEXT("quantity")));
+	const int32 Lost = static_cast<int32>(Result.Json->GetNumberField(TEXT("lost")));
+	const int64 Fee = static_cast<int64>(Result.Json->GetNumberField(TEXT("goldCost")));
+	Session->Gold = static_cast<int64>(Result.Json->GetNumberField(TEXT("gold")));
+	FString Text = FString::Printf(TEXT("%s: %d × %s"), bCrafted ? TEXT("Hergestellt") : TEXT("Gesammelt"), Quantity, *Name);
+	if (Lost > 0)
+	{
+		Text += FString::Printf(TEXT(" (%d passten nicht ins Inventar)"), Lost);
+	}
+	if (Fee > 0)
+	{
+		Text += FString::Printf(TEXT(", Gebühr %lld Gold"), Fee);
+	}
+	PC->ClientMessage(Text);
+	const TSharedPtr<FJsonObject>* Skill = nullptr;
+	if (Result.Json->TryGetObjectField(TEXT("skill"), Skill) && Skill)
+	{
+		FVCSkillState State;
+		if (UVCProgressionComponent* Progression = ProgressionOf(PC); Progression && ParseSkill(*Skill, State))
+		{
+			Progression->ServerApplySkill(State);
+		}
+	}
+	const TSharedPtr<FJsonObject>* Inventory = nullptr;
+	if (Result.Json->TryGetObjectField(TEXT("inventory"), Inventory) && Inventory)
+	{
+		ApplyInventory(PC, *Inventory, false);
 	}
 }
 

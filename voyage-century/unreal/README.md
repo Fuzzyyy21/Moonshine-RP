@@ -185,6 +185,25 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Sammeln und Herstellen (Phase 6, Iteration 3)
+
+| Data Table | Row-Struktur | Pfad |
+|---|---|---|
+| `DT_GatherNodes.json` | `VCGatherNodeRow` | `/Game/Data/DT_GatherNodes` |
+
+In `L_DevTestZone` einige **VCGatherNode** platzieren (*Node Code* `DEV_NODE_IRON`, `DEV_NODE_TREE`, `DEV_NODE_FLAX`,
+`DEV_NODE_RICH_IRON`; Platzhalter-Zylinder mit Beschriftung).
+
+```
+E am Sammelpunkt                → „Sammle … (3 s, nicht bewegen)“, danach „Gesammelt: 2 × Holzscheit (Test)“; Punkt flach, wächst nach
+VCRecipes                       → ✔/✘ je Rezept mit Skillstufe, Material (Vorrat) und Gebühr
+VCAdmin "givegold 100"
+VCCraft DEV_RECIPE_SWORD        → 3 Eisen + 1 Holz + 10 Gold → Übungsschwert, Schmieden-XP
+VCCraft DEV_RECIPE_CANVAS 2     → 6 Stoff → 2 Segeltuch
+```
+
+Herstellen geht nur an Land; ob Skill, Material, Gold und Platz reichen, entscheidet das Backend.
+
 ## Inventar und Beute (Phase 6, Iteration 2)
 
 Keine neue Data Table: Items, Plätze und Beute kommen aus dem Backend (`design_data/dev_loot.json`). Die ausgerüstete

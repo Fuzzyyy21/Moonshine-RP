@@ -357,7 +357,7 @@ public static class InventoryEndpoints
             (int)Get("placed"), (int)Get("lost"), await Load(conn, tx, characterId, allowDev, ct)));
     }
 
-    private static async Task RecordOperation(
+    internal static async Task RecordOperation(
         NpgsqlConnection conn, NpgsqlTransaction tx, Guid key, long characterId, string kind, object result, string serverId,
         CancellationToken ct)
     {
@@ -407,7 +407,7 @@ public static class InventoryEndpoints
         return await cmd.ExecuteScalarAsync(ct) is long n ? (int)Math.Clamp(n, 0, 1000) : 0;
     }
 
-    private static async Task<List<InventorySlot>> Slots(NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, CancellationToken ct)
+    internal static async Task<List<InventorySlot>> Slots(NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, CancellationToken ct)
     {
         await using var cmd = new NpgsqlCommand(
             """
@@ -437,7 +437,7 @@ public static class InventoryEndpoints
         return null;
     }
 
-    private static async Task<int> Exec(
+    internal static async Task<int> Exec(
         NpgsqlConnection conn, NpgsqlTransaction tx, string sql, CancellationToken ct, params (string Name, object Value)[] parameters)
     {
         await using var cmd = new NpgsqlCommand(sql, conn, tx);

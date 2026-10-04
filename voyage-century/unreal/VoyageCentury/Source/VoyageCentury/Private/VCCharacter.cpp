@@ -26,6 +26,7 @@
 #include "VCAttributeSet.h"
 #include "VCCombatData.h"
 #include "VCCombatStateComponent.h"
+#include "VCGatherNode.h"
 #include "VCNpc.h"
 #include "VCPlayerController.h"
 #include "VCWorldData.h"
@@ -434,9 +435,10 @@ void AVCCharacter::ServerUseHotbarSlot_Implementation(int32 Slot, AActor* Target
 
 void AVCCharacter::Interact()
 {
-	// Nächster NPC in Reichweite; der Server prüft den Abstand erneut.
+	// Nächster NPC oder verfügbarer Sammelpunkt in Reichweite; der Server prüft den Abstand erneut.
 	const float Range = GetDefault<UVCWorldSettings>()->InteractRangeCm;
 	AVCNpc* Best = nullptr;
+	AVCGatherNode* BestNode = nullptr;
 	double BestDistSq = FMath::Square(static_cast<double>(Range));
 	for (TActorIterator<AVCNpc> It(GetWorld()); It; ++It)
 	{
@@ -447,10 +449,39 @@ void AVCCharacter::Interact()
 			Best = *It;
 		}
 	}
-	if (Best)
+	for (TActorIterator<AVCGatherNode> It(GetWorld()); It; ++It)
+	{
+		const double DistSq = FVector::DistSquared(GetActorLocation(), It->GetActorLocation());
+		if (It->IsAvailable() && DistSq <= BestDistSq)
+		{
+			BestDistSq = DistSq;
+			BestNode = *It;
+		}
+	}
+	if (BestNode)
+	{
+		ServerGather(BestNode);
+	}
+	else if (Best)
 	{
 		ServerInteract(Best);
 	}
+}
+
+void AVCCharacter::ServerGather_Implementation(AVCGatherNode* Node)
+{
+	constexpr double ToleranceCm = 50.0;
+	const double Range = GetDefault<UVCWorldSettings>()->InteractRangeCm + ToleranceCm;
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!Node || !PC || !IsAlive() || FVector::Dist(GetActorLocation(), Node->GetActorLocation()) > Range)
+	{
+		return;
+	}
+	const float Seconds = Node->ServerStartGather(this);
+	const FVCGatherNodeRow* Row = FVCWorldData::FindGatherNode(Node->NodeCode);
+	PC->ClientMessage(Seconds < 0.f
+		? FString(TEXT("Hier gibt es gerade nichts zu sammeln."))
+		: FString::Printf(TEXT("Sammle %s … (%.0f s, nicht bewegen)"), Row ? *Row->NameDe : *Node->NodeCode.ToString(), Seconds));
 }
 
 void AVCCharacter::ServerInteract_Implementation(AVCNpc* Npc)

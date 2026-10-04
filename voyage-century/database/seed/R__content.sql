@@ -354,8 +354,10 @@ ON CONFLICT (rule_key) DO UPDATE SET
 -- Inventar und Beute (design_data/dev_loot.json, is_dev = TRUE).
 
 INSERT INTO items (code, item_type, name_de, stackable, max_stack, npc_price, is_dev, confidence) VALUES
+    ('DEV_MAT_CANVAS', 'MATERIAL', 'Segeltuch (Test)', TRUE, 99, 12, TRUE, 'UNKNOWN'::confidence_level),
     ('DEV_MAT_CLOTH', 'MATERIAL', 'Stoffrest (Test)', TRUE, 99, 3, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_MAT_IRON', 'MATERIAL', 'Eisenstück (Test)', TRUE, 99, 8, TRUE, 'UNKNOWN'::confidence_level)
+    ('DEV_MAT_IRON', 'MATERIAL', 'Eisenstück (Test)', TRUE, 99, 8, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_MAT_WOOD', 'MATERIAL', 'Holzscheit (Test)', TRUE, 99, 2, TRUE, 'UNKNOWN'::confidence_level)
 ON CONFLICT (code) DO UPDATE SET
     item_type = EXCLUDED.item_type,
     name_de = EXCLUDED.name_de,
@@ -366,8 +368,10 @@ ON CONFLICT (code) DO UPDATE SET
     confidence = EXCLUDED.confidence;
 
 INSERT INTO materials (item_id, material_category) VALUES
+    ((SELECT item_id FROM items WHERE code = 'DEV_MAT_CANVAS'), 'CLOTH'),
     ((SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 'CLOTH'),
-    ((SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 'METAL')
+    ((SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 'METAL'),
+    ((SELECT item_id FROM items WHERE code = 'DEV_MAT_WOOD'), 'WOOD')
 ON CONFLICT (item_id) DO UPDATE SET
     material_category = EXCLUDED.material_category;
 
@@ -407,6 +411,58 @@ ON CONFLICT (rule_key) DO UPDATE SET
     int_value = EXCLUDED.int_value,
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
+
+-- Herstellen und Sammeln (design_data/dev_crafting.json, is_dev = TRUE).
+
+INSERT INTO recipes (code, name_de, required_skill_id, required_level, craft_time_seconds, result_item_id, result_quantity, gold_cost, skill_xp, is_dev, confidence) VALUES
+    ('DEV_RECIPE_AXE', 'Übungsaxt schmieden (Test)', (SELECT skill_id FROM skills WHERE code = 'FOUNDRY'), 5, 0, (SELECT item_id FROM items WHERE code = 'DEV_AXE'), 1, 15, 40, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_RECIPE_CANVAS', 'Segeltuch nähen (Test)', (SELECT skill_id FROM skills WHERE code = 'SEWING'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_MAT_CANVAS'), 1, 0, 15, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_RECIPE_SWORD', 'Übungsschwert schmieden (Test)', (SELECT skill_id FROM skills WHERE code = 'FOUNDRY'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_SWORD'), 1, 10, 30, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_de = EXCLUDED.name_de,
+    required_skill_id = EXCLUDED.required_skill_id,
+    required_level = EXCLUDED.required_level,
+    craft_time_seconds = EXCLUDED.craft_time_seconds,
+    result_item_id = EXCLUDED.result_item_id,
+    result_quantity = EXCLUDED.result_quantity,
+    gold_cost = EXCLUDED.gold_cost,
+    skill_xp = EXCLUDED.skill_xp,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO recipe_materials (recipe_id, item_id, quantity) VALUES
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_AXE'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 4),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_AXE'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_WOOD'), 2),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_CANVAS'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 3),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_SWORD'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 3),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_SWORD'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_WOOD'), 1)
+ON CONFLICT (recipe_id, item_id) DO UPDATE SET
+    quantity = EXCLUDED.quantity;
+
+INSERT INTO gather_nodes (code, name_de, skill_id, required_level, item_id, min_qty, max_qty, gather_seconds, respawn_seconds, skill_xp, is_dev, confidence) VALUES
+    ('DEV_NODE_FLAX', 'Flachsfeld (Test)', (SELECT skill_id FROM skills WHERE code = 'PLANTING'), 1, (SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 1, 3, 2, 20, 8, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_NODE_IRON', 'Eisenader (Test)', (SELECT skill_id FROM skills WHERE code = 'MINING'), 1, (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 1, 2, 3, 30, 10, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_NODE_RICH_IRON', 'Reiche Eisenader (Test)', (SELECT skill_id FROM skills WHERE code = 'MINING'), 5, (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 3, 5, 5, 60, 25, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_NODE_TREE', 'Baum (Test)', (SELECT skill_id FROM skills WHERE code = 'TIMBER'), 1, (SELECT item_id FROM items WHERE code = 'DEV_MAT_WOOD'), 2, 3, 3, 30, 10, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_de = EXCLUDED.name_de,
+    skill_id = EXCLUDED.skill_id,
+    required_level = EXCLUDED.required_level,
+    item_id = EXCLUDED.item_id,
+    min_qty = EXCLUDED.min_qty,
+    max_qty = EXCLUDED.max_qty,
+    gather_seconds = EXCLUDED.gather_seconds,
+    respawn_seconds = EXCLUDED.respawn_seconds,
+    skill_xp = EXCLUDED.skill_xp,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO gather_node_zones (gather_node_id, zone_id) VALUES
+    ((SELECT gather_node_id FROM gather_nodes WHERE code = 'DEV_NODE_FLAX'), 'DEV_TESTZONE'),
+    ((SELECT gather_node_id FROM gather_nodes WHERE code = 'DEV_NODE_IRON'), 'DEV_TESTZONE'),
+    ((SELECT gather_node_id FROM gather_nodes WHERE code = 'DEV_NODE_RICH_IRON'), 'DEV_TESTZONE'),
+    ((SELECT gather_node_id FROM gather_nodes WHERE code = 'DEV_NODE_TREE'), 'DEV_TESTZONE')
+ON CONFLICT (gather_node_id, zone_id) DO NOTHING;
 
 INSERT INTO level_table (level, xp_required, is_dev, recon_id, confidence) VALUES
     (1, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),

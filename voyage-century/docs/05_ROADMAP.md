@@ -141,7 +141,7 @@ Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Ma
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Werftmeister das Anfängerschiff erhalten; über den Hafen auf die Seezone → man steuert das Schiff; gegen den Wind keine Fahrt, mit halbem Wind am schnellsten; Proviant sinkt mit der Zeit; nach Neustart sind Schiff, Rumpf, Matrosen und Proviant gespeichert; ein zweites Anfängerschiff gibt es nicht.
 
-## Phase 6 – Wirtschaft (Iteration 2 fertig)
+## Phase 6 – Wirtschaft (Iteration 3 fertig)
 
 Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-Dashboard.
 
@@ -156,10 +156,16 @@ Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-D
 | Daten: zwei Testmaterialien, Ankaufspreise, Beutetabellen für Übungsgegner und Piratenschiff, Inventargröße; `V0013` (Goldbeute, `inventory_operations`, Beute im Kill) | ✅ It. 2 | Export `--check` (prüft Beute), Schematest |
 | Backend: Inventar, Waffe aus dem Inventar ausrüsten (Tausch), ablegen, wegwerfen, an den Händler verkaufen (Quelle `ITEM_SELL`), Admin-Vergabe mit Audit; Beute aus Kills ins Inventar, Gold als Quelle `LOOT_GOLD`; Waffe im Charakterzustand | ✅ It. 2 | `InventoryTests` (4 Tests) |
 | UE: `VCInventory`, `VCEquip`, `VCUnequip`, `VCDiscard`, `VCSellItem`, `VCAdmin "giveitem"`, Beutemeldung; Admin-`equip` entfällt | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
-| Crafting, Sammelberufe | ❌ Iteration 3 | Rezepte und Orte UNKNOWN |
+| Regeln (`CraftingRules`, Backend): Fehlmaterial je Durchlauf, Verbrauch kleinster Stapel zuerst, Ausbeute; Skill-XP-Vergabe intern nutzbar | ✅ It. 3 | `CraftingRulesTests` (3 Fälle) |
+| Daten: Sammelpunkte (Bergbau, Holzfällerei, Landwirtschaft) in der Testzone, drei Rezepte (Schmieden, Schneiderei), zwei Materialien; `V0014` (`gather_nodes`, Zonen, Rezept-XP) | ✅ It. 3 | Export `--check` (prüft Skill-Kategorien), Schematest |
+| Backend: Sammeln (Zone, Skillstufe, Ausbeute, Skill-XP), Rezepte mit Vorrat, Herstellen (Material, Gebühr `CRAFT_FEE`, Skill-XP; alles oder nichts), genau einmal je Schlüssel | ✅ It. 3 | `CraftingTests` (3 Tests) |
+| UE: `VCGatherNode` (Sammelzeit, Nachwachsen, ein Sammler), E sammelt, `VCRecipes`, `VCCraft`; `DT_GatherNodes` | ⚠️ It. 3, geschrieben, nicht kompiliert | lokal |
+| Fischen, Alchemie, Schiffbau, Qualität, Herstellzeit | ❌ | Orte, Rezepte, Qualitätsstufen UNKNOWN |
 | Haltbarkeit, Sockel, Verfeinerung | ❌ | Mechanik teils belegt (SYS-SOCKETING, SYS-REFINEMENT), Werte UNKNOWN |
 | Auktionshaus, Handel zwischen Spielern | ❌ | |
 | Ledger-Dashboard als Oberfläche | ❌ | Daten liegen über `/internal/v1/economy/summary` vor |
+
+**Abnahme Iteration 3 (Vorschlag)**: In der Testzone Baum und Eisenader mit E abbauen (stillstehen, Punkt ist danach erschöpft und wächst nach), Holzfällerei und Bergbau steigen; die reiche Ader verweigert unter Bergbau 5; mit 3 Eisen und 1 Holz ein Schwert schmieden (10 Gold Gebühr), ohne Material oder mit vollem Inventar passiert nichts; Wiederholungen buchen nichts doppelt.
 
 **Abnahme Iteration 2 (Vorschlag)**: Übungspirat besiegen → Beute erscheint im Inventar, Gold steigt; eine erbeutete Klinge ausrüsten, sie bleibt nach Neustart ausgerüstet; Material beim Händler verkaufen (Gold steigt genau einmal, auch bei Wiederholung); volles Inventar meldet verlorene Beute; ohne Inventar-Eintrag kann der Client keine Waffe ausrüsten.
 

@@ -328,13 +328,24 @@ bool AVCPlayerController::ServerInventoryCommand_Validate(const FString& Command
 void AVCPlayerController::ServerInventoryCommand_Implementation(const FString& Command, const FString& Argument)
 {
 	// Nur bekannte Befehle weiterreichen; Besitz, Art und Menge prüft das Backend.
-	static const TSet<FString> Allowed = { TEXT("list"), TEXT("equip"), TEXT("unequip"), TEXT("discard"), TEXT("sell") };
+	static const TSet<FString> Allowed = { TEXT("list"), TEXT("equip"), TEXT("unequip"), TEXT("discard"), TEXT("sell"), TEXT("recipes"),
+		TEXT("craft") };
 	UWorld* World = GetWorld();
 	IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr);
 	if (Hooks && Allowed.Contains(Command))
 	{
 		Hooks->HandleInventoryCommand(this, Command, Argument);
 	}
+}
+
+void AVCPlayerController::VCRecipes()
+{
+	ServerInventoryCommand(TEXT("recipes"), FString());
+}
+
+void AVCPlayerController::VCCraft(const FString& RecipeCode, const FString& Times)
+{
+	ServerInventoryCommand(TEXT("craft"), Times.IsEmpty() ? RecipeCode : RecipeCode + TEXT(" ") + Times);
 }
 
 void AVCPlayerController::VCMarket()

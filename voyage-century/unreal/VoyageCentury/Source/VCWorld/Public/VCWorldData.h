@@ -20,6 +20,9 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Daten", meta = (RequiredAssetDataTags = "RowStructure=/Script/VCData.VCDiscoveryRow"))
 	TSoftObjectPtr<UDataTable> DiscoveriesTable;
 
+	UPROPERTY(config, EditAnywhere, Category = "Daten", meta = (RequiredAssetDataTags = "RowStructure=/Script/VCData.VCGatherNodeRow"))
+	TSoftObjectPtr<UDataTable> GatherNodesTable;
+
 	/** Höchstabstand für das Ansprechen eines NPCs (Server prüft). Designwert, Original UNKNOWN. */
 	UPROPERTY(config, EditAnywhere, Category = "NPC", meta = (ClampMin = "50"))
 	float InteractRangeCm = 300.f;
@@ -31,6 +34,7 @@ class VCWORLD_API FVCWorldData
 public:
 	static const FVCNpcRow* FindNpc(FName Code);
 	static const FVCDiscoveryRow* FindDiscovery(FName Code);
+	static const FVCGatherNodeRow* FindGatherNode(FName Code);
 	/** Anzeigename: deutsch, sonst chinesisch, sonst Code. */
 	static FString NpcDisplayName(FName Code);
 };
