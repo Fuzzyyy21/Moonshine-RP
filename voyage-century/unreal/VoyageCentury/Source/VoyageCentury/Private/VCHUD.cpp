@@ -337,6 +337,11 @@ void AVCHUD::DrawNpcDialog()
 		Lines.Add(TEXT("Baut und verkauft Schiffe, übernimmt den Schiffsumbau."));
 		Lines.Add(TEXT("VCBuyShip <SCHIFF>, VCShipService <REPAIR|HEAL|HIRE n|PROVISIONS n>; Umbau folgt."));
 	}
+	else if (Row && Row->Role == EVCNpcRole::Auctioneer)
+	{
+		Lines.Add(TEXT("Auktionshaus für alle Häfen (Entwicklungs-NPC, im Original nicht belegt)."));
+		Lines.Add(TEXT("VCAuction [WARE], VCAuctionSell <nr> <menge> <preis>, VCAuctionBuy <angebot>, VCAuctionMine."));
+	}
 	else if (Row && Row->Role == EVCNpcRole::Merchant)
 	{
 		Lines.Add(TEXT("Kauft und verkauft Waren (Entwicklungs-NPC, Ort im Original UNKNOWN)."));

@@ -141,7 +141,7 @@ Schiffskauf beim Werftmeister, Segelmodell, Wind, Wasser, Schiffsausrüstung, Ma
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Werftmeister das Anfängerschiff erhalten; über den Hafen auf die Seezone → man steuert das Schiff; gegen den Wind keine Fahrt, mit halbem Wind am schnellsten; Proviant sinkt mit der Zeit; nach Neustart sind Schiff, Rumpf, Matrosen und Proviant gespeichert; ein zweites Anfängerschiff gibt es nicht.
 
-## Phase 6 – Wirtschaft (Iteration 3 fertig)
+## Phase 6 – Wirtschaft (Iteration 4 fertig)
 
 Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-Dashboard.
 
@@ -162,8 +162,14 @@ Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-D
 | UE: `VCGatherNode` (Sammelzeit, Nachwachsen, ein Sammler), E sammelt, `VCRecipes`, `VCCraft`; `DT_GatherNodes` | ⚠️ It. 3, geschrieben, nicht kompiliert | lokal |
 | Fischen, Alchemie, Schiffbau, Qualität, Herstellzeit | ❌ | Orte, Rezepte, Qualitätsstufen UNKNOWN |
 | Haltbarkeit, Sockel, Verfeinerung | ❌ | Mechanik teils belegt (SYS-SOCKETING, SYS-REFINEMENT), Werte UNKNOWN |
-| Auktionshaus, Handel zwischen Spielern | ❌ | |
+| Regeln (`AuctionRules`, Backend): Einstellgebühr (aufgerundet, Mindestgebühr), Verkaufssteuer (abgerundet), Preisgrenzen, abgeleitete Ledger-Schlüssel | ✅ It. 4 | `AuctionRulesTests` (4 Fälle) |
+| Daten: Gebühr 2 %, Steuer 5 %, Laufzeit 24 h, 10 Angebote je Spieler; Auktionatoren in London und Athen; `V0015` (`market_listings` erweitert) | ✅ It. 4 | Export `--check`, Schematest |
+| Backend: einstellen (Stapel teilbar, Gebühr als Senke), suchen, kaufen (Verkäufer erhält Preis − Steuer, Steuer als Senke, Einzelstücke behalten ihr Exemplar), zurückziehen, Abgelaufenes abholen; Sperrreihenfolge, genau einmal je Schlüssel | ✅ It. 4 | `AuctionTests` (5 Tests) |
+| UE: Auktionator-Rolle, `VCAuction`, `VCAuctionSell`, `VCAuctionBuy`, `VCAuctionMine`, `VCAuctionCancel`, `VCAuctionCollect` | ⚠️ It. 4, geschrieben, nicht kompiliert | lokal |
+| Direkter Handel zwischen zwei Spielern (Handelsfenster), Post | ❌ | Phase 7 (Sozial) |
 | Ledger-Dashboard als Oberfläche | ❌ | Daten liegen über `/internal/v1/economy/summary` vor |
+
+**Abnahme Iteration 4 (Vorschlag)**: Spieler A stellt beim Auktionator 10 Stoff für 1000 Gold ein (20 Gold Gebühr); Spieler B findet das Angebot mit `VCAuction DEV_MAT_CLOTH`, kauft es in einer anderen Stadt (Auktionshaus für alle Häfen), B zahlt 1000, A erhält 950, 50 verlassen das Spiel; ein wiederholter Kauf bucht nichts doppelt; ein abgelaufenes Angebot ist nicht mehr kaufbar und kommt mit `VCAuctionCollect` zurück; die Wirtschaftsübersicht zeigt Gebühr und Steuer als Senken.
 
 **Abnahme Iteration 3 (Vorschlag)**: In der Testzone Baum und Eisenader mit E abbauen (stillstehen, Punkt ist danach erschöpft und wächst nach), Holzfällerei und Bergbau steigen; die reiche Ader verweigert unter Bergbau 5; mit 3 Eisen und 1 Holz ein Schwert schmieden (10 Gold Gebühr), ohne Material oder mit vollem Inventar passiert nichts; Wiederholungen buchen nichts doppelt.
 

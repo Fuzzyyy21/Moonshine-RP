@@ -22,6 +22,17 @@
     "bIsDev": false
   },
   {
+    "Name": "DEV_ATHENS_AUCTIONEER",
+    "NameZh": "",
+    "NameEn": "",
+    "NameDe": "Auktionator (Test)",
+    "ReconId": "",
+    "Confidence": "Unknown",
+    "Role": "Auctioneer",
+    "CityCode": "ATHENS",
+    "bIsDev": true
+  },
+  {
     "Name": "DEV_ATHENS_MERCHANT",
     "NameZh": "",
     "NameEn": "",
@@ -30,6 +41,17 @@
     "Confidence": "Unknown",
     "Role": "Merchant",
     "CityCode": "ATHENS",
+    "bIsDev": true
+  },
+  {
+    "Name": "DEV_LONDON_AUCTIONEER",
+    "NameZh": "",
+    "NameEn": "",
+    "NameDe": "Auktionator (Test)",
+    "ReconId": "",
+    "Confidence": "Unknown",
+    "Role": "Auctioneer",
+    "CityCode": "LONDON",
     "bIsDev": true
   },
   {

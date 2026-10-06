@@ -32,6 +32,8 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCAdmin "giveitem <ITEM> [menge]"
  *   VCRecipes | VCCraft <REZEPT> [anzahl]                Rezepte; herstellen (Material, Gebühr, Skill prüft das Backend)
  *   E an einem Sammelpunkt                               sammeln (Sammelzeit stillstehen)
+ *   VCAuction [WARE] | VCAuctionMine                     Auktionshaus durchsuchen / eigene Angebote
+ *   VCAuctionSell <nr> <menge> <preis> | VCAuctionBuy <angebot> | VCAuctionCancel <angebot> | VCAuctionCollect  (beim Auktionator)
  *
  * Passwörter in der Konsole sind nur für die Entwicklung gedacht; die Login-Oberfläche folgt.
  */
@@ -132,6 +134,24 @@ public:
 
 	UFUNCTION(Exec)
 	void VCCraft(const FString& RecipeCode, const FString& Times);
+
+	UFUNCTION(Exec)
+	void VCAuction(const FString& ItemCode);
+
+	UFUNCTION(Exec)
+	void VCAuctionMine();
+
+	UFUNCTION(Exec)
+	void VCAuctionSell(const FString& InstanceId, const FString& Quantity, const FString& Price);
+
+	UFUNCTION(Exec)
+	void VCAuctionBuy(const FString& ListingId);
+
+	UFUNCTION(Exec)
+	void VCAuctionCancel(const FString& ListingId);
+
+	UFUNCTION(Exec)
+	void VCAuctionCollect();
 
 protected:
 	UFUNCTION(Server, Reliable, WithValidation)

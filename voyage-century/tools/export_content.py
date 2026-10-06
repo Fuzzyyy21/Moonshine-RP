@@ -310,7 +310,7 @@ def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: lis
 
 
 def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict,
-               world: dict, discoveries: dict, ships: dict, trade: dict, loot: dict, crafting: dict) -> str:
+               world: dict, discoveries: dict, ships: dict, trade: dict, loot: dict, crafting: dict, auction: dict) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
     city_zones = {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]}
 
@@ -475,6 +475,15 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
         upsert("gather_node_zones", ("gather_node_id", "zone_id"), ["gather_node_id", "zone_id"],
                [{"gather_node_id": SqlExpr(f"(SELECT gather_node_id FROM gather_nodes WHERE code = {sql_literal(n['code'])})"),
                  "zone_id": zone} for n in sorted(crafting["gather_nodes"], key=lambda n: n["code"]) for zone in sorted(n["zones"])]),
+        "-- Auktionshaus (design_data/dev_auction.json, is_dev = TRUE).\n",
+        upsert("npcs", "code", ["code", "name_de", "npc_role", "port_id", "zone_id", "is_dev", "confidence"],
+               [{"code": a["code"], "name_de": a["name_de"], "npc_role": "AUCTION",
+                 "port_id": SqlExpr(f"(SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = {sql_literal(a['city'])})"),
+                 "zone_id": city_zones[a["city"]], "is_dev": True, "confidence": "UNKNOWN"}
+                for a in sorted(auction["auctioneers"], key=lambda a: a["code"])]),
+        upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
+               [{"rule_key": f"AUCTION_{key.upper()}", "int_value": value, "is_dev": True, "confidence": "UNKNOWN"}
+                for key, value in sorted(auction["tuning"].items())]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -552,6 +561,21 @@ def check_crafting(crafting: dict, item_codes: set[str], skill_categories: dict[
             problems.append(f"{r['code']}: Menge ≥ 1, Gebühr ≥ 0, Stufe ≥ 1, Zeit ≥ 0")
     if problems:
         raise SystemExit("design_data/dev_crafting.json:\n  " + "\n  ".join(problems))
+
+
+def check_auction(auction: dict, zone_cities: set[str], port_cities: set[str]) -> None:
+    problems = []
+    t = auction["tuning"]
+    if set(t) != AUCTION_TUNING_KEYS or not all(isinstance(v, int) for v in t.values()):
+        problems.append(f"tuning: genau {sorted(AUCTION_TUNING_KEYS)} als Ganzzahlen")
+    elif not (0 <= t["fee_permille"] <= 1000 and 0 <= t["tax_permille"] <= 1000 and t["min_fee"] >= 0
+              and t["duration_hours"] > 0 and t["max_listings"] > 0):
+        problems.append("tuning: Promille 0 … 1000, Mindestgebühr ≥ 0, Laufzeit und Anzahl > 0")
+    for a in auction["auctioneers"]:
+        if not a["code"].startswith("DEV_") or a["city"] not in zone_cities or a["city"] not in port_cities:
+            problems.append(f"{a['code']}: DEV_-Code und Stadt mit Zone und Hafen nötig")
+    if problems:
+        raise SystemExit("design_data/dev_auction.json:\n  " + "\n  ".join(problems))
 
 
 def check_loot(loot: dict, item_codes: set[str], monster_codes: set[str]) -> None:
@@ -640,14 +664,15 @@ def check_ships(ships: dict, class_codes: set[str], zone_ids: set[str]) -> None:
         raise SystemExit("design_data/dev_ships.json:\n  " + "\n  ".join(problems))
 
 
-NPC_ROLE_UE = {"SHIPYARD": "Shipyard", "OFFICER_EXCHANGE": "OfficerExchange", "MERCHANT": "Merchant"}
+NPC_ROLE_UE = {"SHIPYARD": "Shipyard", "OFFICER_EXCHANGE": "OfficerExchange", "MERCHANT": "Merchant", "AUCTION": "Auctioneer"}
+AUCTION_TUNING_KEYS = {"fee_permille", "min_fee", "tax_permille", "duration_hours", "max_listings"}
 
 
 SHIP_CLASS_UE = {"BATTLE": "Battle", "RAIDER": "Raider", "MERCHANT": "Merchant", "BEGINNER": "Beginner"}
 
 
 def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abilities: dict,
-              discoveries: dict, ships: dict, trade: dict, crafting: dict) -> dict[str, list[dict]]:
+              discoveries: dict, ships: dict, trade: dict, crafting: dict, auction: dict) -> dict[str, list[dict]]:
     t = ships["tuning"]
     return {
         "DT_Ships.json": sorted(
@@ -685,7 +710,10 @@ def render_ue(rows: dict[str, list[dict]], appearance: dict, combat: dict, abili
             for n in sorted([{**n, "is_dev": False} for n in rows["npcs"]]
                             + [{"code": m["code"], "zh": None, "en": None, "de": m["name_de"], "recon_id": "",
                                 "confidence": "UNKNOWN", "role": "MERCHANT", "city": m["city"], "is_dev": True}
-                               for m in trade["merchants"]], key=lambda n: n["code"])
+                               for m in trade["merchants"]]
+                            + [{"code": a["code"], "zh": None, "en": None, "de": a["name_de"], "recon_id": "",
+                                "confidence": "UNKNOWN", "role": "AUCTION", "city": a["city"], "is_dev": True}
+                               for a in auction["auctioneers"]], key=lambda n: n["code"])
         ],
         "DT_GatherNodes.json": [
             {"Name": n["code"], "NameDe": n["name_de"], "SkillCode": n["skill"], "RequiredLevel": n["required_level"],
@@ -786,8 +814,11 @@ def outputs() -> dict[Path, str]:
     crafting = json.loads((DESIGN_DIR / "dev_crafting.json").read_text(encoding="utf-8"))
     check_crafting(crafting, {w["code"] for w in combat["weapons"] if w["class"] != "UNARMED"} | {m["code"] for m in loot["materials"]},
                    {r["code"]: r["category_cn"] for r in rows["skills"]}, zone_ids)
-    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade, loot, crafting)}
-    for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships, trade, crafting).items():
+    auction = json.loads((DESIGN_DIR / "dev_auction.json").read_text(encoding="utf-8"))
+    check_auction(auction, {strip_prefix(z["city"]) for z in world["zones"] if z["city"]}, {p["city"] for p in rows["ports"]})
+    files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade, loot, crafting,
+                                   auction)}
+    for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships, trade, crafting, auction).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files
 

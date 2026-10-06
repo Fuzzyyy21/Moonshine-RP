@@ -95,6 +95,7 @@ public static partial class GameDataApp
         TradeEndpoints.Map(internalApi);
         InventoryEndpoints.Map(internalApi);
         CraftingEndpoints.Map(internalApi);
+        AuctionEndpoints.Map(internalApi);
         return app;
     }
 

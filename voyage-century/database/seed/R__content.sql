@@ -464,6 +464,30 @@ INSERT INTO gather_node_zones (gather_node_id, zone_id) VALUES
     ((SELECT gather_node_id FROM gather_nodes WHERE code = 'DEV_NODE_TREE'), 'DEV_TESTZONE')
 ON CONFLICT (gather_node_id, zone_id) DO NOTHING;
 
+-- Auktionshaus (design_data/dev_auction.json, is_dev = TRUE).
+
+INSERT INTO npcs (code, name_de, npc_role, port_id, zone_id, is_dev, confidence) VALUES
+    ('DEV_ATHENS_AUCTIONEER', 'Auktionator (Test)', 'AUCTION', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'ATHENS'), 'CITY_ATHENS', TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_LONDON_AUCTIONEER', 'Auktionator (Test)', 'AUCTION', (SELECT port_id FROM ports JOIN cities USING (city_id) WHERE cities.code = 'LONDON'), 'CITY_LONDON', TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_de = EXCLUDED.name_de,
+    npc_role = EXCLUDED.npc_role,
+    port_id = EXCLUDED.port_id,
+    zone_id = EXCLUDED.zone_id,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO game_rules (rule_key, int_value, is_dev, confidence) VALUES
+    ('AUCTION_DURATION_HOURS', 24, TRUE, 'UNKNOWN'::confidence_level),
+    ('AUCTION_FEE_PERMILLE', 20, TRUE, 'UNKNOWN'::confidence_level),
+    ('AUCTION_MAX_LISTINGS', 10, TRUE, 'UNKNOWN'::confidence_level),
+    ('AUCTION_MIN_FEE', 1, TRUE, 'UNKNOWN'::confidence_level),
+    ('AUCTION_TAX_PERMILLE', 50, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (rule_key) DO UPDATE SET
+    int_value = EXCLUDED.int_value,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO level_table (level, xp_required, is_dev, recon_id, confidence) VALUES
     (1, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),
     (2, 100, TRUE, NULL, 'UNKNOWN'::confidence_level),

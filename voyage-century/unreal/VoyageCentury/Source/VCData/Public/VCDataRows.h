@@ -276,7 +276,9 @@ enum class EVCNpcRole : uint8
 	Shipyard,
 	OfficerExchange,
 	/** Händler am Markt; im Original ohne belegten Ort, daher nur als Entwicklungs-NPC (bIsDev). */
-	Merchant
+	Merchant,
+	/** Auktionator (Auktionshaus für alle Häfen); im Original nicht belegt, nur als Entwicklungs-NPC. */
+	Auctioneer
 };
 
 /** NPC (DT_Npcs). Einzelne Namen sind UNKNOWN; der Name ist der Rollentitel der Quelle. */

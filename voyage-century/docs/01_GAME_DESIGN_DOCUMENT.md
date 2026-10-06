@@ -298,6 +298,12 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Gold: Kauf beim Händler ist eine Senke (`TRADE_BUY`), Verkauf eine Quelle (`TRADE_SELL`). Die Wirtschaftsübersicht zählt Quellen und Senken je Tag und Grund.
 * Offen: Wirkung der Rhetorik (Preisbonus), Aufstieg von Handelsschiffen durch Handel, echte Waren und Preise.
 
+**Umgesetzt (Phase 6, Iteration 4)** `[DESIGN]`, Regeln in `backend/src/VC.GameData/AuctionRules.cs` (getestet), Werte in `design_data/dev_auction.json`
+* Ein Auktionshaus für alle Häfen, bedient vom Auktionator (Entwicklungs-NPC in London und Athen; im Original nicht belegt). Suchen und eigene Angebote ansehen geht überall, Einstellen, Kaufen, Zurückziehen und Abholen nur beim Auktionator.
+* Einstellen: ganzer Stapel oder Teil davon, Preis 1 … 1 Mrd. Gold, Gebühr 2 % (aufgerundet, mindestens 1) als Senke `AUCTION_FEE`, nie erstattet. Laufzeit 24 h, höchstens 10 offene Angebote je Spieler. Gebundene oder nicht handelbare Items gehen nicht.
+* Kaufen: Der Käufer zahlt den Preis; der Verkäufer erhält ihn sofort abzüglich 5 % Steuer (abgerundet), auch wenn er offline ist. Gold zwischen Spielern ist ein Transfer (`AUCTION_BUY`/`AUCTION_SALE`), die Steuer eine Senke (`AUCTION_TAX`). Einzelstücke wie Waffen behalten ihr Exemplar.
+* Abgelaufene Angebote sind nicht mehr kaufbar; der Verkäufer holt sie beim Auktionator ab (so weit Platz ist). Zurückziehen geht jederzeit.
+
 **Umgesetzt (Phase 6, Iteration 2)** `[DESIGN]`, Regeln in `backend/src/VC.GameData/InventoryRules.cs` (getestet), Werte in `design_data/dev_loot.json`
 * Inventar mit 30 Plätzen; stapelbare Items füllen erst vorhandene Stapel, dann den niedrigsten freien Platz. Was nicht passt, geht verloren und wird gemeldet (kein Boden-Loot).
 * Ausgerüstete Waffe ist ein Item (EQUIPMENT/WEAPON); Ausrüsten tauscht mit der bisherigen. Damit kann der Client keine Waffe mehr behaupten, die er nicht besitzt.

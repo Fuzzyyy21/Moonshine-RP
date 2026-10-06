@@ -399,7 +399,7 @@ public static class InventoryEndpoints
     }
 
     /// <summary>Inventargröße aus game_rules (INVENTORY_SLOTS, im Original UNKNOWN); fehlt sie, 0 = kein Platz.</summary>
-    private static async Task<int> Capacity(NpgsqlConnection conn, NpgsqlTransaction tx, bool allowDev, CancellationToken ct)
+    internal static async Task<int> Capacity(NpgsqlConnection conn, NpgsqlTransaction tx, bool allowDev, CancellationToken ct)
     {
         await using var cmd = new NpgsqlCommand(
             "SELECT int_value FROM game_rules WHERE rule_key = 'INVENTORY_SLOTS' AND (NOT is_dev OR @dev)", conn, tx);

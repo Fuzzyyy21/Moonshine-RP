@@ -87,6 +87,9 @@ private:
 	/** Antwort von Sammeln/Herstellen melden: Ausbeute, Verlust, Gebühr, Skill-Fortschritt, Inventar. */
 	void ApplyCraftResult(APlayerController* PC, const FVCHttpResult& Result, bool bCrafted);
 
+	/** Auktionshaus-Befehle (Argument zerlegt: Unterbefehl und Werte). */
+	void HandleAuction(APlayerController* Player, const TArray<FString>& Parts);
+
 	struct FPlayerSession
 	{
 		FString Ticket;

@@ -80,6 +80,9 @@ public:
 	static void LoadRecipes(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback);
 	/** Herstellen (alles oder nichts). Antwort wie Gather plus goldCost, gold. */
 	static void Craft(int64 CharacterId, int64 AccountId, const FString& RecipeCode, int32 Times, FVCHttpCallback Callback);
+	/** Auktionshaus. Action: search (Argument = Ware oder leer), mine, list, buy, cancel, collect. Antwort je Endpunkt. */
+	static void Auction(int64 CharacterId, int64 AccountId, const FString& Action, const FString& NpcCode, int64 Id, int32 Quantity,
+		int64 Price, const FString& ItemCode, FVCHttpCallback Callback);
 	/** Admin: Item ins Inventar; Rechte, Vergabe und Audit im Backend. Antwort: placed, lost, inventory. */
 	static void AdminGrantItem(int64 CharacterId, const FString& ItemCode, int32 Quantity, const TSharedRef<FJsonObject>& AdminContext,
 		FVCHttpCallback Callback);

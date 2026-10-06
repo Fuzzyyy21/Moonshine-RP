@@ -226,6 +226,48 @@ void FVCServerBackend::Craft(int64 CharacterId, int64 AccountId, const FString& 
 	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/craft"), Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::Auction(int64 CharacterId, int64 AccountId, const FString& Action, const FString& NpcCode, int64 Id, int32 Quantity,
+	int64 Price, const FString& ItemCode, FVCHttpCallback Callback)
+{
+	if (Action == TEXT("search"))
+	{
+		FString Url = FString::Printf(TEXT("%s/internal/v1/auction?characterId=%lld&accountId=%lld"), *UVCBackendSettings::GetGameDataBaseUrl(),
+			CharacterId, AccountId);
+		if (!ItemCode.IsEmpty())
+		{
+			Url += TEXT("&itemCode=") + FGenericPlatformHttp::UrlEncode(ItemCode);
+		}
+		FVCHttp::Send(TEXT("GET"), Url, nullptr, Headers(), MoveTemp(Callback));
+		return;
+	}
+	if (Action == TEXT("mine"))
+	{
+		FVCHttp::Send(TEXT("GET"), FString::Printf(TEXT("%s/auction?accountId=%lld"), *CharacterUrl(CharacterId), AccountId), nullptr,
+			Headers(), MoveTemp(Callback));
+		return;
+	}
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetStringField(TEXT("npcCode"), NpcCode);
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FString Path;
+	if (Action == TEXT("list"))
+	{
+		Body->SetNumberField(TEXT("instanceId"), static_cast<double>(Id));
+		Body->SetNumberField(TEXT("quantity"), Quantity);
+		Body->SetNumberField(TEXT("price"), static_cast<double>(Price));
+		Path = TEXT("/auction/list");
+	}
+	else if (Action == TEXT("collect"))
+	{
+		Path = TEXT("/auction/collect");
+	}
+	else
+	{
+		Path = FString::Printf(TEXT("/auction/%lld/%s"), Id, *Action); // buy, cancel
+	}
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + Path, Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::AdminGrantItem(int64 CharacterId, const FString& ItemCode, int32 Quantity, const TSharedRef<FJsonObject>& AdminContext,
 	FVCHttpCallback Callback)
 {
@@ -374,6 +416,7 @@ void FVCServerBackend::AdminGrantGold(int64, int64, const TSharedRef<FJsonObject
 void FVCServerBackend::ViewMarket(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadInventory(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Gather(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::Auction(int64, int64, const FString&, const FString&, int64, int32, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadRecipes(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Craft(int64, int64, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::InventoryAction(int64, int64, const FString&, int64, int32, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }

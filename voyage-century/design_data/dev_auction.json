@@ -1,0 +1,15 @@
+{
+  "_comment": "DESIGNENTSCHEIDUNG (Priorität 6). Ein Auktionshaus des Originals ist nicht belegt (Gebühren, Steuern, Laufzeit, Ort UNKNOWN); GDD 13 sieht es als Gold-Senke mit Einstellgebühr und Verkaufssteuer vor. Ein Auktionshaus für alle Häfen; Auktionatoren als Entwicklungs-NPCs (DEV_, is_dev) in London und Athen.",
+  "source": "SRC-DESIGN",
+  "tuning": {
+    "fee_permille": 20,
+    "min_fee": 1,
+    "tax_permille": 50,
+    "duration_hours": 24,
+    "max_listings": 10
+  },
+  "auctioneers": [
+    { "code": "DEV_LONDON_AUCTIONEER", "city": "LONDON", "name_de": "Auktionator (Test)" },
+    { "code": "DEV_ATHENS_AUCTIONEER", "city": "ATHENS", "name_de": "Auktionator (Test)" }
+  ]
+}

@@ -1411,6 +1411,11 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 	}
 	TArray<FString> Parts;
 	Argument.ParseIntoArrayWS(Parts);
+	if (Command == TEXT("auction"))
+	{
+		HandleAuction(Player, Parts);
+		return;
+	}
 	int64 InstanceId = 0;
 	int32 Quantity = 0;
 	const bool bHasId = Parts.Num() >= 1 && LexTryParseString(InstanceId, *Parts[0]) && InstanceId > 0;
@@ -1552,6 +1557,116 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 	{
 		FVCServerBackend::InventoryAction(Session->CharacterId, Session->AccountId, Command, InstanceId, Quantity, NpcCode, MoveTemp(Done));
 	}
+}
+
+void AVCGameMode::HandleAuction(APlayerController* Player, const TArray<FString>& Parts)
+{
+	// "search [WARE]", "mine", "list <nr> <menge> <preis>", "buy <angebot>", "cancel <angebot>", "collect"
+	FPlayerSession* Session = Sessions.Find(Player);
+	const FString Sub = Parts.Num() > 0 ? Parts[0].ToLower() : FString();
+	int64 Id = 0, Price = 0;
+	int32 Quantity = 0;
+	const bool bValid = (Sub == TEXT("search") && Parts.Num() <= 2) || ((Sub == TEXT("mine") || Sub == TEXT("collect")) && Parts.Num() == 1)
+		|| (Sub == TEXT("list") && Parts.Num() == 4 && LexTryParseString(Id, *Parts[1]) && LexTryParseString(Quantity, *Parts[2])
+			&& LexTryParseString(Price, *Parts[3]) && Quantity > 0 && Price > 0)
+		|| ((Sub == TEXT("buy") || Sub == TEXT("cancel")) && Parts.Num() == 2 && LexTryParseString(Id, *Parts[1]) && Id > 0);
+	if (!Session || !bValid)
+	{
+		Player->ClientMessage(TEXT("VCAuction [WARE] | VCAuctionMine | VCAuctionSell <nr> <menge> <preis> | VCAuctionBuy <angebot> | VCAuctionCancel <angebot> | VCAuctionCollect"));
+		return;
+	}
+	// Suchen und eigene Angebote ansehen geht überall; alles mit Item- oder Goldbewegung beim Auktionator.
+	FString NpcCode;
+	if (Sub != TEXT("search") && Sub != TEXT("mine"))
+	{
+		const FName Auctioneer = FindNpcInRange(Player, EVCNpcRole::Auctioneer);
+		if (Auctioneer.IsNone())
+		{
+			Player->ClientMessage(TEXT("Das geht beim Auktionator (in Reichweite stehen)."));
+			return;
+		}
+		NpcCode = Auctioneer.ToString();
+	}
+	const FString ItemCode = Sub == TEXT("search") && Parts.Num() == 2 ? Parts[1].ToUpper() : FString();
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(Player);
+	Session->bShipRequestInFlight = true;
+	FVCServerBackend::Auction(Session->CharacterId, Session->AccountId, Sub, NpcCode, Id, Quantity, Price, ItemCode,
+		[WeakThis, WeakPC, Sub](const FVCHttpResult& Result)
+		{
+			APlayerController* PC = WeakPC.Get();
+			FPlayerSession* S = WeakThis.IsValid() && PC ? WeakThis->Sessions.Find(PC) : nullptr;
+			if (!S)
+			{
+				return;
+			}
+			S->bShipRequestInFlight = false;
+			if (!Result.IsOk())
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Auktionshaus: %s"), *Result.ErrorMessage()));
+				return;
+			}
+			if (Sub == TEXT("search") || Sub == TEXT("mine"))
+			{
+				TArray<TSharedPtr<FJsonValue>> Listings;
+				FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Result.Body), Listings);
+				PC->ClientMessage(Listings.IsEmpty() ? FString(TEXT("Keine Angebote.")) : FString::Printf(TEXT("%d Angebote:"), Listings.Num()));
+				for (const TSharedPtr<FJsonValue>& Value : Listings)
+				{
+					const TSharedPtr<FJsonObject> L = Value.IsValid() ? Value->AsObject() : nullptr;
+					if (!L.IsValid())
+					{
+						continue;
+					}
+					FString Name;
+					if (!L->TryGetStringField(TEXT("nameDe"), Name) || Name.IsEmpty())
+					{
+						Name = L->GetStringField(TEXT("itemCode"));
+					}
+					PC->ClientMessage(FString::Printf(TEXT("  Angebot %lld: %d × %s für %lld Gold – %s%s"),
+						static_cast<int64>(L->GetNumberField(TEXT("listingId"))), static_cast<int32>(L->GetNumberField(TEXT("quantity"))), *Name,
+						static_cast<int64>(L->GetNumberField(TEXT("price"))),
+						L->GetBoolField(TEXT("mine")) ? TEXT("eigenes") : *L->GetStringField(TEXT("seller")),
+						L->GetStringField(TEXT("status")) == TEXT("OPEN") ? TEXT("") : *(TEXT(" [") + L->GetStringField(TEXT("status")) + TEXT("]"))));
+				}
+				return;
+			}
+			if (!Result.Json.IsValid())
+			{
+				return;
+			}
+			double Gold = 0.0;
+			if (Result.Json->TryGetNumberField(TEXT("gold"), Gold))
+			{
+				S->Gold = static_cast<int64>(Gold);
+			}
+			if (Sub == TEXT("list"))
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Eingestellt als Angebot %lld, Gebühr %lld Gold. Gold: %lld"),
+					static_cast<int64>(Result.Json->GetNumberField(TEXT("listingId"))), static_cast<int64>(Result.Json->GetNumberField(TEXT("fee"))),
+					S->Gold));
+			}
+			else if (Sub == TEXT("collect"))
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Zurückgeholt: %d (noch %d, Inventar voll)"),
+					static_cast<int32>(Result.Json->GetNumberField(TEXT("returned"))), static_cast<int32>(Result.Json->GetNumberField(TEXT("pending")))));
+			}
+			else
+			{
+				FString Name;
+				if (!Result.Json->TryGetStringField(TEXT("nameDe"), Name) || Name.IsEmpty())
+				{
+					Name = Result.Json->GetStringField(TEXT("itemCode"));
+				}
+				PC->ClientMessage(FString::Printf(TEXT("%s: %d × %s. Gold: %lld"), Sub == TEXT("buy") ? TEXT("Gekauft") : TEXT("Zurückgezogen"),
+					static_cast<int32>(Result.Json->GetNumberField(TEXT("quantity"))), *Name, S->Gold));
+			}
+			const TSharedPtr<FJsonObject>* Inventory = nullptr;
+			if (Result.Json->TryGetObjectField(TEXT("inventory"), Inventory) && Inventory)
+			{
+				WeakThis->ApplyInventory(PC, *Inventory, false);
+			}
+		});
 }
 
 void AVCGameMode::HandleGather(APawn* Pawn, FName NodeCode, TFunction<void(bool)> Done)

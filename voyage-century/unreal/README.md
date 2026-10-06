@@ -185,6 +185,20 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Auktionshaus (Phase 6, Iteration 4)
+
+`DT_Npcs` neu importieren (Rolle `Auctioneer`). In `L_London` einen **VCNpc** `DEV_LONDON_AUCTIONEER`, in `L_Athens`
+`DEV_ATHENS_AUCTIONEER` platzieren.
+
+```
+VCInventory                          → Nummern der Items
+VCAuctionSell <nr> 10 1000           → beim Auktionator: 10 Stück für 1000 Gold einstellen (2 % Gebühr)
+VCAuction DEV_MAT_CLOTH              → überall: Angebote, billigste zuerst (ohne Ware: alle)
+VCAuctionBuy <angebot>               → beim Auktionator kaufen (Verkäufer erhält 95 %)
+VCAuctionMine                        → eigene Angebote mit Status
+VCAuctionCancel <angebot> | VCAuctionCollect → zurückziehen / Abgelaufenes zurückholen
+```
+
 ## Sammeln und Herstellen (Phase 6, Iteration 3)
 
 | Data Table | Row-Struktur | Pfad |

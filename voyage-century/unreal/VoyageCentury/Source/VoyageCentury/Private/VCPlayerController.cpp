@@ -329,7 +329,7 @@ void AVCPlayerController::ServerInventoryCommand_Implementation(const FString& C
 {
 	// Nur bekannte Befehle weiterreichen; Besitz, Art und Menge prüft das Backend.
 	static const TSet<FString> Allowed = { TEXT("list"), TEXT("equip"), TEXT("unequip"), TEXT("discard"), TEXT("sell"), TEXT("recipes"),
-		TEXT("craft") };
+		TEXT("craft"), TEXT("auction") };
 	UWorld* World = GetWorld();
 	IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr);
 	if (Hooks && Allowed.Contains(Command))
@@ -346,6 +346,36 @@ void AVCPlayerController::VCRecipes()
 void AVCPlayerController::VCCraft(const FString& RecipeCode, const FString& Times)
 {
 	ServerInventoryCommand(TEXT("craft"), Times.IsEmpty() ? RecipeCode : RecipeCode + TEXT(" ") + Times);
+}
+
+void AVCPlayerController::VCAuction(const FString& ItemCode)
+{
+	ServerInventoryCommand(TEXT("auction"), ItemCode.IsEmpty() ? FString(TEXT("search")) : TEXT("search ") + ItemCode);
+}
+
+void AVCPlayerController::VCAuctionMine()
+{
+	ServerInventoryCommand(TEXT("auction"), TEXT("mine"));
+}
+
+void AVCPlayerController::VCAuctionSell(const FString& InstanceId, const FString& Quantity, const FString& Price)
+{
+	ServerInventoryCommand(TEXT("auction"), FString::Printf(TEXT("list %s %s %s"), *InstanceId, *Quantity, *Price));
+}
+
+void AVCPlayerController::VCAuctionBuy(const FString& ListingId)
+{
+	ServerInventoryCommand(TEXT("auction"), TEXT("buy ") + ListingId);
+}
+
+void AVCPlayerController::VCAuctionCancel(const FString& ListingId)
+{
+	ServerInventoryCommand(TEXT("auction"), TEXT("cancel ") + ListingId);
+}
+
+void AVCPlayerController::VCAuctionCollect()
+{
+	ServerInventoryCommand(TEXT("auction"), TEXT("collect"));
 }
 
 void AVCPlayerController::VCMarket()
