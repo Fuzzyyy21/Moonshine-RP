@@ -2050,14 +2050,27 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 		}
 		NpcCode = Merchant.ToString();
 	}
-	if (Command != TEXT("list") && Command != TEXT("unequip") && Command != TEXT("recipes") && Command != TEXT("craft") && (!bHasId || ((Command == TEXT("sell") || Command == TEXT("discard")) && !bHasAmount)))
+	// Sockeln und Verfeinern: "<teil>" (drill), "<teil> <edelstein>" (socket), "<teil> <stein> <edelstein>" (refine).
+	const bool bUpgrade = Command == TEXT("drill") || Command == TEXT("socket") || Command == TEXT("refine");
+	int64 SecondId = 0, ThirdId = 0;
+	if (bUpgrade)
+	{
+		const int32 Needed = Command == TEXT("drill") ? 1 : Command == TEXT("socket") ? 2 : 3;
+		if (!bHasId || Parts.Num() != Needed || (Needed >= 2 && (!LexTryParseString(SecondId, *Parts[1]) || SecondId <= 0))
+			|| (Needed == 3 && (!LexTryParseString(ThirdId, *Parts[2]) || ThirdId <= 0)))
+		{
+			Player->ClientMessage(TEXT("VCDrill <teil> | VCSocket <teil> <edelstein> | VCRefine <teil> <stein> <edelstein> (Nummern aus VCInventory)"));
+			return;
+		}
+	}
+	else if (Command != TEXT("list") && Command != TEXT("unequip") && Command != TEXT("recipes") && Command != TEXT("craft") && (!bHasId || ((Command == TEXT("sell") || Command == TEXT("discard")) && !bHasAmount)))
 	{
 		Player->ClientMessage(TEXT("VCInventory | VCEquip <nr> | VCUnequip [PLATZ] | VCDiscard <nr> <menge> | VCSellItem <nr> <menge>"));
 		return;
 	}
-	if ((Command == TEXT("equip") || Command == TEXT("unequip")) && Cast<AVCShip>(Player->GetPawn()))
+	if ((Command == TEXT("equip") || Command == TEXT("unequip") || bUpgrade) && Cast<AVCShip>(Player->GetPawn()))
 	{
-		Player->ClientMessage(TEXT("Ausrüstung wechseln nur an Land."));
+		Player->ClientMessage(TEXT("Ausrüstung wechseln und bearbeiten nur an Land."));
 		return;
 	}
 	TWeakObjectPtr<AVCGameMode> WeakSelf(this);
@@ -2162,15 +2175,32 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 		{
 			S->Gold = static_cast<int64>(Gold);
 			Result.Json->TryGetNumberField(TEXT("total"), Total);
-			PC->ClientMessage(Command == TEXT("sell")
-				? FString::Printf(TEXT("Verkauft für %lld Gold. Gold: %lld"), static_cast<int64>(Total), S->Gold)
-				: FString(TEXT("Weggeworfen.")));
+			if (Command == TEXT("sell"))
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Verkauft für %lld Gold. Gold: %lld"), static_cast<int64>(Total), S->Gold));
+			}
+			else if (Command == TEXT("discard"))
+			{
+				PC->ClientMessage(TEXT("Weggeworfen."));
+			}
+			else
+			{
+				const TCHAR* What = Command == TEXT("drill") ? TEXT("Sockel gebohrt") : Command == TEXT("socket") ? TEXT("Edelstein eingesetzt") : TEXT("Verfeinert");
+				PC->ClientMessage(FString::Printf(TEXT("%s (Gebühr %lld). Gold: %lld"), What, static_cast<int64>(Total), S->Gold));
+			}
 		}
 		WeakThis->ApplyInventory(PC, Inventory, Command == TEXT("list"));
 	};
 	if (Command == TEXT("list"))
 	{
 		FVCServerBackend::LoadInventory(Session->CharacterId, Session->AccountId, MoveTemp(Done));
+	}
+	else if (bUpgrade)
+	{
+		// socket: zweite Nummer = Edelstein; refine: zweite = Verfeinerungsstein, dritte = Edelstein.
+		const int64 GemId = Command == TEXT("socket") ? SecondId : ThirdId;
+		const int64 StoneId = Command == TEXT("refine") ? SecondId : 0;
+		FVCServerBackend::UpgradeItem(Session->CharacterId, Session->AccountId, Command, InstanceId, GemId, StoneId, MoveTemp(Done));
 	}
 	else if (Command == TEXT("unequip"))
 	{
@@ -2395,8 +2425,32 @@ void AVCGameMode::ApplyInventory(APlayerController* PC, const TSharedPtr<FJsonOb
 			Weapon = FName(*Item->GetStringField(TEXT("code")));
 		}
 		Used += bEquipped ? 0 : 1;
-		Lines.Add(FString::Printf(TEXT("  [%s] Nr. %lld %s × %d"), bEquipped ? *Slot : *FString::Printf(TEXT("Platz %s"), *Slot),
-			static_cast<int64>(Item->GetNumberField(TEXT("instanceId"))), *Name, static_cast<int32>(Item->GetNumberField(TEXT("quantity")))));
+		// Verfeinerung "+N" und Sockel "[Stein|leer]" (gebohrt/höchstens).
+		FString Extra;
+		double Refinement = 0.0, SocketMax = 0.0;
+		if (Item->TryGetNumberField(TEXT("refinement"), Refinement) && Refinement > 0.0)
+		{
+			Extra += FString::Printf(TEXT(" +%d"), static_cast<int32>(Refinement));
+		}
+		const TArray<TSharedPtr<FJsonValue>>* Sockets = nullptr;
+		const bool bHasSockets = Item->TryGetArrayField(TEXT("sockets"), Sockets) && Sockets;
+		if (Item->TryGetNumberField(TEXT("socketMax"), SocketMax) && SocketMax > 0.0)
+		{
+			TArray<FString> Gems;
+			for (int32 Index = 0; bHasSockets && Index < Sockets->Num(); ++Index)
+			{
+				FString Gem;
+				Gems.Add((*Sockets)[Index].IsValid() && (*Sockets)[Index]->TryGetString(Gem) ? Gem : FString(TEXT("leer")));
+			}
+			Extra += FString::Printf(TEXT(" Sockel %d/%d"), Gems.Num(), static_cast<int32>(SocketMax));
+			if (Gems.Num() > 0)
+			{
+				Extra += TEXT(" [") + FString::Join(Gems, TEXT(", ")) + TEXT("]");
+			}
+		}
+		Lines.Add(FString::Printf(TEXT("  [%s] Nr. %lld %s × %d%s"), bEquipped ? *Slot : *FString::Printf(TEXT("Platz %s"), *Slot),
+			static_cast<int64>(Item->GetNumberField(TEXT("instanceId"))), *Name, static_cast<int32>(Item->GetNumberField(TEXT("quantity"))),
+			*Extra));
 	}
 	if (bPrint)
 	{

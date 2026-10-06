@@ -74,6 +74,9 @@ public:
 	/** Action: equip, unequip (InstanceId), discard, sell (InstanceId, Quantity; sell mit NpcCode). Antwort: Inventar bzw. gold, total, inventory. */
 	static void InventoryAction(int64 CharacterId, int64 AccountId, const FString& Action, int64 InstanceId, int32 Quantity,
 		const FString& NpcCode, FVCHttpCallback Callback);
+	/** Action drill, socket (GemId), refine (StoneId, GemId); 0 = nicht gesetzt. Antwort: gold, total (Gebühr), inventory. */
+	static void UpgradeItem(int64 CharacterId, int64 AccountId, const FString& Action, int64 InstanceId, int64 GemId, int64 StoneId,
+		FVCHttpCallback Callback);
 	/** Teil aus einem Platz ablegen (leer = WEAPON). Antwort: Inventar mit bonus und sets. */
 	static void Unequip(int64 CharacterId, int64 AccountId, const FString& Slot, FVCHttpCallback Callback);
 	/** Sammeln abgeschlossen. Antwort: itemCode, nameDe, quantity, lost, skill, inventory. */

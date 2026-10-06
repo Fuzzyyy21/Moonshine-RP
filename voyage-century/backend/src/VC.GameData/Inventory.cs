@@ -6,10 +6,13 @@ using VC.Common.Logging;
 
 namespace VC.GameData;
 
-/// <summary>Location INVENTORY (Slot = Platznummer) oder EQUIPMENT (Slot = z. B. WEAPON).</summary>
+/// <summary>
+/// Location INVENTORY (Slot = Platznummer) oder EQUIPMENT (Slot = z. B. WEAPON). Refinement: Verfeinerungsstufe; Sockets: Code
+/// des Edelsteins je gebohrtem Sockel (null = leer); SocketMax: höchstens bohrbar (null = keine Sockel).
+/// </summary>
 public sealed record InventoryItem(
     long InstanceId, string Code, string? NameDe, string ItemType, string? WeaponClass, int Quantity, string Location, string? Slot,
-    long? NpcPrice);
+    long? NpcPrice, int Refinement = 0, List<string?>? Sockets = null, int? SocketMax = null);
 /// <summary>
 /// Capacity 0 = Inventargröße unbekannt (kein Inventar, nie Ersatzwerte). Bonus: Werte aus Ausrüstung und Setboni,
 /// Sets: getragene Sets mit erreichten Bonusstufen.
@@ -366,7 +369,7 @@ public static class InventoryEndpoints
             : null;
     }
 
-    private static async Task<IResult?> Duplicate(
+    internal static async Task<IResult?> Duplicate(
         NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, Guid key, bool allowDev, CancellationToken ct)
     {
         await using var cmd = new NpgsqlCommand(
@@ -408,7 +411,10 @@ public static class InventoryEndpoints
         await using var cmd = new NpgsqlCommand(
             """
             SELECT ii.item_instance_id, i.code, i.name_de, i.item_type, i.weapon_class, ii.quantity, ii.location_type::text, ii.slot,
-                   i.npc_price
+                   i.npc_price, ii.refinement_level, i.socket_max,
+                   (SELECT coalesce(jsonb_agg(g.code ORDER BY x.o), '[]'::jsonb)
+                    FROM jsonb_array_elements(ii.sockets) WITH ORDINALITY AS x(e, o)
+                    LEFT JOIN items g ON g.item_id = (x.e ->> 'gem_item_id')::int)::text
             FROM item_instances ii JOIN items i USING (item_id)
             WHERE ii.owner_character_id = @chr AND ii.location_type IN ('INVENTORY', 'EQUIPMENT')
             ORDER BY ii.location_type, length(ii.slot), ii.slot
@@ -419,9 +425,11 @@ public static class InventoryEndpoints
         {
             while (await r.ReadAsync(ct))
             {
+                var sockets = JsonSerializer.Deserialize<List<string?>>(r.GetString(11)) ?? [];
                 items.Add(new InventoryItem(r.GetInt64(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3),
                     r.IsDBNull(4) ? null : r.GetString(4), r.GetInt32(5), r.GetString(6), r.IsDBNull(7) ? null : r.GetString(7),
-                    r.IsDBNull(8) ? null : r.GetInt64(8)));
+                    r.IsDBNull(8) ? null : r.GetInt64(8), r.GetInt16(9), sockets.Count > 0 ? sockets : null,
+                    r.IsDBNull(10) ? null : r.GetInt16(10)));
             }
         }
         var (bonus, sets) = await Equipment(conn, tx, characterId, allowDev, ct);
@@ -429,18 +437,23 @@ public static class InventoryEndpoints
     }
 
     /// <summary>
-    /// Werte der getragenen Ausrüstung samt Setboni (EquipmentRules). Werte-Schlüssel maxHealth, attackPower, defense in
-    /// items.base_stats und item_sets.bonuses; andere Schlüssel (z. B. Waffenschaden) zählen hier nicht. tx darf null sein.
+    /// Werte der getragenen Ausrüstung samt Edelsteinen, Verfeinerung (ItemUpgradeRules) und Setboni (EquipmentRules).
+    /// Werte-Schlüssel maxHealth, attackPower, defense in items.base_stats und item_sets.bonuses; andere Schlüssel (z. B.
+    /// Waffenschaden) zählen hier nicht. tx darf null sein.
     /// </summary>
     internal static async Task<(StatBonus Bonus, List<WornSet> Sets)> Equipment(
         NpgsqlConnection conn, NpgsqlTransaction? tx, long characterId, bool allowDev, CancellationToken ct)
     {
+        var tuning = await ItemUpgradeEndpoints.LoadTuning(conn, tx, allowDev, ct)
+            ?? new UpgradeTuning(0, 0, 0, 0, 0); // ohne Werte wirkt Verfeinerung nicht
         var pieces = new List<EquippedPiece>();
         var tiers = new Dictionary<string, IReadOnlyList<SetBonusTier>>();
         var names = new Dictionary<string, string?>();
         await using (var cmd = new NpgsqlCommand(
             """
-            SELECT ii.slot, s.code, s.name_de, i.base_stats::text, s.bonuses::text
+            SELECT ii.slot, s.code, s.name_de, i.base_stats::text, s.bonuses::text, i.item_type, ii.refinement_level,
+                   (SELECT coalesce(jsonb_agg(g.base_stats), '[]'::jsonb)
+                    FROM jsonb_array_elements(ii.sockets) AS x(e) JOIN items g ON g.item_id = (x.e ->> 'gem_item_id')::int)::text
             FROM item_instances ii JOIN items i USING (item_id)
             LEFT JOIN item_sets s ON s.set_id = i.set_id AND (NOT s.is_dev OR @dev)
             WHERE ii.owner_character_id = @chr AND ii.location_type = 'EQUIPMENT' AND ii.slot IS NOT NULL
@@ -452,7 +465,10 @@ public static class InventoryEndpoints
             while (await r.ReadAsync(ct))
             {
                 var set = r.IsDBNull(1) ? null : r.GetString(1);
-                pieces.Add(new EquippedPiece(r.GetString(0), set, r.IsDBNull(3) ? StatBonus.Zero : ParseStats(r.GetString(3))));
+                using var gems = JsonDocument.Parse(r.GetString(7));
+                var stats = ItemUpgradeRules.PieceStats(r.IsDBNull(3) ? StatBonus.Zero : ParseStats(r.GetString(3)),
+                    gems.RootElement.EnumerateArray().Select(ParseStats).ToList(), r.GetString(5) == "WEAPON", r.GetInt16(6), tuning);
+                pieces.Add(new EquippedPiece(r.GetString(0), set, stats));
                 if (set is not null && !names.ContainsKey(set))
                 {
                     names[set] = r.IsDBNull(2) ? null : r.GetString(2);
@@ -465,13 +481,13 @@ public static class InventoryEndpoints
             tiers[a.Code].Select(t => t.Pieces).ToList())).ToList());
     }
 
-    private static StatBonus ParseStats(string json)
+    internal static StatBonus ParseStats(string json)
     {
         using var doc = JsonDocument.Parse(json);
         return ParseStats(doc.RootElement);
     }
 
-    private static StatBonus ParseStats(JsonElement e)
+    internal static StatBonus ParseStats(JsonElement e)
     {
         int Get(string name) =>
             e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number
@@ -519,7 +535,7 @@ public static class InventoryEndpoints
         return slots;
     }
 
-    private static int? FirstFree(List<InventorySlot> slots, int capacity)
+    internal static int? FirstFree(List<InventorySlot> slots, int capacity)
     {
         var used = slots.Select(s => s.Slot).ToHashSet();
         for (var slot = 0; slot < capacity; slot++)

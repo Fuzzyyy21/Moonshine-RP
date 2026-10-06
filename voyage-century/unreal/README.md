@@ -185,6 +185,19 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Sockeln und Verfeinern (Phase 8, Iteration 2)
+
+```
+VCAdmin "giveitem DEV_GEM_ATTACK_1 2"   → Edelsteine (ebenso DEV_GEM_HEALTH_1, DEV_REFINE_STONE_1, DEV_REFINE_STONE_2 …)
+VCDrill <teil>                          → Sockel bohren (50, 100, 150 Gold; höchstens so viele, wie das Teil hat)
+VCSocket <teil> <edelstein>             → Edelstein in den nächsten freien Sockel (je Attribut nur einer pro Teil)
+VCRefine <teil> <stein> <edelstein>     → verfeinern: Stein der nächsten Stufe, Edelstein höher als der letzte
+VCInventory                             → zeigt +N und Sockel [Stein, leer] je Teil
+```
+
+Nur an Land. Abgelehnte Versuche verbrauchen nichts; Werte von Edelsteinen und Verfeinerung kommen über den Ausrüstungsbonus in
+die Kampfwerte.
+
 ## Ausrüstung und Sets (Phase 8, Iteration 1)
 
 ```

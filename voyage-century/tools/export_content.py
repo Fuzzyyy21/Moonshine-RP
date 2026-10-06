@@ -463,13 +463,24 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
                [{"code": st["code"], "name_de": st["name_de"], "level": st["level"],
                  "bonuses": {str(b["pieces"]): b["stats"] for b in st["bonuses"]}, "is_dev": True, "confidence": "UNKNOWN"}
                 for st in sorted(equipment["sets"], key=lambda st: st["code"])]),
-        upsert("items", "code", ["code", "item_type", "equip_slot", "name_de", "level_req", "base_stats", "set_id", "npc_price",
-                                 "is_dev", "confidence"],
+        upsert("items", "code", ["code", "item_type", "equip_slot", "name_de", "level_req", "base_stats", "set_id", "socket_max",
+                                 "npc_price", "is_dev", "confidence"],
                [{"code": i["code"], "item_type": i["item_type"], "equip_slot": i["slot"], "name_de": i["name_de"],
                  "level_req": i["level_req"], "base_stats": i["stats"],
                  "set_id": SqlExpr(f"(SELECT set_id FROM item_sets WHERE code = {sql_literal(i['set'])})") if i["set"] else None,
-                 "npc_price": i["npc_price"], "is_dev": True, "confidence": "UNKNOWN"}
+                 "socket_max": i["sockets"], "npc_price": i["npc_price"], "is_dev": True, "confidence": "UNKNOWN"}
                 for i in sorted(equipment["items"], key=lambda i: i["code"])]),
+        upsert("items", "code", ["code", "item_type", "name_de", "tier", "base_stats", "stackable", "max_stack", "npc_price", "is_dev",
+                                 "confidence"],
+               [{"code": g["code"], "item_type": kind, "name_de": g["name_de"], "tier": g["tier"], "base_stats": g.get("stats"),
+                 "stackable": True, "max_stack": 99, "npc_price": g["npc_price"], "is_dev": True, "confidence": "UNKNOWN"}
+                for kind, g in sorted([("GEM", g) for g in equipment["gems"]] + [("REFINE_STONE", st) for st in equipment["refine_stones"]],
+                                      key=lambda e: e[1]["code"])]),
+        "".join(f"UPDATE items SET socket_max = {sql_literal(equipment['weapon_socket_max'])} WHERE code = {sql_literal(w['code'])};\n"
+                for w in combat["weapons"] if w["class"] != "UNARMED"),
+        upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
+               [{"rule_key": key, "int_value": equipment["upgrade"][field], "is_dev": True, "confidence": "UNKNOWN"}
+                for key, field in sorted(UPGRADE_RULES.items())]),
         "-- Herstellen und Sammeln (design_data/dev_crafting.json, is_dev = TRUE).\n",
         upsert("recipes", "code", ["code", "name_de", "required_skill_id", "required_level", "craft_time_seconds", "result_item_id",
                                    "result_quantity", "gold_cost", "skill_xp", "is_dev", "confidence"],
@@ -592,6 +603,10 @@ def check_crafting(crafting: dict, item_codes: set[str], skill_categories: dict[
 
 
 STAT_KEYS = {"maxHealth", "attackPower", "defense"}
+UPGRADE_RULES = {"SOCKET_DRILL_GOLD": "socket_drill_gold", "REFINE_GOLD_PER_LEVEL": "refine_gold_per_level",
+                 "REFINE_MAX": "refine_max", "REFINE_WEAPON_ATTACK": "refine_weapon_attack",
+                 "REFINE_ARMOR_DEFENSE": "refine_armor_defense"}
+MAX_SOCKETS_OBSERVED = 3  # SYS-SOCKETING
 
 
 def check_equipment(equipment: dict, item_codes: set[str], skill_categories: dict[str, str | None]) -> None:
@@ -621,7 +636,26 @@ def check_equipment(equipment: dict, item_codes: set[str], skill_categories: dic
         worn = [i["slot"] for i in equipment["items"] if i["set"] == st["code"]]
         if len(worn) != len(set(worn)) or (st["bonuses"] and st["bonuses"][-1]["pieces"] > len(worn)):
             problems.append(f"{st['code']}: je Platz ein Teil, höchste Bonusstufe erreichbar")
-    codes = item_codes | {i["code"] for i in equipment["items"]}
+    up = equipment["upgrade"]
+    if set(up) != set(UPGRADE_RULES.values()) or not all(isinstance(v, int) and v >= 0 for v in up.values()):
+        problems.append(f"upgrade: genau {sorted(UPGRADE_RULES.values())} als Ganzzahlen ≥ 0")
+    for i in equipment["items"]:
+        if not 0 <= i["sockets"] <= MAX_SOCKETS_OBSERVED:
+            problems.append(f"{i['code']}: Sockel 0 … {MAX_SOCKETS_OBSERVED}")
+    if not 0 <= equipment["weapon_socket_max"] <= MAX_SOCKETS_OBSERVED:
+        problems.append(f"weapon_socket_max: 0 … {MAX_SOCKETS_OBSERVED}")
+    for g in equipment["gems"]:
+        if not g["code"].startswith("DEV_") or not TAG_RE.match(g["code"]) or g["tier"] < 1 or g["npc_price"] < 0 \
+                or not stats_ok(g["stats"]) or sum(1 for v in g["stats"].values() if v) != 1:
+            problems.append(f"{g['code']}: DEV_-Code, Stufe ≥ 1, Preis ≥ 0, genau ein Attribut")
+    tiers = sorted(st["tier"] for st in equipment["refine_stones"])
+    for st in equipment["refine_stones"]:
+        if not st["code"].startswith("DEV_") or not TAG_RE.match(st["code"]) or st["tier"] < 1 or st["npc_price"] < 0:
+            problems.append(f"{st['code']}: DEV_-Code, Stufe ≥ 1, Preis ≥ 0")
+    if tiers != list(range(1, len(tiers) + 1)):
+        problems.append("refine_stones: Stufen 1, 2, 3 … ohne Lücke und doppelte")
+    codes = item_codes | {i["code"] for i in equipment["items"]} | {g["code"] for g in equipment["gems"]} \
+        | {st["code"] for st in equipment["refine_stones"]}
     for r in equipment["recipes"]:
         if not r["code"].startswith("DEV_") or skill_categories.get(r["skill"]) != "PRODUCTION" or r["result"] not in codes:
             problems.append(f"{r['code']}: DEV_-Code, Herstell-Skill (Kategorie PRODUCTION) und bekanntes Ergebnis nötig")

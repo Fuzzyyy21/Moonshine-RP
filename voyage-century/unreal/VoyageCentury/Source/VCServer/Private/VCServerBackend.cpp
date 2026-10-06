@@ -203,6 +203,23 @@ void FVCServerBackend::InventoryAction(int64 CharacterId, int64 AccountId, const
 	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/inventory/") + Action, Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::UpgradeItem(int64 CharacterId, int64 AccountId, const FString& Action, int64 InstanceId, int64 GemId,
+	int64 StoneId, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetNumberField(TEXT("instanceId"), static_cast<double>(InstanceId));
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	if (GemId > 0)
+	{
+		Body->SetNumberField(TEXT("gemInstanceId"), static_cast<double>(GemId));
+	}
+	if (StoneId > 0)
+	{
+		Body->SetNumberField(TEXT("stoneInstanceId"), static_cast<double>(StoneId));
+	}
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/inventory/") + Action, Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::Unequip(int64 CharacterId, int64 AccountId, const FString& Slot, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
@@ -596,6 +613,7 @@ void FVCServerBackend::LoadRecipes(int64, int64, FVCHttpCallback Callback) { Ref
 void FVCServerBackend::Craft(int64, int64, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::InventoryAction(int64, int64, const FString&, int64, int32, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Unequip(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::UpgradeItem(int64, int64, const FString&, int64, int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminGrantItem(int64, const FString&, int32, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Trade(int64, int64, const FString&, const FString&, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }

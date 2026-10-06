@@ -310,6 +310,21 @@ void AVCPlayerController::VCUnequip(const FString& Slot)
 	ServerInventoryCommand(TEXT("unequip"), Slot);
 }
 
+void AVCPlayerController::VCDrill(const FString& InstanceId)
+{
+	ServerInventoryCommand(TEXT("drill"), InstanceId);
+}
+
+void AVCPlayerController::VCSocket(const FString& InstanceId, const FString& GemId)
+{
+	ServerInventoryCommand(TEXT("socket"), InstanceId + TEXT(" ") + GemId);
+}
+
+void AVCPlayerController::VCRefine(const FString& InstanceId, const FString& StoneId, const FString& GemId)
+{
+	ServerInventoryCommand(TEXT("refine"), InstanceId + TEXT(" ") + StoneId + TEXT(" ") + GemId);
+}
+
 void AVCPlayerController::VCDiscard(const FString& InstanceId, const FString& Quantity)
 {
 	ServerInventoryCommand(TEXT("discard"), InstanceId + TEXT(" ") + Quantity);
@@ -329,7 +344,7 @@ void AVCPlayerController::ServerInventoryCommand_Implementation(const FString& C
 {
 	// Nur bekannte Befehle weiterreichen; Besitz, Art und Menge prüft das Backend.
 	static const TSet<FString> Allowed = { TEXT("list"), TEXT("equip"), TEXT("unequip"), TEXT("discard"), TEXT("sell"), TEXT("recipes"),
-		TEXT("craft"), TEXT("auction") };
+		TEXT("craft"), TEXT("auction"), TEXT("drill"), TEXT("socket"), TEXT("refine") };
 	UWorld* World = GetWorld();
 	IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr);
 	if (Hooks && Allowed.Contains(Command))

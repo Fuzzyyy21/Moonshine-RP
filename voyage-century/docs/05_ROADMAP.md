@@ -210,7 +210,7 @@ Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 
 **Abnahme Iteration 1 (Vorschlag)**: Zwei Spieler auf verschiedenen Servern (Testzone und Athen): `VCWorld "Hallo"` erscheint bei beiden innerhalb von etwa einer Sekunde, `VCSay` nur in 50 m Umkreis; `VCWhisper` erreicht den anderen Server, nach `VCIgnore` nicht mehr; ein dritter WORLD-Satz in 10 s wird abgelehnt; `VCFriends` zeigt den anderen online mit Zone; ein Admin schaltet per `mute` stumm (Audit-Eintrag), `announce` erscheint bei allen als [System].
 
-## Phase 8 – Endgame (Iteration 1 fertig)
+## Phase 8 – Endgame (Iteration 2 fertig)
 
 Stufenbänder 180+ bis zum belegten Cap; Inhalte erst nach Klärung des aktuellen Caps (`CONTRA-002`). Belegt und ohne Cap umsetzbar:
 Ausrüstungssets mit Stufe (148/150/155/168) und Ausrüstungs-Synthese; Werte, Boni und Rezepte des Originals sind UNKNOWN.
@@ -221,10 +221,16 @@ Ausrüstungssets mit Stufe (148/150/155/168) und Ausrüstungs-Synthese; Werte, B
 | Daten (`dev_equipment.json`): Plätze HEAD/BODY/HANDS/FEET, Übungsset mit 4 Teilen und Boni ab 2 und 4 Teilen, Elitehut Stufe 160, Synthese-Rezepte mit Synthesestein (Beute); `V0020` (`item_sets.is_dev`, Prüfungen für Platz und Stufe) | ✅ It. 1 | Export `--check` (prüft Sets, Teile, Rezepte), Schematest |
 | Backend: Ausrüsten aller Plätze mit Tausch und Stufenprüfung, Ablegen je Platz, Inventar und Charakterzustand liefern Bonus und getragene Sets; Synthese über die Herstellung | ✅ It. 1 | `InventoryTests` (2 neue Tests), `CraftingTests` (1 neuer Test) |
 | UE: Ausrüstungsbonus in den Kampfwerten (beim Login und nach jeder Inventar-Antwort), `VCUnequip [PLATZ]`, `VCInventory` zeigt Sets und Bonus | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal |
-| Echte Sets (Königs-, Sidonia-, Thomas-, Talos-Set) mit Teilen und Boni, Seltenheit, Verfeinerung, Sockel | ❌ | Werte UNKNOWN |
+| Regeln (`ItemUpgradeRules`, Backend): Sockel bohren bis zum Maximum des Teils (steigende Gebühr), Edelstein mit genau einem Attribut, verschiedene Attribute je Teil; Verfeinern mit Stein der nächsten Stufe und höherem Edelstein, Höchststufe, Wirkung je Stufe | ✅ It. 2 | `ItemUpgradeRulesTests` (4 Fälle) |
+| Daten (`dev_equipment.json`): Sockel je Teil (Waffen 3, beobachtetes Maximum), 5 Edelsteine (Stufe 1–2), Verfeinerungssteine 1–3, Gebühren, Höchststufe 10, +3 Angriff (Waffe) / +2 Verteidigung (sonst) je Stufe, Synthese von Edelstein und Stein; `V0021` (`items.tier`, `refine_gem_tier`, Sockel als Array, Aktionen DRILL/SOCKET/REFINE) | ✅ It. 2 | Export `--check` (prüft Sockelzahl ≤ 3, ein Attribut je Edelstein, Steinstufen lückenlos), Schematest |
+| Backend: bohren, sockeln, verfeinern (Teil im Inventar oder getragen; Steine verbraucht; Gebühr als Senke `SOCKET_DRILL`/`ITEM_REFINE`; genau einmal; Fehlschlag verbraucht nichts); Edelsteine und Verfeinerung zählen im Ausrüstungsbonus; Inventar zeigt Stufe und Sockel | ✅ It. 2 | `ItemUpgradeTests` (2 Tests) |
+| UE: `VCDrill`, `VCSocket`, `VCRefine` (nur an Land), `VCInventory` zeigt `+N` und Sockel | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
+| Echte Sets (Königs-, Sidonia-, Thomas-, Talos-Set) mit Teilen und Boni, Seltenheit, Haltbarkeit, echte Edelsteine (z. B. 伤增之石), Fehlschlag beim Verfeinern | ❌ | Werte UNKNOWN |
 | Stufenbänder über 160, Endgame-Dungeons (Sturminsel, Goldener Turm), Militärrang | ❌ | Cap und Inhalte UNKNOWN (`CONTRA-002`) |
 
 **Abnahme Iteration 1 (Vorschlag)**: Mit `giveitem` die vier Übungsteile holen und ausrüsten; nach zwei Teilen +5 Verteidigung aus dem Set, nach vier zusätzlich +50 Leben und +5 Angriff (Kampfwerte steigen); `VCUnequip HEAD` nimmt die Stufe wieder weg; der Elitehut wird unter Stufe 160 abgelehnt; mit Segeltuch und Synthesestein entsteht per `VCCraft DEV_SYNTH_HAT` ein Übungshut.
+
+**Abnahme Iteration 2 (Vorschlag)**: `VCDrill` am Übungsschwert bohrt Sockel für 50, 100, 150 Gold, ein vierter wird abgelehnt; `VCSocket` setzt Angriffsstein I ein, ein zweiter Angriffsstein wird abgelehnt (gleiches Attribut), ein Lebensstein passt; `VCRefine` am Übungshut verlangt erst Stein I, dann Stein II mit einem Edelstein über Stufe 1; getragen steigen Angriff, Leben bzw. Verteidigung; abgelehnte Versuche verbrauchen nichts.
 
 ## Arbeitsweise je System
 

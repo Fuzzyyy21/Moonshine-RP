@@ -344,7 +344,13 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * `[DESIGN]`: Plätze Waffe, Kopf, Körper, Hände, Füße. Ein Teil hat Werte (Leben, Angriff, Verteidigung) und optional eine Mindeststufe (Charakterstufe). Setboni sind gestaffelt (ab 2, ab 4 Teilen …) und addieren sich. Ausrüsten tauscht mit dem Teil im selben Platz; Ablegen braucht einen freien Inventarplatz; Wechsel nur an Land.
 * Das Backend berechnet Bonus und getragene Sets; der Zonen-Server schlägt den Bonus auf die Kampfwerte aus der Stufe auf.
 * Synthese läuft über die Herstellung (Rezepte mit Synthesestein als Material, Testinhalt).
-* Offen: Seltenheit, Haltbarkeit, Verfeinerung, Sockel, echte Sets.
+* Offen: Seltenheit, Haltbarkeit, echte Sets.
+
+**Umgesetzt (Phase 8, Iteration 2)**, Regeln in `backend/src/VC.GameData/ItemUpgradeRules.cs` (getestet), Werte in `design_data/dev_equipment.json`
+* Belegt und umgesetzt (SYS-SOCKETING, LIKELY): Sockel werden gebohrt, beobachtet bis 3; ein Edelstein je Sockel gibt genau ein Attribut; zwei Sockel brauchen verschiedene Steine – hier gelesen als verschiedene Attribute.
+* Umgesetzt nach unsicherer Quelle (SYS-REFINEMENT, UNCERTAIN): Verfeinern verbraucht einen Verfeinerungsstein der Stufe „bisherige Verfeinerungen + 1“ und einen Edelstein, der höher ist als der zuletzt verwendete. Beide entstehen per Synthese.
+* `[DESIGN]`: Bohren kostet 50 Gold × Nummer des Sockels, Verfeinern 100 Gold × Zielstufe (Senken `SOCKET_DRILL`, `ITEM_REFINE`); Höchststufe 10; je Stufe +3 Angriff bei Waffen, sonst +2 Verteidigung; kein Fehlschlag (Erfolgsrate UNKNOWN); Edelsteine lassen sich nicht wieder entfernen (UNKNOWN). Bearbeitet werden Teile im Inventar oder getragen, nur an Land.
+* Werte von Edelsteinen und Verfeinerung zählen im Ausrüstungsbonus des Backends.
 
 ---
 

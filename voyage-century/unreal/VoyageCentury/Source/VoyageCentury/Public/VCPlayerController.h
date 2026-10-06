@@ -28,6 +28,8 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCAdmin "givegold <menge>"
  *   VCMarket | VCTrade <BUY|SELL> <WARE> <menge>         Hafenhandel beim Händler, Ware im Laderaum des aktiven Schiffs
  *   VCInventory | VCEquip <nr> | VCUnequip [PLATZ]       Inventar, Waffe/Rüstung ausrüsten, Platz ablegen (ohne = Waffe)
+ *   VCDrill <teil> | VCSocket <teil> <edelstein>         Sockel bohren, Edelstein einsetzen (Nummern aus VCInventory)
+ *   VCRefine <teil> <stein> <edelstein>                  verfeinern
  *   VCDiscard <nr> <menge> | VCSellItem <nr> <menge>     wegwerfen; an den Händler verkaufen
  *   VCAdmin "giveitem <ITEM> [menge]"
  *   VCRecipes | VCCraft <REZEPT> [anzahl]                Rezepte; herstellen (Material, Gebühr, Skill prüft das Backend)
@@ -132,6 +134,15 @@ public:
 
 	UFUNCTION(Exec)
 	void VCUnequip(const FString& Slot = TEXT(""));
+
+	UFUNCTION(Exec)
+	void VCDrill(const FString& InstanceId);
+
+	UFUNCTION(Exec)
+	void VCSocket(const FString& InstanceId, const FString& GemId);
+
+	UFUNCTION(Exec)
+	void VCRefine(const FString& InstanceId, const FString& StoneId, const FString& GemId);
 
 	UFUNCTION(Exec)
 	void VCDiscard(const FString& InstanceId, const FString& Quantity);
