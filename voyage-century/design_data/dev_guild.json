@@ -1,5 +1,5 @@
 {
-  "_comment": "Gilden. Belegt (SYS-GUILD, LIKELY): Der Gildenleiter gründet die Gilde und legt Name und Banner fest; Ränge mindestens Gildenleiter und Gildenoffiziere. Gründungskosten, Mitgliederzahl, Einladungsdauer, weitere Ränge und die Rechte der Ränge sind UNKNOWN (DESIGNENTSCHEIDUNG, is_dev). Rang 2 'Mitglied' ist reine Designergänzung. Städtebesitz: belegt ist, dass Gildenoffiziere Städte kaufen und besetzen und Belohnungen sowie Verwaltungsrechte erhalten (SYS-GUILD). Preise, Belohnung (hier: Anteil der Handelssteuer) und Verwaltungsrechte (hier: Steuersatz in Grenzen) sind UNKNOWN (is_dev). Auszahlen aus der Gildenkasse darf nur der Leiter (Design).",
+  "_comment": "Gilden. Belegt (SYS-GUILD, LIKELY): Der Gildenleiter gründet die Gilde und legt Name und Banner fest; Ränge mindestens Gildenleiter und Gildenoffiziere. Gründungskosten, Mitgliederzahl, Einladungsdauer, weitere Ränge und die Rechte der Ränge sind UNKNOWN (DESIGNENTSCHEIDUNG, is_dev). Rang 2 'Mitglied' ist reine Designergänzung. Städtebesitz: belegt ist, dass Gildenoffiziere Städte kaufen und besetzen und Belohnungen sowie Verwaltungsrechte erhalten (SYS-GUILD). Preise, Belohnung (hier: Anteil der Handelssteuer) und Verwaltungsrechte (hier: Steuersatz in Grenzen) sind UNKNOWN (is_dev). Auszahlen aus der Gildenkasse darf nur der Leiter (Design). Belagerung: belegt ist nur, dass es Stadtbelagerungen gibt und sie als Land-See-Kampf beworben werden (SYS-CITY-SIEGE); Kosten, Vorlauf, Dauer und Siegbedingung sind UNKNOWN (is_dev).",
   "source": "SRC-DESIGN",
   "found_cost_gold": 1000,
   "max_members": 50,
@@ -47,5 +47,8 @@
       "city": "ATHENS",
       "price_gold": 15000
     }
-  ]
+  ],
+  "siege_declare_cost_gold": 5000,
+  "siege_lead_hours": 24,
+  "siege_duration_minutes": 60
 }

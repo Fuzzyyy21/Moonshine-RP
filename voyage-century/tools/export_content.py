@@ -580,7 +580,8 @@ def check_crafting(crafting: dict, item_codes: set[str], skill_categories: dict[
 
 GUILD_RULES = {"GUILD_FOUND_COST": "found_cost_gold", "GUILD_MAX_MEMBERS": "max_members", "GUILD_INVITE_HOURS": "invite_hours",
                "CITY_TAX_SHARE_PERMILLE": "city_tax_share_permille", "CITY_TAX_MIN_PERMILLE": "city_tax_min_permille",
-               "CITY_TAX_MAX_PERMILLE": "city_tax_max_permille"}
+               "CITY_TAX_MAX_PERMILLE": "city_tax_max_permille", "SIEGE_DECLARE_COST": "siege_declare_cost_gold",
+               "SIEGE_LEAD_HOURS": "siege_lead_hours", "SIEGE_DURATION_MINUTES": "siege_duration_minutes"}
 GUILD_PERMISSIONS = {"INVITE", "KICK", "PROMOTE", "TREASURY", "CITY"}
 
 
@@ -591,6 +592,8 @@ def check_guild(guild: dict, records: dict[str, dict], port_cities: set[str]) ->
     for c in guild["cities"]:
         if c["city"] not in port_cities or c["price_gold"] <= 0:
             problems.append(f"Stadt {c['city']}: Hafenstadt und Preis > 0 nötig")
+    if guild["siege_declare_cost_gold"] < 0 or guild["siege_lead_hours"] < 0 or guild["siege_duration_minutes"] < 1:
+        problems.append("Belagerung: Kosten ≥ 0, Vorlauf ≥ 0, Dauer ≥ 1 Minute")
     if not set(guild["ranks"][0]["permissions"]) >= GUILD_PERMISSIONS:
         problems.append("Rang 0 (Gildenleiter) braucht alle Rechte")
     numbers = [r["rank_no"] for r in guild["ranks"]]

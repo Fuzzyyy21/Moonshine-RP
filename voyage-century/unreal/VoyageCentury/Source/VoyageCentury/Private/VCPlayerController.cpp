@@ -483,6 +483,16 @@ void AVCPlayerController::VCGuildCityTax(const FString& City, const FString& Per
 	ServerSocialCommand(TEXT("guildcitytax"), City + TEXT(" ") + Permille);
 }
 
+void AVCPlayerController::VCSieges()
+{
+	ServerSocialCommand(TEXT("guildsieges"), FString());
+}
+
+void AVCPlayerController::VCGuildSiege(const FString& City)
+{
+	ServerSocialCommand(TEXT("guildsiege"), City);
+}
+
 bool AVCPlayerController::ServerChat_Validate(const FString& Channel, const FString& Target, const FString& Message)
 {
 	return Channel.Len() <= 16 && Target.Len() <= 24 && Message.Len() <= 1000;

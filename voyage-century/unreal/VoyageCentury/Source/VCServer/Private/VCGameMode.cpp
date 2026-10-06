@@ -1240,6 +1240,9 @@ void AVCGameMode::RegisterWithDirectory()
 			static_cast<float>(FMath::Max(1.0, Interval)), true);
 		// Chat über alle Server: einmal je Sekunde abholen (Latenz gegen Last; ein Abruf je Server, nicht je Spieler).
 		Self->GetWorldTimerManager().SetTimer(Self->ChatTimer, Self, &AVCGameMode::PollChat, 1.f, true);
+		// Belagerungen beginnen und enden nach Plan; alle 10 s nachsehen, wer gerade gegen wen kämpfen darf.
+		Self->GetWorldTimerManager().SetTimer(Self->SiegeTimer, Self, &AVCGameMode::PollSieges, 10.f, true);
+		Self->PollSieges();
 	});
 }
 
@@ -1257,6 +1260,73 @@ void AVCGameMode::DeliverChat(APlayerController* PC, const FPlayerSession& Sessi
 	{
 		PC->ClientMessage(Line);
 	}
+}
+
+int64 AVCGameMode::CharacterIdOf(const AActor* Actor) const
+{
+	for (const TPair<TObjectKey<APlayerController>, FPlayerSession>& Pair : Sessions)
+	{
+		if (Actor && Pair.Value.bClaimed && Pair.Value.Pawn.Get() == Actor)
+		{
+			return Pair.Value.CharacterId;
+		}
+	}
+	return 0;
+}
+
+bool AVCGameMode::IsPvPAllowedBetween(const AActor* A, const AActor* B) const
+{
+	if (bPvPAllowed)
+	{
+		return true;
+	}
+	const int64 IdA = CharacterIdOf(A);
+	const int64 IdB = CharacterIdOf(B);
+	if (IdA == 0 || IdB == 0)
+	{
+		return false;
+	}
+	for (const FActiveSiege& Siege : ActiveSieges)
+	{
+		if ((Siege.Attackers.Contains(IdA) && Siege.Defenders.Contains(IdB)) || (Siege.Defenders.Contains(IdA) && Siege.Attackers.Contains(IdB)))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void AVCGameMode::PollSieges()
+{
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	FVCServerBackend::ActiveSieges(GetZoneId(), [WeakThis](const FVCHttpResult& Result)
+	{
+		AVCGameMode* Self = WeakThis.Get();
+		TArray<TSharedPtr<FJsonValue>> Sieges;
+		if (!Self || !Result.IsOk() || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Result.Body), Sieges))
+		{
+			return; // bisheriger Stand bleibt bis zur nächsten Antwort (Backend prüft jeden Kill ohnehin selbst)
+		}
+		TArray<FActiveSiege> Now;
+		for (const TSharedPtr<FJsonValue>& Value : Sieges)
+		{
+			const TSharedPtr<FJsonObject> S = Value->AsObject();
+			FActiveSiege& Siege = Now.AddDefaulted_GetRef();
+			for (const TSharedPtr<FJsonValue>& Id : S->GetArrayField(TEXT("attackers")))
+			{
+				Siege.Attackers.Add(static_cast<int64>(Id->AsNumber()));
+			}
+			for (const TSharedPtr<FJsonValue>& Id : S->GetArrayField(TEXT("defenders")))
+			{
+				Siege.Defenders.Add(static_cast<int64>(Id->AsNumber()));
+			}
+		}
+		if (Now.Num() != Self->ActiveSieges.Num())
+		{
+			UE_LOG(LogVC, Display, TEXT("Laufende Belagerungen in dieser Zone: %d"), Now.Num());
+		}
+		Self->ActiveSieges = MoveTemp(Now);
+	});
 }
 
 void AVCGameMode::PollChat()
@@ -1505,6 +1575,51 @@ void AVCGameMode::HandleGuildCommand(APlayerController* Player, const FString& C
 	FString Action, Name, Tag;
 	int32 RankNo = 0;
 	int64 GuildId = 0;
+	// Belagerung: guildsieges (Liste), guildsiege <STADT> (ansagen)
+	if (Command == TEXT("guildsieges") || (Command == TEXT("guildsiege") && !First.IsEmpty()))
+	{
+		TWeakObjectPtr<APlayerController> WeakPlayer(Player);
+		auto Show = [WeakPlayer](const FVCHttpResult& Result)
+		{
+			APlayerController* PC = WeakPlayer.Get();
+			if (!PC)
+			{
+				return;
+			}
+			if (!Result.IsOk())
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Belagerung: %s"), *Result.ErrorMessage()));
+				return;
+			}
+			TArray<TSharedPtr<FJsonValue>> List;
+			if (!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Result.Body), List))
+			{
+				List.Add(MakeShared<FJsonValueObject>(Result.Json)); // Ansagen antwortet mit einer einzelnen Belagerung
+			}
+			PC->ClientMessage(List.IsEmpty() ? FString(TEXT("Keine Belagerungen.")) : FString(TEXT("Belagerungen:")));
+			for (const TSharedPtr<FJsonValue>& Value : List)
+			{
+				const TSharedPtr<FJsonObject> S = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!S.IsValid())
+				{
+					continue;
+				}
+				PC->ClientMessage(FString::Printf(TEXT("  %s: %s gegen %s – %s, %s bis %s, Stand %d:%d"), *S->GetStringField(TEXT("cityCode")),
+					*S->GetStringField(TEXT("attackerName")), *S->GetStringField(TEXT("defenderName")), *S->GetStringField(TEXT("state")),
+					*S->GetStringField(TEXT("startsAt")), *S->GetStringField(TEXT("endsAt")),
+					static_cast<int32>(S->GetNumberField(TEXT("attackerScore"))), static_cast<int32>(S->GetNumberField(TEXT("defenderScore")))));
+			}
+		};
+		if (Command == TEXT("guildsieges"))
+		{
+			FVCServerBackend::Sieges(MoveTemp(Show));
+		}
+		else
+		{
+			FVCServerBackend::DeclareSiege(Session->CharacterId, Session->AccountId, First.ToUpper(), MoveTemp(Show));
+		}
+		return;
+	}
 	// Kasse und Städte: guilddeposit/guildwithdraw <gold>, guildcities, guildbuycity <STADT>, guildcitytax <STADT> <promille>
 	int64 Value = 0;
 	FString CityAction;
@@ -1602,7 +1717,7 @@ void AVCGameMode::HandleGuildCommand(APlayerController* Player, const FString& C
 	}
 	else
 	{
-		Player->ClientMessage(TEXT("VCGuild | VCGuildCreate \"Name\" [KÜRZEL] | VCGuildInvite <name> | VCGuildInvites | VCGuildAccept <nr> | VCGuildDecline <nr> | VCGuildKick <name> | VCGuildRank <name> <rang> | VCGuildLeave | VCGuildDisband | VCGuildChat \"text\" | VCGuildDeposit <gold> | VCGuildWithdraw <gold> | VCCities | VCGuildBuyCity <STADT> | VCGuildCityTax <STADT> <promille>"));
+		Player->ClientMessage(TEXT("VCGuild | VCGuildCreate \"Name\" [KÜRZEL] | VCGuildInvite <name> | VCGuildInvites | VCGuildAccept <nr> | VCGuildDecline <nr> | VCGuildKick <name> | VCGuildRank <name> <rang> | VCGuildLeave | VCGuildDisband | VCGuildChat \"text\" | VCGuildDeposit <gold> | VCGuildWithdraw <gold> | VCCities | VCGuildBuyCity <STADT> | VCGuildCityTax <STADT> <promille> | VCSieges | VCGuildSiege <STADT>"));
 		return;
 	}
 	TWeakObjectPtr<APlayerController> WeakPC(Player);

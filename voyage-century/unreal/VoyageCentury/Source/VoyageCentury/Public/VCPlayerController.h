@@ -40,6 +40,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCGuild | VCGuildCreate "Name" [KÜRZEL] | VCGuildInvite <name> | VCGuildInvites | VCGuildAccept <nr> | VCGuildDecline <nr>
  *   VCGuildKick <name> | VCGuildRank <name> <rang> (0 = Leitung übergeben) | VCGuildLeave | VCGuildDisband | VCGuildChat "text"
  *   VCGuildDeposit <gold> | VCGuildWithdraw <gold> | VCCities | VCGuildBuyCity <STADT> | VCGuildCityTax <STADT> <promille>
+ *   VCSieges | VCGuildSiege <STADT>                      Belagerungen ansehen / ansagen (Gildenrecht für Städte)
  *   VCAdmin "mute <name> <minuten> [kanal] <grund>" | VCAdmin "announce <text>"
  *   VCAuction [WARE] | VCAuctionMine                     Auktionshaus durchsuchen / eigene Angebote
  *   VCAuctionSell <nr> <menge> <preis> | VCAuctionBuy <angebot> | VCAuctionCancel <angebot> | VCAuctionCollect  (beim Auktionator)
@@ -224,6 +225,12 @@ public:
 
 	UFUNCTION(Exec)
 	void VCGuildCityTax(const FString& City, const FString& Permille);
+
+	UFUNCTION(Exec)
+	void VCSieges();
+
+	UFUNCTION(Exec)
+	void VCGuildSiege(const FString& City);
 
 	UFUNCTION(Exec)
 	void VCAuction(const FString& ItemCode);

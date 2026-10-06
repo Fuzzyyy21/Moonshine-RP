@@ -53,6 +53,7 @@ public:
 	// IVCServerHooks
 	virtual void HandleAdminCommand(APlayerController* Issuer, const FString& CommandLine) override;
 	virtual bool IsPvPAllowed() const override { return bPvPAllowed; }
+	virtual bool IsPvPAllowedBetween(const AActor* A, const AActor* B) const override;
 	virtual FString GetZoneId() const override;
 	virtual void HandleKill(AActor* Killer, AActor* Victim) override;
 	virtual void HandleSkillUse(AActor* User, FName SkillCode) override;
@@ -152,6 +153,14 @@ private:
 	FTimerHandle AuthTimeoutTimer;
 	FTimerHandle DirectoryTimer;
 	FTimerHandle ChatTimer;
+	FTimerHandle SiegeTimer;
+	/** Laufende Belagerungen dieser Zone: Teilnehmer je Seite (Charakter-IDs), laut Backend. */
+	struct FActiveSiege
+	{
+		TSet<int64> Attackers;
+		TSet<int64> Defenders;
+	};
+	TArray<FActiveSiege> ActiveSieges;
 	/** Letzte abgeholte Chat-Nachricht; −1 = noch nicht initialisiert (beim Start wird nichts Altes zugestellt). */
 	int64 LastChatId = -1;
 	bool bChatPollInFlight = false;
@@ -177,6 +186,9 @@ private:
 	void RegisterWithDirectory();
 	void SendHeartbeat();
 	void PollChat();
+	void PollSieges();
+	/** Charakter-ID zu einer Spielfigur (Charakter oder Schiff) eines angemeldeten Spielers; 0, wenn keine. */
+	int64 CharacterIdOf(const AActor* Actor) const;
 	/** Zustellen an einen Spieler, außer er ignoriert den Absender. */
 	void DeliverChat(APlayerController* PC, const FPlayerSession& Session, int64 SenderId, const FString& Line) const;
 	static FString ChatLine(const FString& Channel, const FString& Sender, const FString& Message);

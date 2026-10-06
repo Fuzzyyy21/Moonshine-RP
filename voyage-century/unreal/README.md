@@ -185,6 +185,17 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Belagerung (Phase 7, Iteration 4)
+
+```
+VCGuildSiege ATHENS                 → Offizier/Leiter sagt die Belagerung einer fremden Gildenstadt an (5000 aus der Kasse)
+VCSieges                            → alle Belagerungen: Stadt, Seiten, Beginn/Ende, Punkte, Ergebnis
+```
+
+Der Server fragt alle 10 s die laufenden Belagerungen seiner Zone ab (Stadt und angrenzende Seezonen). Mitglieder der beiden
+Gilden dürfen sich dann auch in sicheren Zonen angreifen (`IsPvPAllowedBetween`, gilt für Nah- und Seekampf); das Backend prüft
+jeden Kill erneut und zählt ihn. Nach Ablauf wertet das Backend aus und verkündet das Ergebnis im Systemchat.
+
 ## Gildenkasse und Städte (Phase 7, Iteration 3)
 
 ```

@@ -507,7 +507,10 @@ INSERT INTO game_rules (rule_key, int_value, is_dev, confidence) VALUES
     ('CITY_TAX_SHARE_PERMILLE', 500, TRUE, 'UNKNOWN'::confidence_level),
     ('GUILD_FOUND_COST', 1000, TRUE, 'UNKNOWN'::confidence_level),
     ('GUILD_INVITE_HOURS', 48, TRUE, 'UNKNOWN'::confidence_level),
-    ('GUILD_MAX_MEMBERS', 50, TRUE, 'UNKNOWN'::confidence_level)
+    ('GUILD_MAX_MEMBERS', 50, TRUE, 'UNKNOWN'::confidence_level),
+    ('SIEGE_DECLARE_COST', 5000, TRUE, 'UNKNOWN'::confidence_level),
+    ('SIEGE_DURATION_MINUTES', 60, TRUE, 'UNKNOWN'::confidence_level),
+    ('SIEGE_LEAD_HOURS', 24, TRUE, 'UNKNOWN'::confidence_level)
 ON CONFLICT (rule_key) DO UPDATE SET
     int_value = EXCLUDED.int_value,
     is_dev = EXCLUDED.is_dev,

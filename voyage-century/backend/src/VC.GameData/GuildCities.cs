@@ -261,6 +261,7 @@ public static class GuildCityEndpoints
     /// <summary>Beim Auflösen: Städte werden frei, das Restgeld der Kasse geht an den Leiter.</summary>
     internal static async Task Release(NpgsqlConnection conn, NpgsqlTransaction tx, long guildId, long leaderId, string serverId, CancellationToken ct)
     {
+        await SiegeEndpoints.CancelForGuild(conn, tx, guildId, ct);
         await Exec(conn, tx, "UPDATE territories SET owner_guild_id = NULL, captured_at = NULL, tax_rate = NULL WHERE owner_guild_id = @g", ct,
             ("g", guildId));
         var rest = await Treasury(conn, tx, guildId, ct);

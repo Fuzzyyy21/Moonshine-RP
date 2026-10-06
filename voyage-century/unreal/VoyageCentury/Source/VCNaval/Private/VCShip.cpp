@@ -116,7 +116,7 @@ bool AVCShip::IsHostileTo(const AVCShip* Other) const
 	}
 	const UWorld* World = GetWorld();
 	const IVCServerHooks* Hooks = World ? Cast<IVCServerHooks>(World->GetAuthGameMode()) : nullptr;
-	const bool bPvP = Hooks && Hooks->IsPvPAllowed();
+	const bool bPvP = Hooks && Hooks->IsPvPAllowedBetween(this, Other); // Zonen-PvP oder Belagerung (Land-See-Kampf)
 	return Other->bPirate != bPirate || (!bPirate && !Other->bPirate && bPvP);
 }
 

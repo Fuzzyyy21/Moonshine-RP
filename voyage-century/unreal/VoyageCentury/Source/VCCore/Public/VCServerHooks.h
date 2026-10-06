@@ -33,6 +33,9 @@ public:
 	/** Erlaubt die Zone Kämpfe zwischen Spielern? (aus zones.pvp_mode, vom Backend geladen) */
 	virtual bool IsPvPAllowed() const = 0;
 
+	/** Dürfen diese beiden Spielfiguren (Charakter oder Schiff) sich bekämpfen? Zonen-PvP oder laufende Belagerung zwischen ihren Gilden. */
+	virtual bool IsPvPAllowedBetween(const AActor* A, const AActor* B) const = 0;
+
 	/** Ein Kämpfer ist gestorben. Killer ist die verursachende Spielfigur oder null. Meldet ans Backend, steuert Respawn. */
 	virtual void HandleKill(AActor* Killer, AActor* Victim) = 0;
 

@@ -101,6 +101,7 @@ public static partial class GameDataApp
         SocialEndpoints.Map(internalApi);
         GuildEndpoints.Map(internalApi);
         GuildCityEndpoints.Map(internalApi);
+        SiegeEndpoints.Map(internalApi);
         return app;
     }
 

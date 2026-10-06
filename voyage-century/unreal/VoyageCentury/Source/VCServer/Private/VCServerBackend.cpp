@@ -372,6 +372,26 @@ void FVCServerBackend::GuildCity(int64 CharacterId, int64 AccountId, const FStri
 	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + Path, Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::Sieges(FVCHttpCallback Callback)
+{
+	FVCHttp::Send(TEXT("GET"), UVCBackendSettings::GetGameDataBaseUrl() + TEXT("/internal/v1/sieges"), nullptr, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::ActiveSieges(const FString& ZoneId, FVCHttpCallback Callback)
+{
+	FVCHttp::Send(TEXT("GET"), FString::Printf(TEXT("%s/internal/v1/zones/%s/sieges/active?serverId=%s"), *UVCBackendSettings::GetGameDataBaseUrl(),
+		*FGenericPlatformHttp::UrlEncode(ZoneId), *FGenericPlatformHttp::UrlEncode(UVCServerSettings::GetServerId())), nullptr, Headers(),
+		MoveTemp(Callback));
+}
+
+void FVCServerBackend::DeclareSiege(int64 CharacterId, int64 AccountId, const FString& City, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/guild/cities/") + FGenericPlatformHttp::UrlEncode(City) + TEXT("/siege"),
+		Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::ReportPlayer(int64 CharacterId, int64 AccountId, const FString& Name, const FString& Reason, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
@@ -555,6 +575,9 @@ void FVCServerBackend::SocialList(int64, int64, const FString&, const FString&, 
 void FVCServerBackend::ReportPlayer(int64, int64, const FString&, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Guild(int64, int64, const FString&, const FString&, const FString&, int32, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::GuildCity(int64, int64, const FString&, const FString&, int64, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::Sieges(FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ActiveSieges(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::DeclareSiege(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminMute(const FString&, int32, const FString&, const FString&, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminAnnounce(const FString&, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Auction(int64, int64, const FString&, const FString&, int64, int32, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }

@@ -102,6 +102,10 @@ public:
 	 * citytax (City, Value = Promille). Antwort: Städteliste bzw. Gildeninfo.
 	 */
 	static void GuildCity(int64 CharacterId, int64 AccountId, const FString& Action, const FString& City, int64 Value, FVCHttpCallback Callback);
+	/** Belagerungen: Liste (alle), laufende in einer Zone mit Teilnehmern auf diesem Server, ansagen (Gildenrecht CITY). */
+	static void Sieges(FVCHttpCallback Callback);
+	static void ActiveSieges(const FString& ZoneId, FVCHttpCallback Callback);
+	static void DeclareSiege(int64 CharacterId, int64 AccountId, const FString& City, FVCHttpCallback Callback);
 	static void ReportPlayer(int64 CharacterId, int64 AccountId, const FString& Name, const FString& Reason, FVCHttpCallback Callback);
 	/** Admin: stummschalten bzw. Systemmeldung; Rechte und Audit im Backend. */
 	static void AdminMute(const FString& Name, int32 Minutes, const FString& Channel, const FString& Reason,

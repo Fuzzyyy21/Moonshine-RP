@@ -378,6 +378,13 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Gildenkasse: Einzahlen dürfen alle (zählt als Beitrag), Auszahlen nur mit Recht TREASURY (Leiter). Jede Bewegung im `guild_ledger`; die Wirtschaftsübersicht zählt sie mit.
 * Auflösen: Städte werden frei, das Restgeld der Kasse geht an den Leiter.
 
+**Umgesetzt (Phase 7, Iteration 4)**, Regeln in `backend/src/VC.GameData/SiegeRules.cs` (getestet), Werte in `design_data/dev_guild.json`
+* Belegt: Stadtbelagerung als Kampf zu Land und See existiert (SYS-CITY-SIEGE). Ablauf, Zeiten und Siegbedingung des Originals UNKNOWN.
+* `[DESIGN]`: Ein Offizier/Leiter (Recht CITY) sagt die Belagerung einer Stadt an, die einer anderen Gilde gehört; Kosten 5000 Gold aus der Kasse (Senke `SIEGE_DECLARE`), Beginn nach 24 h, Dauer 60 min, je Stadt höchstens eine offene Belagerung.
+* Während sie läuft, dürfen sich Mitglieder beider Gilden in der Stadt und auf den angrenzenden Seezonen bekämpfen, auch wo sonst kein PvP gilt. Jeder Kill zwischen den Seiten zählt einen Punkt; der Angreifer übernimmt die Stadt nur mit mehr Punkten (Steuersatz zurück auf Standard), bei Gleichstand bleibt sie beim Verteidiger.
+* Ansage und Ergebnis werden als Systemmeldung verkündet; löst sich eine beteiligte Gilde auf, endet die Belagerung ohne Wertung.
+* Offen: getrennte Land- und Seephase, Belagerungswaffen, Tore/Festungen.
+
 ---
 
 ## 18. UI/UX

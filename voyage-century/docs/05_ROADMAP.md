@@ -177,7 +177,7 @@ Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-D
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Händler Öl kaufen (Gold sinkt, Ware im Laderaum, Laderaum begrenzt), über die Seezone nach London segeln und dort mit Gewinn verkaufen; viele Käufe hintereinander machen die Ware teurer, nach einer Weile füllt sich der Bestand wieder auf; ein wiederholter Auftrag bucht nichts doppelt; die Wirtschaftsübersicht zeigt Kauf als Senke und Verkauf als Quelle.
 
-## Phase 7 – Sozial (Iteration 3 fertig)
+## Phase 7 – Sozial (Iteration 4 fertig)
 
 Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 
@@ -196,9 +196,15 @@ Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 | Daten: Rechte CITY (Leiter, Offiziere) und TREASURY (Leiter), London 20 000 und Athen 15 000 Gold, Anteil 50 %, Steuer 0–15 %; `V0018` (`guild_ledger`, `territories.is_dev`) | ✅ It. 3 | Export `--check`, Schematest |
 | Backend: Gildenkasse (einzahlen = Beitrag, auszahlen mit Recht, genau einmal), Städteliste, Stadt aus der Kasse kaufen (Senke `CITY_BUY`), Steuersatz setzen, Steueranteil beim Handel im Hafen (Quelle `CITY_TAX`), Auflösen gibt Städte frei und zahlt die Kasse an den Leiter; Wirtschaftsübersicht mit Gildenkassen | ✅ It. 3 | `GuildCityTests` (3 Tests) |
 | UE: `VCGuildDeposit`, `VCGuildWithdraw`, `VCCities`, `VCGuildBuyCity`, `VCGuildCityTax`; `VCGuild` zeigt Kasse und Städte | ⚠️ It. 3, geschrieben, nicht kompiliert | lokal |
-| Belagerung (Städte besetzen), Gruppen, Post, Handelsfenster | ❌ | Regeln UNKNOWN |
+| Regeln (`SiegeRules`, Backend): Phase nach Uhrzeit, Ansage nur gegen fremde Gildenstadt ohne offene Belagerung, Wertung nur für Kills zwischen den beiden Gilden, Gleichstand für den Verteidiger | ✅ It. 4 | `SiegeRulesTests` (4 Fälle) |
+| Daten: Ansage 5000 Gold aus der Kasse, Vorlauf 24 h, Dauer 60 min; `V0019` (`territory_wars` mit Zeitplan und Punkten, höchstens eine offene Belagerung je Stadt, `combat_kills.war_id`) | ✅ It. 4 | Export `--check`, Schematest |
+| Backend: Belagerung ansagen (Recht CITY, Senke `SIEGE_DECLARE`, genau einmal, Systemmeldung), Liste, laufende Belagerungen je Zone mit Online-Teilnehmern (Stadt und angrenzende Seezonen), PvP-Kills zwischen den Seiten auch in sicheren Zonen zählen, Auswertung nach Ablauf (Stadt geht an den Angreifer, Steuersatz zurückgesetzt), Auflösen einer Gilde bricht ihre Belagerungen ab | ✅ It. 4 | `SiegeTests` (3 Tests) |
+| UE: `IsPvPAllowedBetween` (Zone oder Belagerungsgegner) für Nah- und Seekampf, Abfrage der Belagerungen alle 10 s, `VCSieges`, `VCGuildSiege` | ⚠️ It. 4, geschrieben, nicht kompiliert | lokal |
+| Getrennte Land- und Seephase, Belagerungswaffen, Gruppen, Post, Handelsfenster | ❌ | Regeln UNKNOWN |
 
 **Abnahme Iteration 3 (Vorschlag)**: Mitglieder zahlen in die Gildenkasse ein, nur der Leiter zahlt aus; ein Offizier kauft mit `VCGuildBuyCity ATHENS` die Stadt aus der Kasse; ein Handel in Athen bringt der Gilde die Hälfte der Steuer; `VCGuildCityTax ATHENS 150` macht Waren dort teurer, 151 wird abgelehnt; `VCCities` zeigt den Besitzer; nach dem Auflösen ist Athen wieder frei und der Leiter hat das Restgeld.
+
+**Abnahme Iteration 4 (Vorschlag)**: Gilde B sagt mit `VCGuildSiege ATHENS` die Belagerung von Gilde As Stadt an (5000 Gold aus der Kasse, Systemmeldung, zweite Ansage abgelehnt); nach dem Vorlauf dürfen sich Mitglieder beider Gilden in Athen und auf der angrenzenden See bekämpfen, Unbeteiligte nicht; jeder Kill zählt einen Punkt (`VCSieges`); nach Ablauf gehört Athen bei mehr Punkten Gilde B, bei Gleichstand bleibt es bei A.
 
 **Abnahme Iteration 2 (Vorschlag)**: Spieler A gründet mit `VCGuildCreate "Die Seefahrer" SEE` (1000 Gold weg), lädt B ein, B nimmt an (`VCGuildInvites`, `VCGuildAccept`); B kann als Mitglied niemanden einladen, nach Beförderung zum Offizier schon; `VCGuildChat` erreicht nur Mitglieder, auch auf anderen Servern; A übergibt die Leitung an B und tritt aus; B tritt als Letzter aus und die Gilde ist aufgelöst, der Name wieder frei.
 

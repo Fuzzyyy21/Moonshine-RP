@@ -106,24 +106,27 @@ public static class CombatEndpoints
             xpReward = r.IsDBNull(1) ? null : r.GetInt64(1);
             lootTableId = r.IsDBNull(2) ? null : r.GetInt32(2);
         }
-        else
+        (long WarId, SiegeSide Side)? siege = null;
+        if (!isMonster)
         {
-            if (pvpMode != "FREE")
-            {
-                // Der Zonen-Server hätte diesen Kampf nicht zulassen dürfen.
-                return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "PvP ist in dieser Zone nicht erlaubt");
-            }
             if (req.VictimCharacterId == req.KillerCharacterId
                 || await ProgressionEndpoints.LockCharacter(conn, tx, req.VictimCharacterId!.Value, req.VictimAccountId, ct) is null)
             {
                 return NotFound("Opfer nicht gefunden");
             }
+            // Während einer Belagerung dürfen Angreifer und Verteidiger sich auch dort bekämpfen, wo sonst kein PvP gilt.
+            siege = await SiegeEndpoints.SiegeForKill(conn, tx, req.ZoneId, req.KillerCharacterId, req.VictimCharacterId.Value, ct);
+            if (pvpMode != "FREE" && siege is null)
+            {
+                // Der Zonen-Server hätte diesen Kampf nicht zulassen dürfen.
+                return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "PvP ist in dieser Zone nicht erlaubt");
+            }
         }
 
         await using (var insert = new NpgsqlCommand(
             """
-            INSERT INTO combat_kills (idempotency_key, zone_id, killer_character_id, victim_character_id, monster_id, xp_awarded, server_id)
-            VALUES (@key, @zone, @killer, @victim, @monster, @xp, @server)
+            INSERT INTO combat_kills (idempotency_key, zone_id, killer_character_id, victim_character_id, monster_id, xp_awarded, server_id, war_id)
+            VALUES (@key, @zone, @killer, @victim, @monster, @xp, @server, @war)
             ON CONFLICT (idempotency_key) DO NOTHING
             """, conn, tx))
         {
@@ -134,6 +137,7 @@ public static class CombatEndpoints
             insert.Parameters.AddWithValue("monster", (object?)monsterId ?? DBNull.Value);
             insert.Parameters.AddWithValue("xp", (object?)xpReward ?? DBNull.Value);
             insert.Parameters.AddWithValue("server", req.ServerId);
+            insert.Parameters.AddWithValue("war", (object?)siege?.WarId ?? DBNull.Value);
             if (await insert.ExecuteNonQueryAsync(ct) == 0)
             {
                 return Results.Ok(new KillResponse(Duplicate: true, null, null));
@@ -146,6 +150,10 @@ public static class CombatEndpoints
             progress = await ProgressionEndpoints.ApplyCharacterXp(conn, tx, req.KillerCharacterId, killer.Value,
                 new GrantRequest(req.KillerAccountId, xpReward.Value, $"kill:{req.MonsterCode}", req.IdempotencyKey, req.ServerId),
                 progression.Value.AllowDevCurves, ct);
+        }
+        if (siege is { } war)
+        {
+            await SiegeEndpoints.Score(conn, tx, war.WarId, war.Side, ct);
         }
         List<LootDrop>? loot = null;
         long lootGold = 0;

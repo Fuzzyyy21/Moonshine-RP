@@ -7,7 +7,7 @@ PostgreSQL.
 
 Unabhängig vom FiveM-Framework im Repo-Wurzelverzeichnis.
 
-**Aktueller Stand: Phase 7 – Sozial (Iteration 3: Gildenkasse und Städtebesitz; davor Gilden, Gildenchat, Chat, Freunde, Moderation); Phase 5 – Schiffe (Iteration 3: Rammen, Enterhaken, Entern, Minen; davor Seekampf, Piraten, Hafendienste, Kauf, Segeln, Wind); Phase 6 – Wirtschaft (Iteration 4: Auktionshaus; davor Sammeln, Herstellen, Inventar, Beute, Hafenhandel, Wirtschaftsübersicht).**
+**Aktueller Stand: Phase 7 – Sozial (Iteration 4: Stadtbelagerung; davor Gildenkasse, Städtebesitz, Gilden, Gildenchat, Chat, Freunde, Moderation); Phase 5 – Schiffe (Iteration 3: Rammen, Enterhaken, Entern, Minen; davor Seekampf, Piraten, Hafendienste, Kauf, Segeln, Wind); Phase 6 – Wirtschaft (Iteration 4: Auktionshaus; davor Sammeln, Herstellen, Inventar, Beute, Hafenhandel, Wirtschaftsübersicht).**
 Backend (Login, Charaktere, Progression, Kampf, Hotbar, World Directory) und die Kampf- und Fähigkeitsregeln sind getestet; der Unreal-Code ist
 geschrieben, aber noch nicht kompiliert (siehe [`unreal/README.md`](unreal/README.md)).
 Stand je Phase: [`docs/05_ROADMAP.md`](docs/05_ROADMAP.md).

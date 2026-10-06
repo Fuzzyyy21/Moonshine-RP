@@ -56,7 +56,7 @@ bool FVCCombat::IsHostile(const AActor* Attacker, const AActor* Defender)
 	}
 	const UWorld* World = Attacker->GetWorld();
 	const IVCServerHooks* Hooks = World ? Cast<IVCServerHooks>(World->GetAuthGameMode()) : nullptr;
-	return Hooks && Hooks->IsPvPAllowed();
+	return Hooks && Hooks->IsPvPAllowedBetween(Attacker, Defender);
 }
 
 bool FVCCombat::IsStunned(const AActor* Actor)
