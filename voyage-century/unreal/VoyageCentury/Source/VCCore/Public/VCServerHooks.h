@@ -64,7 +64,7 @@ public:
 	virtual void HandleChat(APlayerController* Player, const FString& Channel, const FString& Target, const FString& Message) = 0;
 
 	/** Freunde, Ignorieren, Melden: "friends", "friendadd <name>", "friendremove <name>", "ignores", "ignore <name>",
-	 *  "unignore <name>", "report <name> <grund>". */
+	 *  "unignore <name>", "report <name> <grund>", Gilde: "guild…" (siehe AVCGameMode::HandleGuildCommand). */
 	virtual void HandleSocialCommand(APlayerController* Player, const FString& Command, const FString& Argument) = 0;
 
 	/** Ein Spielerschiff ist gesunken (Rumpf 0). Speichern und den Spieler an Land zurückschicken. */

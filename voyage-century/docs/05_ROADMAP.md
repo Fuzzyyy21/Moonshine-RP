@@ -177,7 +177,7 @@ Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-D
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Händler Öl kaufen (Gold sinkt, Ware im Laderaum, Laderaum begrenzt), über die Seezone nach London segeln und dort mit Gewinn verkaufen; viele Käufe hintereinander machen die Ware teurer, nach einer Weile füllt sich der Bestand wieder auf; ein wiederholter Auftrag bucht nichts doppelt; die Wirtschaftsübersicht zeigt Kauf als Senke und Verkauf als Quelle.
 
-## Phase 7 – Sozial (Iteration 1 fertig)
+## Phase 7 – Sozial (Iteration 2 fertig)
 
 Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 
@@ -187,8 +187,14 @@ Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 | Backend: Chat (LOCAL, WORLD, TRADE, WHISPER; SYSTEM nur Admin) mit Stummschaltung und Rate-Limit, Verteilung über `chat_log` an alle Zonen-Server, Flüstern nur an Online-Spieler, die nicht ignorieren; Freunde mit Online-Status und Zone; Ignorieren (im Charakterzustand); Melden mit Nachrichtenkontext; Admin `mute`/`announce` mit Audit; `V0016` | ✅ It. 1 | `SocialTests` (4 Tests) |
 | UE: `VCSay`, `VCWorld`, `VCTradeChat`, `VCWhisper`, `VCFriends`/`VCFriendAdd`/`VCFriendRemove`, `VCIgnores`/`VCIgnore`/`VCUnignore`, `VCReport`, `VCAdmin "mute"`/`"announce"`; Abfrage jede Sekunde, Zustellung ohne Ignorierte | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal |
 | Chat-Fenster im HUD | ❌ | UI-Layout des Originals UNKNOWN |
-| Gilden (Gründung, Ränge, Einladung, Gildenchat), Gildenlager, Gildenmissionen | ❌ Iteration 2+ | belegt: SYS-GUILD (LIKELY) |
+| Regeln (`GuildRules`, Backend): Name, Kürzel, Banner, Rechte der Ränge (Entfernen nur nach unten, Ränge nur unter dem eigenen, Leitung nur vom Leiter) | ✅ It. 2 | `GuildRulesTests` (4 Fälle) |
+| Daten: Rang-Vorlagen Gildenleiter/Gildenoffizier (belegt) und Mitglied, Gründungskosten 1000, 50 Mitglieder, Einladung 48 h; `V0017` | ✅ It. 2 | Export `--check` (prüft Ränge), Schematest |
+| Backend: gründen (Senke `GUILD_FOUND`, genau einmal), Gilde ansehen, einladen/annehmen/ablehnen, entfernen, Rang setzen und Leitung übergeben, austreten (letztes Mitglied löst auf), auflösen; Gildenchat über den Chat-Verteiler | ✅ It. 2 | `GuildTests` (4 Tests) |
+| UE: `VCGuild…`-Befehle, `VCGuildChat`, Zustellung an die vom Backend genannten Mitglieder | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
+| Gildenlager, Gildenlevel und -skills, Gildenmissionen | ❌ | belegt als vorhanden (SYS-GUILD), Inhalte UNKNOWN |
 | Städtebesitz, Belagerung, Gruppen, Post, Handelsfenster | ❌ | Regeln UNKNOWN |
+
+**Abnahme Iteration 2 (Vorschlag)**: Spieler A gründet mit `VCGuildCreate "Die Seefahrer" SEE` (1000 Gold weg), lädt B ein, B nimmt an (`VCGuildInvites`, `VCGuildAccept`); B kann als Mitglied niemanden einladen, nach Beförderung zum Offizier schon; `VCGuildChat` erreicht nur Mitglieder, auch auf anderen Servern; A übergibt die Leitung an B und tritt aus; B tritt als Letzter aus und die Gilde ist aufgelöst, der Name wieder frei.
 
 **Abnahme Iteration 1 (Vorschlag)**: Zwei Spieler auf verschiedenen Servern (Testzone und Athen): `VCWorld "Hallo"` erscheint bei beiden innerhalb von etwa einer Sekunde, `VCSay` nur in 50 m Umkreis; `VCWhisper` erreicht den anderen Server, nach `VCIgnore` nicht mehr; ein dritter WORLD-Satz in 10 s wird abgelehnt; `VCFriends` zeigt den anderen online mit Zone; ein Admin schaltet per `mute` stumm (Audit-Eintrag), `announce` erscheint bei allen als [System].
 

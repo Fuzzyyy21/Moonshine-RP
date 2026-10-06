@@ -7,8 +7,10 @@ namespace VC.GameData;
 
 public sealed record ChatSendRequest(long CharacterId, long AccountId, string? ServerId, string? Channel, string? Message, string? TargetName = null);
 public sealed record ChatSent(long MessageId, string Channel, string SenderName, string Message, long? TargetCharacterId, string? TargetName);
+/// <summary>Recipients: bei GUILD die Gildenmitglieder, die auf dem abfragenden Server online sind.</summary>
 public sealed record ChatMessage(
-    long MessageId, string Channel, long? SenderCharacterId, string? SenderName, long? TargetCharacterId, string Message, DateTime CreatedAt);
+    long MessageId, string Channel, long? SenderCharacterId, string? SenderName, long? TargetCharacterId, string Message, DateTime CreatedAt,
+    long[]? Recipients = null);
 /// <summary>LastId: ab hier beim nächsten Mal weiterfragen.</summary>
 public sealed record ChatPoll(long LastId, List<ChatMessage> Messages);
 public sealed record SocialEntry(long CharacterId, string Name, bool Online, string? ZoneId);
@@ -57,7 +59,7 @@ public static class SocialEndpoints
         var message = ChatRules.Sanitize(req.Message, o.MaxLength);
         if (channel is null || !ChatRules.PlayerChannels.Contains(channel) || string.IsNullOrEmpty(req.ServerId))
         {
-            return Problem(StatusCodes.Status400BadRequest, "serverId und channel (LOCAL, WORLD, TRADE, WHISPER) sind erforderlich");
+            return Problem(StatusCodes.Status400BadRequest, "serverId und channel (LOCAL, WORLD, TRADE, WHISPER, GUILD) sind erforderlich");
         }
         if (message is null)
         {
@@ -114,6 +116,11 @@ public static class SocialEndpoints
 
         long? targetId = null;
         string? targetName = null;
+        long? guildId = null;
+        if (channel == "GUILD" && (guildId = await GuildEndpoints.GuildIdOf(conn, tx, req.CharacterId, ct)) is null)
+        {
+            return Problem(StatusCodes.Status409Conflict, "Du bist in keiner Gilde");
+        }
         if (channel == "WHISPER")
         {
             if (await FindCharacter(conn, tx, req.TargetName, ct) is not { } target || target.Id == req.CharacterId)
@@ -148,14 +155,15 @@ public static class SocialEndpoints
         long messageId;
         await using (var insert = new NpgsqlCommand(
             """
-            INSERT INTO chat_log (channel, sender_character_id, target_ref, target_character_id, zone_id, message)
-            VALUES (@ch, @chr, @tref, @t, @zone, @msg) RETURNING message_id
+            INSERT INTO chat_log (channel, sender_character_id, target_ref, target_character_id, target_guild_id, zone_id, message)
+            VALUES (@ch, @chr, @tref, @t, @g, @zone, @msg) RETURNING message_id
             """, conn, tx))
         {
             insert.Parameters.AddWithValue("ch", channel);
             insert.Parameters.AddWithValue("chr", req.CharacterId);
             insert.Parameters.AddWithValue("tref", (object?)targetId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? DBNull.Value);
             insert.Parameters.AddWithValue("t", (object?)targetId ?? DBNull.Value);
+            insert.Parameters.AddWithValue("g", (object?)guildId ?? DBNull.Value);
             insert.Parameters.AddWithValue("zone", zone);
             insert.Parameters.AddWithValue("msg", message);
             messageId = (long)(await insert.ExecuteScalarAsync(ct))!;
@@ -186,13 +194,19 @@ public static class SocialEndpoints
         }
         await using var cmd = new NpgsqlCommand(
             $"""
-            SELECT l.message_id, l.channel, l.sender_character_id, c.name, l.target_character_id, l.message, l.created_at
-            FROM chat_log l LEFT JOIN characters c ON c.character_id = l.sender_character_id
-            WHERE l.message_id > @after AND l.message_id <= @max
-              AND (l.channel IN ('WORLD', 'TRADE', 'SYSTEM')
-                   OR (l.channel = 'WHISPER' AND EXISTS (SELECT 1 FROM character_presence p
-                       WHERE p.character_id = l.target_character_id AND p.server_id = @server AND p.state = 'ONLINE')))
-            ORDER BY l.message_id
+            SELECT * FROM (
+                SELECT l.message_id, l.channel, l.sender_character_id, c.name, l.target_character_id, l.message, l.created_at,
+                       CASE WHEN l.channel = 'GUILD' THEN ARRAY(
+                           SELECT m.character_id FROM guild_members m JOIN character_presence p USING (character_id)
+                           WHERE m.guild_id = l.target_guild_id AND p.server_id = @server AND p.state = 'ONLINE') END AS recipients
+                FROM chat_log l LEFT JOIN characters c ON c.character_id = l.sender_character_id
+                WHERE l.message_id > @after AND l.message_id <= @max
+                  AND (l.channel IN ('WORLD', 'TRADE', 'SYSTEM', 'GUILD')
+                       OR (l.channel = 'WHISPER' AND EXISTS (SELECT 1 FROM character_presence p
+                           WHERE p.character_id = l.target_character_id AND p.server_id = @server AND p.state = 'ONLINE')))
+            ) x
+            WHERE x.channel <> 'GUILD' OR cardinality(x.recipients) > 0
+            ORDER BY x.message_id
             LIMIT {PollLimit}
             """, conn, tx);
         cmd.Parameters.AddWithValue("after", after.Value);
@@ -204,7 +218,8 @@ public static class SocialEndpoints
             while (await r.ReadAsync(ct))
             {
                 messages.Add(new ChatMessage(r.GetInt64(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetInt64(2),
-                    r.IsDBNull(3) ? null : r.GetString(3), r.IsDBNull(4) ? null : r.GetInt64(4), r.GetString(5), r.GetDateTime(6)));
+                    r.IsDBNull(3) ? null : r.GetString(3), r.IsDBNull(4) ? null : r.GetInt64(4), r.GetString(5), r.GetDateTime(6),
+                    r.IsDBNull(7) ? null : r.GetFieldValue<long[]>(7)));
             }
         }
         await tx.CommitAsync(ct);

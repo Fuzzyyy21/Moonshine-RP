@@ -1246,7 +1246,8 @@ void AVCGameMode::RegisterWithDirectory()
 FString AVCGameMode::ChatLine(const FString& Channel, const FString& Sender, const FString& Message)
 {
 	const TCHAR* Prefix = Channel == TEXT("WORLD") ? TEXT("Welt") : Channel == TEXT("TRADE") ? TEXT("Handel")
-		: Channel == TEXT("WHISPER") ? TEXT("Flüstern") : Channel == TEXT("SYSTEM") ? TEXT("System") : TEXT("Lokal");
+		: Channel == TEXT("WHISPER") ? TEXT("Flüstern") : Channel == TEXT("SYSTEM") ? TEXT("System")
+		: Channel == TEXT("GUILD") ? TEXT("Gilde") : TEXT("Lokal");
 	return Sender.IsEmpty() ? FString::Printf(TEXT("[%s] %s"), Prefix, *Message) : FString::Printf(TEXT("[%s] %s: %s"), Prefix, *Sender, *Message);
 }
 
@@ -1294,11 +1295,24 @@ void AVCGameMode::PollChat()
 			double SenderId = 0.0, TargetId = 0.0;
 			M->TryGetNumberField(TEXT("senderCharacterId"), SenderId);
 			const bool bWhisper = M->TryGetNumberField(TEXT("targetCharacterId"), TargetId) && Channel == TEXT("WHISPER");
+			// Gildenchat: das Backend nennt die Empfänger auf diesem Server (Mitgliedschaft dort geprüft, kein Zwischenstand hier).
+			TSet<int64> Recipients;
+			const TArray<TSharedPtr<FJsonValue>>* RecipientValues = nullptr;
+			const bool bGuild = Channel == TEXT("GUILD");
+			if (bGuild && M->TryGetArrayField(TEXT("recipients"), RecipientValues) && RecipientValues)
+			{
+				for (const TSharedPtr<FJsonValue>& Id : *RecipientValues)
+				{
+					Recipients.Add(static_cast<int64>(Id->AsNumber()));
+				}
+			}
 			const FString Line = ChatLine(Channel, Sender, M->GetStringField(TEXT("message")));
 			for (const TPair<TObjectKey<APlayerController>, FPlayerSession>& Pair : Self->Sessions)
 			{
 				APlayerController* PC = Pair.Key.ResolveObjectPtr();
-				if (!bWhisper || Pair.Value.CharacterId == static_cast<int64>(TargetId))
+				const bool bAddressed = bWhisper ? Pair.Value.CharacterId == static_cast<int64>(TargetId)
+					: bGuild ? Recipients.Contains(Pair.Value.CharacterId) : true;
+				if (bAddressed)
 				{
 					Self->DeliverChat(PC, Pair.Value, static_cast<int64>(SenderId), Line);
 				}
@@ -1377,6 +1391,11 @@ void AVCGameMode::HandleSocialCommand(APlayerController* Player, const FString& 
 	TWeakObjectPtr<AVCGameMode> WeakThis(this);
 	TWeakObjectPtr<APlayerController> WeakPC(Player);
 
+	if (Command.StartsWith(TEXT("guild")))
+	{
+		HandleGuildCommand(Player, Command, Name, Rest.TrimStartAndEnd());
+		return;
+	}
 	if (Command == TEXT("report"))
 	{
 		if (Name.IsEmpty() || Rest.TrimStartAndEnd().IsEmpty())
@@ -1472,6 +1491,106 @@ void AVCGameMode::HandleSocialCommand(APlayerController* Player, const FString& 
 	{
 		Player->ClientMessage(TEXT("VCFriends | VCFriendAdd <name> | VCFriendRemove <name> | VCIgnores | VCIgnore <name> | VCUnignore <name> | VCReport <name> \"grund\""));
 	}
+}
+
+void AVCGameMode::HandleGuildCommand(APlayerController* Player, const FString& Command, const FString& First, const FString& Rest)
+{
+	FPlayerSession* Session = Sessions.Find(Player);
+	if (!Session)
+	{
+		return;
+	}
+	// guild | guildinvites | guildcreate <TAG|-> <name …> | guildinvite/guildkick <name> | guildrank <name> <rang>
+	// guildaccept/guilddecline <gildennr> | guildleave | guilddisband
+	FString Action, Name, Tag;
+	int32 RankNo = 0;
+	int64 GuildId = 0;
+	if (Command == TEXT("guild"))
+	{
+		Action = TEXT("get");
+	}
+	else if (Command == TEXT("guildinvites"))
+	{
+		Action = TEXT("invites");
+	}
+	else if (Command == TEXT("guildcreate") && !Rest.IsEmpty())
+	{
+		Action = TEXT("found");
+		Tag = First == TEXT("-") ? FString() : First.ToUpper();
+		Name = Rest;
+	}
+	else if ((Command == TEXT("guildinvite") || Command == TEXT("guildkick")) && !First.IsEmpty())
+	{
+		Action = Command.RightChop(5); // invite, kick
+		Name = First;
+	}
+	else if (Command == TEXT("guildrank") && !First.IsEmpty() && LexTryParseString(RankNo, *Rest) && RankNo >= 0)
+	{
+		Action = TEXT("rank");
+		Name = First;
+	}
+	else if ((Command == TEXT("guildaccept") || Command == TEXT("guilddecline")) && LexTryParseString(GuildId, *First) && GuildId > 0)
+	{
+		Action = Command.RightChop(5); // accept, decline
+	}
+	else if (Command == TEXT("guildleave") || Command == TEXT("guilddisband"))
+	{
+		Action = Command.RightChop(5); // leave, disband
+	}
+	else
+	{
+		Player->ClientMessage(TEXT("VCGuild | VCGuildCreate \"Name\" [KÜRZEL] | VCGuildInvite <name> | VCGuildInvites | VCGuildAccept <nr> | VCGuildDecline <nr> | VCGuildKick <name> | VCGuildRank <name> <rang> | VCGuildLeave | VCGuildDisband | VCGuildChat \"text\""));
+		return;
+	}
+	TWeakObjectPtr<APlayerController> WeakPC(Player);
+	FVCServerBackend::Guild(Session->CharacterId, Session->AccountId, Action, Name, Tag, RankNo, GuildId, [WeakPC, Action](const FVCHttpResult& Result)
+	{
+		APlayerController* PC = WeakPC.Get();
+		if (!PC)
+		{
+			return;
+		}
+		if (!Result.IsOk())
+		{
+			PC->ClientMessage(Action == TEXT("get") && Result.Status == 404 ? FString(TEXT("Du bist in keiner Gilde (VCGuildInvites zeigt Einladungen)."))
+				: FString::Printf(TEXT("Gilde: %s"), *Result.ErrorMessage()));
+			return;
+		}
+		if (Action == TEXT("invites"))
+		{
+			TArray<TSharedPtr<FJsonValue>> Invites;
+			FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Result.Body), Invites);
+			PC->ClientMessage(FString::Printf(TEXT("Einladungen (%d):"), Invites.Num()));
+			for (const TSharedPtr<FJsonValue>& Value : Invites)
+			{
+				const TSharedPtr<FJsonObject> I = Value->AsObject();
+				PC->ClientMessage(FString::Printf(TEXT("  Nr. %lld: %s (von %s) – VCGuildAccept %lld"),
+					static_cast<int64>(I->GetNumberField(TEXT("guildId"))), *I->GetStringField(TEXT("guildName")),
+					*I->GetStringField(TEXT("invitedBy")), static_cast<int64>(I->GetNumberField(TEXT("guildId")))));
+			}
+			return;
+		}
+		if (!Result.Json.IsValid())
+		{
+			PC->ClientMessage(Action == TEXT("decline") ? TEXT("Einladung abgelehnt.") : TEXT("Du bist nicht mehr in der Gilde."));
+			return;
+		}
+		FString Tag;
+		Result.Json->TryGetStringField(TEXT("tag"), Tag);
+		const TArray<TSharedPtr<FJsonValue>>& Members = Result.Json->GetArrayField(TEXT("members"));
+		PC->ClientMessage(FString::Printf(TEXT("%s%s – dein Rang: %s, Mitglieder %d/%d"), Tag.IsEmpty() ? TEXT("") : *FString::Printf(TEXT("[%s] "), *Tag),
+			*Result.Json->GetStringField(TEXT("name")), *Result.Json->GetStringField(TEXT("myRankName")), Members.Num(),
+			static_cast<int32>(Result.Json->GetNumberField(TEXT("maxMembers")))));
+		for (const TSharedPtr<FJsonValue>& Value : Members)
+		{
+			const TSharedPtr<FJsonObject> M = Value->AsObject();
+			FString Zone;
+			M->TryGetStringField(TEXT("zoneId"), Zone);
+			PC->ClientMessage(FString::Printf(TEXT("  %s – %s (%d) – %s"), *M->GetStringField(TEXT("name")), *M->GetStringField(TEXT("rankName")),
+				static_cast<int32>(M->GetNumberField(TEXT("rankNo"))),
+				M->GetBoolField(TEXT("online")) ? *FString::Printf(TEXT("online (%s)"), *Zone) : TEXT("offline")));
+		}
+	});
 }
 
 void AVCGameMode::SendHeartbeat()

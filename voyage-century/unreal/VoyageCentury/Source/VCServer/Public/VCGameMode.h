@@ -180,6 +180,8 @@ private:
 	/** Zustellen an einen Spieler, außer er ignoriert den Absender. */
 	void DeliverChat(APlayerController* PC, const FPlayerSession& Session, int64 SenderId, const FString& Line) const;
 	static FString ChatLine(const FString& Channel, const FString& Sender, const FString& Message);
+	/** Gildenbefehle (First = erstes Wort des Arguments, Rest = der Rest). */
+	void HandleGuildCommand(APlayerController* Player, const FString& Command, const FString& First, const FString& Rest);
 	void CompleteTransfer(APlayerController* PC, int64 CharacterId, const FString& Address);
 	void CancelTransfer(APlayerController* PC, const FString& Reason);
 	void ReportKill(APlayerController* KillerPC, const FPlayerSession& Killer, const TSharedRef<FJsonObject>& Kill);

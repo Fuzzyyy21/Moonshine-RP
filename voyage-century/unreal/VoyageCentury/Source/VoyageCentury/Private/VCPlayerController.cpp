@@ -403,6 +403,61 @@ void AVCPlayerController::VCReport(const FString& Name, const FString& Reason)
 	ServerSocialCommand(TEXT("report"), Name + TEXT(" ") + Reason);
 }
 
+void AVCPlayerController::VCGuild()
+{
+	ServerSocialCommand(TEXT("guild"), FString());
+}
+
+void AVCPlayerController::VCGuildCreate(const FString& Name, const FString& Tag)
+{
+	ServerSocialCommand(TEXT("guildcreate"), (Tag.IsEmpty() ? FString(TEXT("-")) : Tag) + TEXT(" ") + Name);
+}
+
+void AVCPlayerController::VCGuildInvite(const FString& Name)
+{
+	ServerSocialCommand(TEXT("guildinvite"), Name);
+}
+
+void AVCPlayerController::VCGuildInvites()
+{
+	ServerSocialCommand(TEXT("guildinvites"), FString());
+}
+
+void AVCPlayerController::VCGuildAccept(const FString& GuildId)
+{
+	ServerSocialCommand(TEXT("guildaccept"), GuildId);
+}
+
+void AVCPlayerController::VCGuildDecline(const FString& GuildId)
+{
+	ServerSocialCommand(TEXT("guilddecline"), GuildId);
+}
+
+void AVCPlayerController::VCGuildKick(const FString& Name)
+{
+	ServerSocialCommand(TEXT("guildkick"), Name);
+}
+
+void AVCPlayerController::VCGuildRank(const FString& Name, const FString& Rank)
+{
+	ServerSocialCommand(TEXT("guildrank"), Name + TEXT(" ") + Rank);
+}
+
+void AVCPlayerController::VCGuildLeave()
+{
+	ServerSocialCommand(TEXT("guildleave"), FString());
+}
+
+void AVCPlayerController::VCGuildDisband()
+{
+	ServerSocialCommand(TEXT("guilddisband"), FString());
+}
+
+void AVCPlayerController::VCGuildChat(const FString& Message)
+{
+	ServerChat(TEXT("GUILD"), FString(), Message);
+}
+
 bool AVCPlayerController::ServerChat_Validate(const FString& Channel, const FString& Target, const FString& Message)
 {
 	return Channel.Len() <= 16 && Target.Len() <= 24 && Message.Len() <= 1000;

@@ -488,6 +488,28 @@ ON CONFLICT (rule_key) DO UPDATE SET
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 
+-- Gilden (design_data/dev_guild.json; Rangnamen Leiter/Offizier belegt durch SYS-GUILD, Rechte und Zahlen is_dev).
+
+INSERT INTO guild_rank_defaults (rank_no, name, permissions, is_dev, recon_id, confidence) VALUES
+    (0, 'Gildenleiter', ARRAY['INVITE', 'KICK', 'PROMOTE']::text[], TRUE, 'SYS-GUILD', 'LIKELY'::confidence_level),
+    (1, 'Gildenoffizier', ARRAY['INVITE', 'KICK', 'PROMOTE']::text[], TRUE, 'SYS-GUILD', 'LIKELY'::confidence_level),
+    (2, 'Mitglied', '{}'::text[], TRUE, NULL, 'UNKNOWN'::confidence_level)
+ON CONFLICT (rank_no) DO UPDATE SET
+    name = EXCLUDED.name,
+    permissions = EXCLUDED.permissions,
+    is_dev = EXCLUDED.is_dev,
+    recon_id = EXCLUDED.recon_id,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO game_rules (rule_key, int_value, is_dev, confidence) VALUES
+    ('GUILD_FOUND_COST', 1000, TRUE, 'UNKNOWN'::confidence_level),
+    ('GUILD_INVITE_HOURS', 48, TRUE, 'UNKNOWN'::confidence_level),
+    ('GUILD_MAX_MEMBERS', 50, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (rule_key) DO UPDATE SET
+    int_value = EXCLUDED.int_value,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO level_table (level, xp_required, is_dev, recon_id, confidence) VALUES
     (1, 0, TRUE, NULL, 'UNKNOWN'::confidence_level),
     (2, 100, TRUE, NULL, 'UNKNOWN'::confidence_level),

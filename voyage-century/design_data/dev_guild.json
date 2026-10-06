@@ -1,0 +1,12 @@
+{
+  "_comment": "Gilden. Belegt (SYS-GUILD, LIKELY): Der Gildenleiter gründet die Gilde und legt Name und Banner fest; Ränge mindestens Gildenleiter und Gildenoffiziere. Gründungskosten, Mitgliederzahl, Einladungsdauer, weitere Ränge und die Rechte der Ränge sind UNKNOWN (DESIGNENTSCHEIDUNG, is_dev). Rang 2 'Mitglied' ist reine Designergänzung.",
+  "source": "SRC-DESIGN",
+  "found_cost_gold": 1000,
+  "max_members": 50,
+  "invite_hours": 48,
+  "ranks": [
+    { "rank_no": 0, "name_de": "Gildenleiter", "recon_id": "SYS-GUILD", "permissions": ["INVITE", "KICK", "PROMOTE"] },
+    { "rank_no": 1, "name_de": "Gildenoffizier", "recon_id": "SYS-GUILD", "permissions": ["INVITE", "KICK", "PROMOTE"] },
+    { "rank_no": 2, "name_de": "Mitglied", "recon_id": null, "permissions": [] }
+  ]
+}

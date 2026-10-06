@@ -185,6 +185,20 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Gilden (Phase 7, Iteration 2)
+
+Keine Data Table. Namen mit Leerzeichen in Anführungszeichen.
+
+```
+VCAdmin "givegold 1000"
+VCGuildCreate "Die Seefahrer" SEE   → Gilde gegründet (1000 Gold), du bist Gildenleiter
+VCGuildInvite Anna                  → Anna: VCGuildInvites, dann VCGuildAccept <nr>
+VCGuild                             → Name, Kürzel, Rang, Mitglieder mit Rang und Online-Status
+VCGuildRank Anna 1                  → Anna wird Gildenoffizier; VCGuildRank Anna 0 übergibt die Leitung
+VCGuildKick Bob | VCGuildLeave | VCGuildDisband
+VCGuildChat "Treffen am Hafen"      → [Gilde] bei allen Mitgliedern, auch auf anderen Servern
+```
+
 ## Chat und Freunde (Phase 7, Iteration 1)
 
 Keine Data Table. Der Server holt Chat jede Sekunde vom Backend (nach der Anmeldung im World Directory). Text mit

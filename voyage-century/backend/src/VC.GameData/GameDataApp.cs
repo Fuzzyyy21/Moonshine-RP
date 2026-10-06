@@ -99,6 +99,7 @@ public static partial class GameDataApp
         CraftingEndpoints.Map(internalApi);
         AuctionEndpoints.Map(internalApi);
         SocialEndpoints.Map(internalApi);
+        GuildEndpoints.Map(internalApi);
         return app;
     }
 

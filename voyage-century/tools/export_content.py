@@ -278,6 +278,8 @@ def sql_literal(value) -> str:
         return "NULL"
     if isinstance(value, dict):
         return "'" + json.dumps(value, ensure_ascii=False, sort_keys=True).replace("'", "''") + "'::jsonb"
+    if isinstance(value, list):
+        return ("ARRAY[" + ", ".join(sql_literal(v) for v in value) + "]::text[]") if value else "'{}'::text[]"
     if isinstance(value, bool):
         return "TRUE" if value else "FALSE"
     if isinstance(value, (int, float)):
@@ -310,7 +312,8 @@ def upsert(table: str, key: str | tuple[str, ...], columns: list[str], rows: lis
 
 
 def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, combat: dict, abilities: dict,
-               world: dict, discoveries: dict, ships: dict, trade: dict, loot: dict, crafting: dict, auction: dict) -> str:
+               world: dict, discoveries: dict, ships: dict, trade: dict, loot: dict, crafting: dict, auction: dict,
+               guild: dict, records: dict[str, dict]) -> str:
     name_cols = ["name_zh", "name_en", "name_de"]
     city_zones = {strip_prefix(z["city"]): z["zone_id"] for z in world["zones"] if z["city"]}
 
@@ -484,6 +487,14 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
         upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
                [{"rule_key": f"AUCTION_{key.upper()}", "int_value": value, "is_dev": True, "confidence": "UNKNOWN"}
                 for key, value in sorted(auction["tuning"].items())]),
+        "-- Gilden (design_data/dev_guild.json; Rangnamen Leiter/Offizier belegt durch SYS-GUILD, Rechte und Zahlen is_dev).\n",
+        upsert("guild_rank_defaults", "rank_no", ["rank_no", "name", "permissions", "is_dev", "recon_id", "confidence"],
+               [{"rank_no": r["rank_no"], "name": r["name_de"], "permissions": sorted(r["permissions"]), "is_dev": True,
+                 "recon_id": r["recon_id"], "confidence": records[r["recon_id"]]["confidence"] if r["recon_id"] else "UNKNOWN"}
+                for r in sorted(guild["ranks"], key=lambda r: r["rank_no"])]),
+        upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
+               [{"rule_key": key, "int_value": guild[field], "is_dev": True, "confidence": "UNKNOWN"}
+                for key, field in sorted(GUILD_RULES.items())]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -561,6 +572,24 @@ def check_crafting(crafting: dict, item_codes: set[str], skill_categories: dict[
             problems.append(f"{r['code']}: Menge ≥ 1, Gebühr ≥ 0, Stufe ≥ 1, Zeit ≥ 0")
     if problems:
         raise SystemExit("design_data/dev_crafting.json:\n  " + "\n  ".join(problems))
+
+
+GUILD_RULES = {"GUILD_FOUND_COST": "found_cost_gold", "GUILD_MAX_MEMBERS": "max_members", "GUILD_INVITE_HOURS": "invite_hours"}
+GUILD_PERMISSIONS = {"INVITE", "KICK", "PROMOTE"}
+
+
+def check_guild(guild: dict, records: dict[str, dict]) -> None:
+    problems = []
+    numbers = [r["rank_no"] for r in guild["ranks"]]
+    if numbers != list(range(len(numbers))) or len(numbers) < 2:
+        problems.append("Ränge: mindestens 2, Nummern 0, 1, 2 … ohne Lücke (0 = Gildenleiter)")
+    for r in guild["ranks"]:
+        if set(r["permissions"]) - GUILD_PERMISSIONS or (r["recon_id"] and r["recon_id"] not in records):
+            problems.append(f"Rang {r['rank_no']}: unbekannte Rechte oder Beleg")
+    if guild["found_cost_gold"] < 0 or guild["max_members"] < 1 or guild["invite_hours"] < 1:
+        problems.append("Kosten ≥ 0, Mitglieder und Einladungsdauer ≥ 1")
+    if problems:
+        raise SystemExit("design_data/dev_guild.json:\n  " + "\n  ".join(problems))
 
 
 def check_auction(auction: dict, zone_cities: set[str], port_cities: set[str]) -> None:
@@ -816,8 +845,11 @@ def outputs() -> dict[Path, str]:
                    {r["code"]: r["category_cn"] for r in rows["skills"]}, zone_ids)
     auction = json.loads((DESIGN_DIR / "dev_auction.json").read_text(encoding="utf-8"))
     check_auction(auction, {strip_prefix(z["city"]) for z in world["zones"] if z["city"]}, {p["city"] for p in rows["ports"]})
+    guild = json.loads((DESIGN_DIR / "dev_guild.json").read_text(encoding="utf-8"))
+    records = load_records()
+    check_guild(guild, records)
     files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade, loot, crafting,
-                                   auction)}
+                                   auction, guild, records)}
     for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships, trade, crafting, auction).items():
         files[UE_DATA_DIR / name] = json.dumps(table, ensure_ascii=False, indent=2) + "\n"
     return files

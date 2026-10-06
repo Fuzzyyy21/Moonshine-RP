@@ -91,6 +91,12 @@ public:
 	/** Freundes-/Ignorierliste: Verb GET, POST (Name) oder DELETE (OtherId). List = "friends" oder "ignores". Antwort: Liste. */
 	static void SocialList(int64 CharacterId, int64 AccountId, const FString& Verb, const FString& List, const FString& Name, int64 OtherId,
 		FVCHttpCallback Callback);
+	/**
+	 * Gilden. Action: get, invites (GET); found (Name, Tag), invite/kick (Name), rank (Name, RankNo), leave, disband;
+	 * accept/decline (GuildId). Antwort: Gildeninfo, Einladungsliste oder leer.
+	 */
+	static void Guild(int64 CharacterId, int64 AccountId, const FString& Action, const FString& Name, const FString& Tag, int32 RankNo,
+		int64 GuildId, FVCHttpCallback Callback);
 	static void ReportPlayer(int64 CharacterId, int64 AccountId, const FString& Name, const FString& Reason, FVCHttpCallback Callback);
 	/** Admin: stummschalten bzw. Systemmeldung; Rechte und Audit im Backend. */
 	static void AdminMute(const FString& Name, int32 Minutes, const FString& Channel, const FString& Reason,

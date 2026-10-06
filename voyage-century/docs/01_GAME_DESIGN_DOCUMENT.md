@@ -365,6 +365,13 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Belagerung: geplanter Kampf (`territory_wars`) mit Land- und Seephase. Ablauf UNKNOWN, Phase 7.
 * PvP-Zonen: sicher (Häfen), umkämpft (Seegebiete mit Regeln je Region), frei (bestimmte Gewässer). Zuordnung `[DESIGN]`.
 
+**Umgesetzt (Phase 7, Iteration 2)**, Regeln in `backend/src/VC.GameData/GuildRules.cs` (getestet), Werte in `design_data/dev_guild.json`
+* Belegt und umgesetzt: Der Gründer ist Gildenleiter und legt Name und Banner fest; Ränge Gildenleiter und Gildenoffizier (SYS-GUILD).
+* `[DESIGN]`: Name 3–20 Zeichen, Kürzel 2–4 Großbuchstaben/Ziffern (beides eindeutig unter bestehenden Gilden), Banner aus Symbol und zwei Farben (Platzhalter bis zur Oberfläche). Gründung kostet 1000 Gold (Senke `GUILD_FOUND`), höchstens 50 Mitglieder, Einladungen gelten 48 h. Dritter Rang „Mitglied“ ohne Rechte.
+* Rechte: Einladen, Entfernen, Rang setzen (Leiter und Offiziere). Entfernt und befördert wird nur unterhalb des eigenen Rangs; die Leitung gibt nur der Leiter ab (er wird dabei Offizier). Der Leiter tritt erst nach der Übergabe aus; das letzte Mitglied löst die Gilde auf (Name und Kürzel werden wieder frei).
+* Gildenchat (Kanal GUILD) läuft über denselben Verteiler wie der übrige Chat; das Backend nennt je Server die Mitglieder, die ihn bekommen.
+* Offen: Städtekauf und -besetzung durch Offiziere (belegt, Regeln UNKNOWN), Gildenlager, -level, -skills, -quests.
+
 ---
 
 ## 18. UI/UX

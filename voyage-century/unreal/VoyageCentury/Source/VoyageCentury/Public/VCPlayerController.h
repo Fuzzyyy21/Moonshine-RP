@@ -37,6 +37,8 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCFriends | VCFriendAdd <name> | VCFriendRemove <name>   Freunde mit Online-Status und Zone
  *   VCIgnores | VCIgnore <name> | VCUnignore <name>      Ignorieren (Chat und Flüstern)
  *   VCReport <name> "grund"                              Spieler melden (letzte Nachrichten gehen mit)
+ *   VCGuild | VCGuildCreate "Name" [KÜRZEL] | VCGuildInvite <name> | VCGuildInvites | VCGuildAccept <nr> | VCGuildDecline <nr>
+ *   VCGuildKick <name> | VCGuildRank <name> <rang> (0 = Leitung übergeben) | VCGuildLeave | VCGuildDisband | VCGuildChat "text"
  *   VCAdmin "mute <name> <minuten> [kanal] <grund>" | VCAdmin "announce <text>"
  *   VCAuction [WARE] | VCAuctionMine                     Auktionshaus durchsuchen / eigene Angebote
  *   VCAuctionSell <nr> <menge> <preis> | VCAuctionBuy <angebot> | VCAuctionCancel <angebot> | VCAuctionCollect  (beim Auktionator)
@@ -173,6 +175,39 @@ public:
 
 	UFUNCTION(Exec)
 	void VCReport(const FString& Name, const FString& Reason);
+
+	UFUNCTION(Exec)
+	void VCGuild();
+
+	UFUNCTION(Exec)
+	void VCGuildCreate(const FString& Name, const FString& Tag);
+
+	UFUNCTION(Exec)
+	void VCGuildInvite(const FString& Name);
+
+	UFUNCTION(Exec)
+	void VCGuildInvites();
+
+	UFUNCTION(Exec)
+	void VCGuildAccept(const FString& GuildId);
+
+	UFUNCTION(Exec)
+	void VCGuildDecline(const FString& GuildId);
+
+	UFUNCTION(Exec)
+	void VCGuildKick(const FString& Name);
+
+	UFUNCTION(Exec)
+	void VCGuildRank(const FString& Name, const FString& Rank);
+
+	UFUNCTION(Exec)
+	void VCGuildLeave();
+
+	UFUNCTION(Exec)
+	void VCGuildDisband();
+
+	UFUNCTION(Exec)
+	void VCGuildChat(const FString& Message);
 
 	UFUNCTION(Exec)
 	void VCAuction(const FString& ItemCode);

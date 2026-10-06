@@ -306,6 +306,44 @@ void FVCServerBackend::SocialList(int64 CharacterId, int64 AccountId, const FStr
 	FVCHttp::Send(Verb == TEXT("DELETE") ? TEXT("DELETE") : TEXT("GET"), Url, nullptr, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::Guild(int64 CharacterId, int64 AccountId, const FString& Action, const FString& Name, const FString& Tag,
+	int32 RankNo, int64 GuildId, FVCHttpCallback Callback)
+{
+	if (Action == TEXT("get") || Action == TEXT("invites"))
+	{
+		FVCHttp::Send(TEXT("GET"), FString::Printf(TEXT("%s/%s?accountId=%lld"), *CharacterUrl(CharacterId),
+			Action == TEXT("get") ? TEXT("guild") : TEXT("guild-invites"), AccountId), nullptr, Headers(), MoveTemp(Callback));
+		return;
+	}
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	FString Path;
+	if (Action == TEXT("found"))
+	{
+		Body->SetStringField(TEXT("name"), Name);
+		if (!Tag.IsEmpty())
+		{
+			Body->SetStringField(TEXT("tag"), Tag);
+		}
+		// Banner-Gestaltung folgt mit der Oberfläche; bis dahin festes Banner [DESIGN].
+		Body->SetNumberField(TEXT("bannerSymbol"), 0);
+		Body->SetNumberField(TEXT("bannerColor1"), 0);
+		Body->SetNumberField(TEXT("bannerColor2"), 1);
+		Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+		Path = TEXT("/guild");
+	}
+	else if (Action == TEXT("accept") || Action == TEXT("decline"))
+	{
+		Path = FString::Printf(TEXT("/guild-invites/%lld/%s"), GuildId, *Action);
+	}
+	else
+	{
+		Body->SetStringField(TEXT("name"), Name);
+		Body->SetNumberField(TEXT("rankNo"), RankNo);
+		Path = TEXT("/guild/") + Action; // invite, kick, rank, leave, disband
+	}
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + Path, Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::ReportPlayer(int64 CharacterId, int64 AccountId, const FString& Name, const FString& Reason, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
@@ -487,6 +525,7 @@ void FVCServerBackend::SendChat(int64, int64, const FString&, const FString&, co
 void FVCServerBackend::PollChat(int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::SocialList(int64, int64, const FString&, const FString&, const FString&, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportPlayer(int64, int64, const FString&, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::Guild(int64, int64, const FString&, const FString&, const FString&, int32, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminMute(const FString&, int32, const FString&, const FString&, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminAnnounce(const FString&, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Auction(int64, int64, const FString&, const FString&, int64, int32, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }

@@ -28,8 +28,8 @@ public sealed class ChatOptions
 /// <summary>Chat-Regeln [DESIGN] (GDD 19), reine Funktionen ohne Datenbank.</summary>
 public static class ChatRules
 {
-    /// <summary>Kanäle, die Spieler beschreiben dürfen; SYSTEM nur Admins, COMBAT nur Server, GUILD/PARTY folgen mit Gilden/Gruppen.</summary>
-    public static readonly IReadOnlySet<string> PlayerChannels = new HashSet<string> { "LOCAL", "WORLD", "TRADE", "WHISPER" };
+    /// <summary>Kanäle, die Spieler beschreiben dürfen; SYSTEM nur Admins, COMBAT nur Server, PARTY folgt mit Gruppen.</summary>
+    public static readonly IReadOnlySet<string> PlayerChannels = new HashSet<string> { "LOCAL", "WORLD", "TRADE", "WHISPER", "GUILD" };
 
     /// <summary>Kanäle, die über alle Zonen-Server gehen (strengeres Rate-Limit).</summary>
     public static bool IsWide(string channel) => channel is "WORLD" or "TRADE";
