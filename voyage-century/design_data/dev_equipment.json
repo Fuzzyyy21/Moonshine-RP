@@ -1,0 +1,38 @@
+{
+  "_comment": "DESIGNENTSCHEIDUNG (Priorität 6). Belegt sind Ausrüstungssets mit Stufe (SET-KING-148, SET-SIDONIA-150, SET-THOMAS-155, SET-TALOS-168; Werte UNKNOWN) und dass Sets per Ausrüstungs-Synthese aus Synthese-Materialien entstehen (SYS-EQUIP-SYNTHESIS; Rezepte UNKNOWN). Ausrüstungsplätze, Werte, Setboni und Rezepte des Originals sind UNKNOWN. Alles hier ist Entwicklungsinhalt (DEV_, is_dev), damit Plätze, Stufenanforderung, Setboni und Synthese testbar sind. Werte-Schlüssel: maxHealth, attackPower, defense.",
+  "source": "SRC-DESIGN",
+  "slots": ["HEAD", "BODY", "HANDS", "FEET"],
+  "sets": [
+    { "code": "DEV_SET_TRAINING", "name_de": "Übungsset (Test)", "level": 1,
+      "bonuses": [
+        { "pieces": 2, "stats": { "defense": 5 } },
+        { "pieces": 4, "stats": { "maxHealth": 50, "attackPower": 5 } }
+      ] }
+  ],
+  "items": [
+    { "code": "DEV_ARMOR_HAT", "name_de": "Übungshut (Test)", "item_type": "ARMOR", "slot": "HEAD", "level_req": 1,
+      "set": "DEV_SET_TRAINING", "stats": { "defense": 2 }, "npc_price": 20 },
+    { "code": "DEV_ARMOR_COAT", "name_de": "Übungsmantel (Test)", "item_type": "ARMOR", "slot": "BODY", "level_req": 1,
+      "set": "DEV_SET_TRAINING", "stats": { "defense": 4, "maxHealth": 20 }, "npc_price": 30 },
+    { "code": "DEV_ARMOR_GLOVES", "name_de": "Übungshandschuhe (Test)", "item_type": "ARMOR", "slot": "HANDS", "level_req": 1,
+      "set": "DEV_SET_TRAINING", "stats": { "defense": 1, "attackPower": 1 }, "npc_price": 15 },
+    { "code": "DEV_ARMOR_BOOTS", "name_de": "Übungsstiefel (Test)", "item_type": "ARMOR", "slot": "FEET", "level_req": 1,
+      "set": "DEV_SET_TRAINING", "stats": { "defense": 1 }, "npc_price": 15 },
+    { "code": "DEV_ARMOR_ELITE_HAT", "name_de": "Elitehut (Test)", "item_type": "ARMOR", "slot": "HEAD", "level_req": 160,
+      "set": null, "stats": { "defense": 30 }, "npc_price": 500 }
+  ],
+  "recipes": [
+    { "code": "DEV_SYNTH_HAT", "name_de": "Synthese: Übungshut (Test)", "skill": "SEWING", "required_level": 1,
+      "materials": [ { "item": "DEV_MAT_CANVAS", "quantity": 1 }, { "item": "DEV_MAT_SYNTH", "quantity": 1 } ],
+      "result": "DEV_ARMOR_HAT", "result_quantity": 1, "gold_cost": 20, "craft_seconds": 0, "skill_xp": 30 },
+    { "code": "DEV_SYNTH_COAT", "name_de": "Synthese: Übungsmantel (Test)", "skill": "SEWING", "required_level": 1,
+      "materials": [ { "item": "DEV_MAT_CANVAS", "quantity": 2 }, { "item": "DEV_MAT_SYNTH", "quantity": 1 } ],
+      "result": "DEV_ARMOR_COAT", "result_quantity": 1, "gold_cost": 30, "craft_seconds": 0, "skill_xp": 40 },
+    { "code": "DEV_SYNTH_GLOVES", "name_de": "Synthese: Übungshandschuhe (Test)", "skill": "SEWING", "required_level": 1,
+      "materials": [ { "item": "DEV_MAT_CLOTH", "quantity": 2 }, { "item": "DEV_MAT_SYNTH", "quantity": 1 } ],
+      "result": "DEV_ARMOR_GLOVES", "result_quantity": 1, "gold_cost": 15, "craft_seconds": 0, "skill_xp": 25 },
+    { "code": "DEV_SYNTH_BOOTS", "name_de": "Synthese: Übungsstiefel (Test)", "skill": "FOUNDRY", "required_level": 1,
+      "materials": [ { "item": "DEV_MAT_IRON", "quantity": 2 }, { "item": "DEV_MAT_SYNTH", "quantity": 1 } ],
+      "result": "DEV_ARMOR_BOOTS", "result_quantity": 1, "gold_cost": 15, "craft_seconds": 0, "skill_xp": 25 }
+  ]
+}

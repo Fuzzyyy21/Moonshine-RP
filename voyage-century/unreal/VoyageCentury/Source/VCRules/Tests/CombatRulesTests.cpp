@@ -36,6 +36,19 @@ const std::vector<vctest::FCase>& vctest::CombatRulesCases()
 			CHECK_NEAR(L11.Defense, 10.0);
 			CHECK_NEAR(DeriveCharacterStats(0, Tuning()).MaxHealth, 100.0); // Stufe < 1 gilt als 1
 		} },
+		{ "Ausrüstungsbonus wird aufgeschlagen und begrenzt", []
+		{
+			const FCombatStats L11 = DeriveCharacterStats(11, Tuning());
+			const FCombatStats B = WithBonus(L11, FStatBonus{ 50.0, 5.0, 13.0 });
+			CHECK_NEAR(B.MaxHealth, 250.0);
+			CHECK_NEAR(B.AttackPower, 25.0);
+			CHECK_NEAR(B.Defense, 23.0);
+			CHECK_NEAR(B.MaxStamina, L11.MaxStamina);
+			const FCombatStats Low = WithBonus(L11, FStatBonus{ -1000.0, -1000.0, -1000.0 });
+			CHECK_NEAR(Low.MaxHealth, 1.0);
+			CHECK_NEAR(Low.AttackPower, 0.0);
+			CHECK_NEAR(Low.Defense, 0.0);
+		} },
 		{ "Waffenskill erhöht den Waffenschaden", []
 		{
 			FWeaponDef Sword{ EWeaponClass::Sword, 12.0, 1.2, 200.0 };

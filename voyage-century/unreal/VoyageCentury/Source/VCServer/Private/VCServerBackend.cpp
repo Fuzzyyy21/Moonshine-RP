@@ -203,6 +203,17 @@ void FVCServerBackend::InventoryAction(int64 CharacterId, int64 AccountId, const
 	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/inventory/") + Action, Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::Unequip(int64 CharacterId, int64 AccountId, const FString& Slot, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetNumberField(TEXT("instanceId"), 0.0);
+	if (!Slot.IsEmpty())
+	{
+		Body->SetStringField(TEXT("slot"), Slot);
+	}
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/inventory/unequip"), Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::Gather(int64 CharacterId, int64 AccountId, const FString& NodeCode, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
@@ -584,6 +595,7 @@ void FVCServerBackend::Auction(int64, int64, const FString&, const FString&, int
 void FVCServerBackend::LoadRecipes(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Craft(int64, int64, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::InventoryAction(int64, int64, const FString&, int64, int32, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::Unequip(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminGrantItem(int64, const FString&, int32, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Trade(int64, int64, const FString&, const FString&, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }

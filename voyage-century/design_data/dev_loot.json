@@ -4,7 +4,8 @@
   "inventory_slots": 30,
   "materials": [
     { "code": "DEV_MAT_CLOTH", "name_de": "Stoffrest (Test)", "category": "CLOTH", "max_stack": 99, "npc_price": 3 },
-    { "code": "DEV_MAT_IRON", "name_de": "Eisenstück (Test)", "category": "METAL", "max_stack": 99, "npc_price": 8 }
+    { "code": "DEV_MAT_IRON", "name_de": "Eisenstück (Test)", "category": "METAL", "max_stack": 99, "npc_price": 8 },
+    { "code": "DEV_MAT_SYNTH", "name_de": "Synthesestein (Test)", "category": "SYNTHESIS", "max_stack": 99, "npc_price": 25 }
   ],
   "sell_prices": {
     "DEV_SWORD": 40,
@@ -28,7 +29,8 @@
       "entries": [
         { "item": "DEV_MAT_CLOTH", "chance": 0.6, "min": 1, "max": 3 },
         { "item": "DEV_MAT_IRON", "chance": 0.3, "min": 1, "max": 1 },
-        { "item": "DEV_BLADE", "chance": 0.1, "min": 1, "max": 1 }
+        { "item": "DEV_BLADE", "chance": 0.1, "min": 1, "max": 1 },
+        { "item": "DEV_MAT_SYNTH", "chance": 0.1, "min": 1, "max": 1 }
       ]
     },
     {
@@ -37,7 +39,8 @@
       "gold": { "min": 30, "max": 80 },
       "entries": [
         { "item": "DEV_MAT_IRON", "chance": 0.5, "min": 2, "max": 4 },
-        { "item": "DEV_PISTOL", "chance": 0.15, "min": 1, "max": 1 }
+        { "item": "DEV_PISTOL", "chance": 0.15, "min": 1, "max": 1 },
+        { "item": "DEV_MAT_SYNTH", "chance": 0.25, "min": 1, "max": 1 }
       ]
     }
   ]

@@ -357,6 +357,7 @@ INSERT INTO items (code, item_type, name_de, stackable, max_stack, npc_price, is
     ('DEV_MAT_CANVAS', 'MATERIAL', 'Segeltuch (Test)', TRUE, 99, 12, TRUE, 'UNKNOWN'::confidence_level),
     ('DEV_MAT_CLOTH', 'MATERIAL', 'Stoffrest (Test)', TRUE, 99, 3, TRUE, 'UNKNOWN'::confidence_level),
     ('DEV_MAT_IRON', 'MATERIAL', 'Eisenstück (Test)', TRUE, 99, 8, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_MAT_SYNTH', 'MATERIAL', 'Synthesestein (Test)', TRUE, 99, 25, TRUE, 'UNKNOWN'::confidence_level),
     ('DEV_MAT_WOOD', 'MATERIAL', 'Holzscheit (Test)', TRUE, 99, 2, TRUE, 'UNKNOWN'::confidence_level)
 ON CONFLICT (code) DO UPDATE SET
     item_type = EXCLUDED.item_type,
@@ -371,6 +372,7 @@ INSERT INTO materials (item_id, material_category) VALUES
     ((SELECT item_id FROM items WHERE code = 'DEV_MAT_CANVAS'), 'CLOTH'),
     ((SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 'CLOTH'),
     ((SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 'METAL'),
+    ((SELECT item_id FROM items WHERE code = 'DEV_MAT_SYNTH'), 'SYNTHESIS'),
     ((SELECT item_id FROM items WHERE code = 'DEV_MAT_WOOD'), 'WOOD')
 ON CONFLICT (item_id) DO UPDATE SET
     material_category = EXCLUDED.material_category;
@@ -393,8 +395,10 @@ INSERT INTO loot_entries (loot_table_id, item_id, chance, min_qty, max_qty) VALU
     ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_BRAWLER'), (SELECT item_id FROM items WHERE code = 'DEV_BLADE'), 0.1, 1, 1),
     ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_BRAWLER'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 0.6, 1, 3),
     ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_BRAWLER'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 0.3, 1, 1),
+    ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_BRAWLER'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_SYNTH'), 0.1, 1, 1),
     ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_DUMMY'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 0.5, 1, 2),
     ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_PIRATE_SLOOP'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 0.5, 2, 4),
+    ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_PIRATE_SLOOP'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_SYNTH'), 0.25, 1, 1),
     ((SELECT loot_table_id FROM loot_tables WHERE code = 'DEV_LOOT_PIRATE_SLOOP'), (SELECT item_id FROM items WHERE code = 'DEV_PISTOL'), 0.15, 1, 1)
 ON CONFLICT (loot_table_id, item_id) DO UPDATE SET
     chance = EXCLUDED.chance,
@@ -412,12 +416,44 @@ ON CONFLICT (rule_key) DO UPDATE SET
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 
+-- Ausrüstung, Sets und Synthese (design_data/dev_equipment.json, is_dev = TRUE).
+
+INSERT INTO item_sets (code, name_de, level, bonuses, is_dev, confidence) VALUES
+    ('DEV_SET_TRAINING', 'Übungsset (Test)', 1, '{"2": {"defense": 5}, "4": {"attackPower": 5, "maxHealth": 50}}'::jsonb, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    name_de = EXCLUDED.name_de,
+    level = EXCLUDED.level,
+    bonuses = EXCLUDED.bonuses,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
+INSERT INTO items (code, item_type, equip_slot, name_de, level_req, base_stats, set_id, npc_price, is_dev, confidence) VALUES
+    ('DEV_ARMOR_BOOTS', 'ARMOR', 'FEET', 'Übungsstiefel (Test)', 1, '{"defense": 1}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 15, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_ARMOR_COAT', 'ARMOR', 'BODY', 'Übungsmantel (Test)', 1, '{"defense": 4, "maxHealth": 20}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 30, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_ARMOR_ELITE_HAT', 'ARMOR', 'HEAD', 'Elitehut (Test)', 160, '{"defense": 30}'::jsonb, NULL, 500, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_ARMOR_GLOVES', 'ARMOR', 'HANDS', 'Übungshandschuhe (Test)', 1, '{"attackPower": 1, "defense": 1}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 15, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_ARMOR_HAT', 'ARMOR', 'HEAD', 'Übungshut (Test)', 1, '{"defense": 2}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 20, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    item_type = EXCLUDED.item_type,
+    equip_slot = EXCLUDED.equip_slot,
+    name_de = EXCLUDED.name_de,
+    level_req = EXCLUDED.level_req,
+    base_stats = EXCLUDED.base_stats,
+    set_id = EXCLUDED.set_id,
+    npc_price = EXCLUDED.npc_price,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 -- Herstellen und Sammeln (design_data/dev_crafting.json, is_dev = TRUE).
 
 INSERT INTO recipes (code, name_de, required_skill_id, required_level, craft_time_seconds, result_item_id, result_quantity, gold_cost, skill_xp, is_dev, confidence) VALUES
     ('DEV_RECIPE_AXE', 'Übungsaxt schmieden (Test)', (SELECT skill_id FROM skills WHERE code = 'FOUNDRY'), 5, 0, (SELECT item_id FROM items WHERE code = 'DEV_AXE'), 1, 15, 40, TRUE, 'UNKNOWN'::confidence_level),
     ('DEV_RECIPE_CANVAS', 'Segeltuch nähen (Test)', (SELECT skill_id FROM skills WHERE code = 'SEWING'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_MAT_CANVAS'), 1, 0, 15, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_RECIPE_SWORD', 'Übungsschwert schmieden (Test)', (SELECT skill_id FROM skills WHERE code = 'FOUNDRY'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_SWORD'), 1, 10, 30, TRUE, 'UNKNOWN'::confidence_level)
+    ('DEV_RECIPE_SWORD', 'Übungsschwert schmieden (Test)', (SELECT skill_id FROM skills WHERE code = 'FOUNDRY'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_SWORD'), 1, 10, 30, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_SYNTH_BOOTS', 'Synthese: Übungsstiefel (Test)', (SELECT skill_id FROM skills WHERE code = 'FOUNDRY'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_ARMOR_BOOTS'), 1, 15, 25, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_SYNTH_COAT', 'Synthese: Übungsmantel (Test)', (SELECT skill_id FROM skills WHERE code = 'SEWING'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_ARMOR_COAT'), 1, 30, 40, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_SYNTH_GLOVES', 'Synthese: Übungshandschuhe (Test)', (SELECT skill_id FROM skills WHERE code = 'SEWING'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_ARMOR_GLOVES'), 1, 15, 25, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_SYNTH_HAT', 'Synthese: Übungshut (Test)', (SELECT skill_id FROM skills WHERE code = 'SEWING'), 1, 0, (SELECT item_id FROM items WHERE code = 'DEV_ARMOR_HAT'), 1, 20, 30, TRUE, 'UNKNOWN'::confidence_level)
 ON CONFLICT (code) DO UPDATE SET
     name_de = EXCLUDED.name_de,
     required_skill_id = EXCLUDED.required_skill_id,
@@ -435,7 +471,15 @@ INSERT INTO recipe_materials (recipe_id, item_id, quantity) VALUES
     ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_AXE'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_WOOD'), 2),
     ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_CANVAS'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 3),
     ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_SWORD'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 3),
-    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_SWORD'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_WOOD'), 1)
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_RECIPE_SWORD'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_WOOD'), 1),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_SYNTH_BOOTS'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_IRON'), 2),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_SYNTH_BOOTS'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_SYNTH'), 1),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_SYNTH_COAT'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CANVAS'), 2),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_SYNTH_COAT'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_SYNTH'), 1),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_SYNTH_GLOVES'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CLOTH'), 2),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_SYNTH_GLOVES'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_SYNTH'), 1),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_SYNTH_HAT'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_CANVAS'), 1),
+    ((SELECT recipe_id FROM recipes WHERE code = 'DEV_SYNTH_HAT'), (SELECT item_id FROM items WHERE code = 'DEV_MAT_SYNTH'), 1)
 ON CONFLICT (recipe_id, item_id) DO UPDATE SET
     quantity = EXCLUDED.quantity;
 

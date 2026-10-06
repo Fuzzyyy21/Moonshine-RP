@@ -74,6 +74,66 @@ public sealed class InventoryTests(PostgresFixture db)
     }
 
     [Fact]
+    public async Task Armor_goes_to_its_slot_and_set_bonuses_add_up()
+    {
+        await using var backend = await TestBackend.StartAsync(db, InAthens);
+        var p = await InAthensZone(backend);
+        var parts = new Dictionary<string, InventoryItem>();
+        foreach (var code in new[] { "DEV_ARMOR_HAT", "DEV_ARMOR_COAT", "DEV_ARMOR_GLOVES", "DEV_ARMOR_BOOTS", "DEV_SWORD" })
+        {
+            parts[code] = Find(await Grant(backend, p, code, 1), code);
+        }
+        Assert.Equal(StatBonus.Zero, (await GetInventory(backend, p)).Bonus);
+
+        var hat = await Equip(backend, p, parts["DEV_ARMOR_HAT"]);
+        Assert.Equal(("EQUIPMENT", "HEAD"), (Find(hat, "DEV_ARMOR_HAT").Location, Find(hat, "DEV_ARMOR_HAT").Slot));
+        Assert.Equal(new StatBonus(0, 0, 2), hat.Bonus);
+        var worn = Assert.Single(hat.Sets!);
+        Assert.Equal(("DEV_SET_TRAINING", "Übungsset (Test)", 1, 0), (worn.Code, worn.NameDe, worn.Pieces, worn.ActiveTiers));
+        Assert.Equal([2, 4], worn.TierPieces);
+
+        var two = await Equip(backend, p, parts["DEV_ARMOR_COAT"]);
+        Assert.Equal(new StatBonus(20, 0, 11), two.Bonus); // 2 + 4 Rüstung, 20 Leben, Setstufe 2: +5 Verteidigung
+        await Equip(backend, p, parts["DEV_ARMOR_GLOVES"]);
+        await Equip(backend, p, parts["DEV_SWORD"]); // Waffe zählt nicht zum Set
+        var all = await Equip(backend, p, parts["DEV_ARMOR_BOOTS"]);
+        Assert.Equal(new StatBonus(70, 6, 13), all.Bonus); // Setstufe 4: +50 Leben, +5 Angriff
+        Assert.Equal((4, 2), (all.Sets![0].Pieces, all.Sets[0].ActiveTiers));
+        Assert.Equal(new StatBonus(70, 6, 13), (await State(backend, p)).EquipmentBonus);
+        Assert.Equal("DEV_SWORD", (await State(backend, p)).EquippedWeapon);
+
+        var off = await Inventory(await Post(backend, p, "unequip", new ItemCommandRequest(p.AccountId, p.ServerId, 0, "head")));
+        Assert.Equal("INVENTORY", Find(off, "DEV_ARMOR_HAT").Location);
+        Assert.Equal(new StatBonus(20, 1, 11), off.Bonus); // drei Teile: nur Setstufe 2
+        Assert.Equal("WEAPON", Find(off, "DEV_SWORD").Slot);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await Post(backend, p, "unequip", new ItemCommandRequest(p.AccountId, p.ServerId, 0, "HEAD"))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await Post(backend, p, "unequip", new ItemCommandRequest(p.AccountId, p.ServerId, 0, "HEAD; DROP"))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Level_requirement_blocks_equipping_and_swaps_keep_the_slot()
+    {
+        await using var backend = await TestBackend.StartAsync(db, InAthens);
+        var p = await InAthensZone(backend);
+        var hat = Find(await Grant(backend, p, "DEV_ARMOR_HAT", 1), "DEV_ARMOR_HAT");
+        var elite = Find(await Grant(backend, p, "DEV_ARMOR_ELITE_HAT", 1), "DEV_ARMOR_ELITE_HAT");
+        await Equip(backend, p, hat);
+
+        var denied = await Post(backend, p, "equip", new ItemCommandRequest(p.AccountId, p.ServerId, elite.InstanceId));
+        Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode); // Stufe 160 nötig
+        Assert.Equal("HEAD", Find(await GetInventory(backend, p), "DEV_ARMOR_HAT").Slot);
+
+        await db.ExecAsync("UPDATE characters SET level = 160 WHERE character_id = @c", ("c", p.CharacterId));
+        var swapped = await Equip(backend, p, elite);
+        Assert.Equal(("EQUIPMENT", "HEAD"), (Find(swapped, "DEV_ARMOR_ELITE_HAT").Location, Find(swapped, "DEV_ARMOR_ELITE_HAT").Slot));
+        Assert.Equal(("INVENTORY", elite.Slot), (Find(swapped, "DEV_ARMOR_HAT").Location, Find(swapped, "DEV_ARMOR_HAT").Slot));
+        Assert.Equal(new StatBonus(0, 0, 30), swapped.Bonus);
+        Assert.Empty(swapped.Sets!);
+    }
+
+    [Fact]
     public async Task Selling_to_the_merchant_and_discarding_happen_once()
     {
         await using var backend = await TestBackend.StartAsync(db, InAthens);
@@ -156,6 +216,9 @@ public sealed class InventoryTests(PostgresFixture db)
             new AdminItemRequest(login.AccountId, item, quantity, key ?? Guid.NewGuid(), null, "203.0.113.9", "zone-test"));
         return await Operation(res);
     }
+
+    private static async Task<InventoryResponse> Equip(TestBackend backend, Player p, InventoryItem item) =>
+        await Inventory(await Post(backend, p, "equip", new ItemCommandRequest(p.AccountId, p.ServerId, item.InstanceId)));
 
     private static ItemAmountRequest Amount(Player p, long instance, int quantity, Guid key, string? npc = null) =>
         new(p.AccountId, p.ServerId, instance, quantity, key, npc);

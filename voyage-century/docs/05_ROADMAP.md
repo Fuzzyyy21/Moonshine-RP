@@ -210,9 +210,21 @@ Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 
 **Abnahme Iteration 1 (Vorschlag)**: Zwei Spieler auf verschiedenen Servern (Testzone und Athen): `VCWorld "Hallo"` erscheint bei beiden innerhalb von etwa einer Sekunde, `VCSay` nur in 50 m Umkreis; `VCWhisper` erreicht den anderen Server, nach `VCIgnore` nicht mehr; ein dritter WORLD-Satz in 10 s wird abgelehnt; `VCFriends` zeigt den anderen online mit Zone; ein Admin schaltet per `mute` stumm (Audit-Eintrag), `announce` erscheint bei allen als [System].
 
-## Phase 8 – Endgame
+## Phase 8 – Endgame (Iteration 1 fertig)
 
-Stufenbänder 180+ bis zum belegten Cap; Inhalte erst nach Klärung des aktuellen Caps (`CONTRA-002`).
+Stufenbänder 180+ bis zum belegten Cap; Inhalte erst nach Klärung des aktuellen Caps (`CONTRA-002`). Belegt und ohne Cap umsetzbar:
+Ausrüstungssets mit Stufe (148/150/155/168) und Ausrüstungs-Synthese; Werte, Boni und Rezepte des Originals sind UNKNOWN.
+
+| Schritt | Status | Prüfung |
+|---|---|---|
+| Regeln (`EquipmentRules`, Backend): Platz je Item (Waffe WEAPON, Rüstung/Schmuck aus `equip_slot`), Stufenanforderung, gestaffelte Setboni (addieren sich), Summe der Ausrüstungswerte; C++ `WithBonus` schlägt sie auf die Kampfwerte | ✅ It. 1 | `EquipmentRulesTests` (4 Fälle), Regeltests (1 Fall) |
+| Daten (`dev_equipment.json`): Plätze HEAD/BODY/HANDS/FEET, Übungsset mit 4 Teilen und Boni ab 2 und 4 Teilen, Elitehut Stufe 160, Synthese-Rezepte mit Synthesestein (Beute); `V0020` (`item_sets.is_dev`, Prüfungen für Platz und Stufe) | ✅ It. 1 | Export `--check` (prüft Sets, Teile, Rezepte), Schematest |
+| Backend: Ausrüsten aller Plätze mit Tausch und Stufenprüfung, Ablegen je Platz, Inventar und Charakterzustand liefern Bonus und getragene Sets; Synthese über die Herstellung | ✅ It. 1 | `InventoryTests` (2 neue Tests), `CraftingTests` (1 neuer Test) |
+| UE: Ausrüstungsbonus in den Kampfwerten (beim Login und nach jeder Inventar-Antwort), `VCUnequip [PLATZ]`, `VCInventory` zeigt Sets und Bonus | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal |
+| Echte Sets (Königs-, Sidonia-, Thomas-, Talos-Set) mit Teilen und Boni, Seltenheit, Verfeinerung, Sockel | ❌ | Werte UNKNOWN |
+| Stufenbänder über 160, Endgame-Dungeons (Sturminsel, Goldener Turm), Militärrang | ❌ | Cap und Inhalte UNKNOWN (`CONTRA-002`) |
+
+**Abnahme Iteration 1 (Vorschlag)**: Mit `giveitem` die vier Übungsteile holen und ausrüsten; nach zwei Teilen +5 Verteidigung aus dem Set, nach vier zusätzlich +50 Leben und +5 Angriff (Kampfwerte steigen); `VCUnequip HEAD` nimmt die Stufe wieder weg; der Elitehut wird unter Stufe 160 abgelehnt; mit Segeltuch und Synthesestein entsteht per `VCCraft DEV_SYNTH_HAT` ein Übungshut.
 
 ## Arbeitsweise je System
 

@@ -10,9 +10,14 @@ namespace VC.GameData;
 public sealed record InventoryItem(
     long InstanceId, string Code, string? NameDe, string ItemType, string? WeaponClass, int Quantity, string Location, string? Slot,
     long? NpcPrice);
-/// <summary>Capacity 0 = Inventargröße unbekannt (kein Inventar, nie Ersatzwerte).</summary>
-public sealed record InventoryResponse(int Capacity, List<InventoryItem> Items);
-public sealed record ItemCommandRequest(long AccountId, string? ServerId, long InstanceId);
+/// <summary>
+/// Capacity 0 = Inventargröße unbekannt (kein Inventar, nie Ersatzwerte). Bonus: Werte aus Ausrüstung und Setboni,
+/// Sets: getragene Sets mit erreichten Bonusstufen.
+/// </summary>
+public sealed record InventoryResponse(int Capacity, List<InventoryItem> Items, StatBonus? Bonus = null, List<WornSet>? Sets = null);
+public sealed record WornSet(string Code, string? NameDe, int Pieces, int ActiveTiers, List<int> TierPieces);
+/// <summary>Slot nur beim Ablegen: welcher Platz (ohne Angabe WEAPON).</summary>
+public sealed record ItemCommandRequest(long AccountId, string? ServerId, long InstanceId, string? Slot = null);
 public sealed record ItemAmountRequest(long AccountId, string? ServerId, long InstanceId, int Quantity, Guid Key, string? NpcCode = null);
 public sealed record AdminItemRequest(
     long AdminAccountId, string? ItemCode, int Quantity, Guid Key, Guid? SessionId, string? Ip, string? ServerId);
@@ -21,12 +26,12 @@ public sealed record ItemOperationResponse(bool Duplicate, long Gold, long Total
 public sealed record LootDrop(string Code, string? NameDe, int Quantity, int Lost);
 
 /// <summary>
-/// Inventar [DESIGN]: Plätze 0 … INVENTORY_SLOTS−1 im Item-Register (item_instances, location INVENTORY), ausgerüstete Waffe
-/// als EQUIPMENT/WEAPON. Der Zonen-Server nennt nur Item-Exemplar und Menge; Besitz, Art, Platz und Preis prüft das Backend.
+/// Inventar [DESIGN]: Plätze 0 … INVENTORY_SLOTS−1 im Item-Register (item_instances, location INVENTORY), Ausrüstung als
+/// EQUIPMENT mit dem Platz aus EquipmentRules (Waffe WEAPON, Rüstung items.equip_slot). Der Zonen-Server nennt nur Item-Exemplar und Menge; Besitz, Art, Platz und Preis prüft das Backend.
 /// </summary>
 public static class InventoryEndpoints
 {
-    public const string WeaponSlot = "WEAPON";
+    public const string WeaponSlot = EquipmentRules.WeaponSlot;
     private const int MaxQuantity = 10_000;
 
     public static void Map(RouteGroupBuilder internalApi)
@@ -55,7 +60,10 @@ public static class InventoryEndpoints
         return Results.Ok(inventory);
     }
 
-    /// <summary>Waffe aus dem Inventar ausrüsten; eine vorher ausgerüstete Waffe nimmt ihren Platz ein (Tausch).</summary>
+    /// <summary>
+    /// Waffe, Rüstung oder Schmuck aus dem Inventar ausrüsten; ein vorher getragenes Teil im selben Platz nimmt dessen Inventarplatz
+    /// ein (Tausch). Die Stufenanforderung (items.level_req) gilt gegen die Charakterstufe.
+    /// </summary>
     private static async Task<IResult> Equip(
         long characterId, ItemCommandRequest req, NpgsqlDataSource db, IOptions<ContentOptions> content, CancellationToken ct)
     {
@@ -65,12 +73,14 @@ public static class InventoryEndpoints
         {
             return denied;
         }
-        string? slot;
+        string? slot, target;
+        int? levelReq;
+        short level;
         await using (var cmd = new NpgsqlCommand(
             """
-            SELECT ii.slot FROM item_instances ii JOIN items i USING (item_id)
-            WHERE ii.item_instance_id = @id AND ii.owner_character_id = @chr AND ii.location_type = 'INVENTORY'
-              AND i.item_type = 'WEAPON' AND (NOT i.is_dev OR @dev)
+            SELECT ii.slot, i.item_type, i.equip_slot, i.level_req, c.level
+            FROM item_instances ii JOIN items i USING (item_id) JOIN characters c ON c.character_id = ii.owner_character_id
+            WHERE ii.item_instance_id = @id AND ii.owner_character_id = @chr AND ii.location_type = 'INVENTORY' AND (NOT i.is_dev OR @dev)
             """, conn, tx))
         {
             cmd.Parameters.AddWithValue("id", req.InstanceId);
@@ -79,27 +89,44 @@ public static class InventoryEndpoints
             await using var r = await cmd.ExecuteReaderAsync(ct);
             if (!await r.ReadAsync(ct))
             {
-                return Problem(StatusCodes.Status400BadRequest, "Keine Waffe dieses Charakters im Inventar");
+                return Problem(StatusCodes.Status400BadRequest, "Kein Item dieses Charakters im Inventar");
             }
             slot = r.IsDBNull(0) ? null : r.GetString(0);
+            target = EquipmentRules.SlotFor(r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2));
+            levelReq = r.IsDBNull(3) ? null : r.GetInt16(3);
+            level = r.GetInt16(4);
         }
-        // Reihenfolge wegen ux_item_slot: neue Waffe vom Platz lösen, alte auf den Platz, neue ausrüsten.
+        if (target is null)
+        {
+            return Problem(StatusCodes.Status400BadRequest, "Dieses Item kann man nicht ausrüsten");
+        }
+        if (!EquipmentRules.MeetsLevel(level, levelReq))
+        {
+            return Problem(StatusCodes.Status409Conflict, $"Stufe {levelReq} nötig (du hast {level})");
+        }
+        // Reihenfolge wegen ux_item_slot: neues Teil vom Platz lösen, altes auf den Platz, neues ausrüsten.
         await Exec(conn, tx, "UPDATE item_instances SET slot = NULL WHERE item_instance_id = @id", ct, ("id", req.InstanceId));
         await Exec(conn, tx,
             """
             UPDATE item_instances SET location_type = 'INVENTORY', slot = @slot
-            WHERE owner_character_id = @chr AND location_type = 'EQUIPMENT' AND slot = 'WEAPON'
-            """, ct, ("slot", (object?)slot ?? DBNull.Value), ("chr", characterId));
-        await Exec(conn, tx, "UPDATE item_instances SET location_type = 'EQUIPMENT', slot = 'WEAPON' WHERE item_instance_id = @id", ct,
-            ("id", req.InstanceId));
+            WHERE owner_character_id = @chr AND location_type = 'EQUIPMENT' AND slot = @target
+            """, ct, ("slot", (object?)slot ?? DBNull.Value), ("chr", characterId), ("target", target));
+        await Exec(conn, tx, "UPDATE item_instances SET location_type = 'EQUIPMENT', slot = @target WHERE item_instance_id = @id", ct,
+            ("id", req.InstanceId), ("target", target));
         var inventory = await Load(conn, tx, characterId, content.Value.AllowDevContent, ct);
         await tx.CommitAsync(ct);
         return Results.Ok(inventory);
     }
 
+    /// <summary>Teil aus einem Platz (ohne Angabe WEAPON) in den ersten freien Inventarplatz legen.</summary>
     private static async Task<IResult> Unequip(
         long characterId, ItemCommandRequest req, NpgsqlDataSource db, IOptions<ContentOptions> content, CancellationToken ct)
     {
+        var target = string.IsNullOrEmpty(req.Slot) ? WeaponSlot : req.Slot.Trim().ToUpperInvariant();
+        if (target.Length > 32 || !target.All(ch => ch is >= 'A' and <= 'Z' or '_'))
+        {
+            return Problem(StatusCodes.Status400BadRequest, "Unbekannter Platz");
+        }
         await using var conn = await db.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
         if (await Begin(conn, tx, characterId, req.AccountId, req.ServerId, ct) is { } denied)
@@ -115,10 +142,10 @@ public static class InventoryEndpoints
         if (await Exec(conn, tx,
                 """
                 UPDATE item_instances SET location_type = 'INVENTORY', slot = @slot
-                WHERE owner_character_id = @chr AND location_type = 'EQUIPMENT' AND slot = 'WEAPON'
-                """, ct, ("slot", free.Value.ToString()), ("chr", characterId)) == 0)
+                WHERE owner_character_id = @chr AND location_type = 'EQUIPMENT' AND slot = @target
+                """, ct, ("slot", free.Value.ToString()), ("chr", characterId), ("target", target)) == 0)
         {
-            return Problem(StatusCodes.Status409Conflict, "Keine Waffe ausgerüstet");
+            return Problem(StatusCodes.Status409Conflict, target == WeaponSlot ? "Keine Waffe ausgerüstet" : $"Nichts in {target} ausgerüstet");
         }
         var inventory = await Load(conn, tx, characterId, content.Value.AllowDevContent, ct);
         await tx.CommitAsync(ct);
@@ -388,14 +415,82 @@ public static class InventoryEndpoints
             """, conn, tx);
         cmd.Parameters.AddWithValue("chr", characterId);
         var items = new List<InventoryItem>();
-        await using var r = await cmd.ExecuteReaderAsync(ct);
-        while (await r.ReadAsync(ct))
+        await using (var r = await cmd.ExecuteReaderAsync(ct))
         {
-            items.Add(new InventoryItem(r.GetInt64(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3),
-                r.IsDBNull(4) ? null : r.GetString(4), r.GetInt32(5), r.GetString(6), r.IsDBNull(7) ? null : r.GetString(7),
-                r.IsDBNull(8) ? null : r.GetInt64(8)));
+            while (await r.ReadAsync(ct))
+            {
+                items.Add(new InventoryItem(r.GetInt64(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3),
+                    r.IsDBNull(4) ? null : r.GetString(4), r.GetInt32(5), r.GetString(6), r.IsDBNull(7) ? null : r.GetString(7),
+                    r.IsDBNull(8) ? null : r.GetInt64(8)));
+            }
         }
-        return new InventoryResponse(capacity, items);
+        var (bonus, sets) = await Equipment(conn, tx, characterId, allowDev, ct);
+        return new InventoryResponse(capacity, items, bonus, sets);
+    }
+
+    /// <summary>
+    /// Werte der getragenen Ausrüstung samt Setboni (EquipmentRules). Werte-Schlüssel maxHealth, attackPower, defense in
+    /// items.base_stats und item_sets.bonuses; andere Schlüssel (z. B. Waffenschaden) zählen hier nicht. tx darf null sein.
+    /// </summary>
+    internal static async Task<(StatBonus Bonus, List<WornSet> Sets)> Equipment(
+        NpgsqlConnection conn, NpgsqlTransaction? tx, long characterId, bool allowDev, CancellationToken ct)
+    {
+        var pieces = new List<EquippedPiece>();
+        var tiers = new Dictionary<string, IReadOnlyList<SetBonusTier>>();
+        var names = new Dictionary<string, string?>();
+        await using (var cmd = new NpgsqlCommand(
+            """
+            SELECT ii.slot, s.code, s.name_de, i.base_stats::text, s.bonuses::text
+            FROM item_instances ii JOIN items i USING (item_id)
+            LEFT JOIN item_sets s ON s.set_id = i.set_id AND (NOT s.is_dev OR @dev)
+            WHERE ii.owner_character_id = @chr AND ii.location_type = 'EQUIPMENT' AND ii.slot IS NOT NULL
+            """, conn, tx))
+        {
+            cmd.Parameters.AddWithValue("chr", characterId);
+            cmd.Parameters.AddWithValue("dev", allowDev);
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct))
+            {
+                var set = r.IsDBNull(1) ? null : r.GetString(1);
+                pieces.Add(new EquippedPiece(r.GetString(0), set, r.IsDBNull(3) ? StatBonus.Zero : ParseStats(r.GetString(3))));
+                if (set is not null && !names.ContainsKey(set))
+                {
+                    names[set] = r.IsDBNull(2) ? null : r.GetString(2);
+                    tiers[set] = r.IsDBNull(4) ? [] : ParseTiers(r.GetString(4));
+                }
+            }
+        }
+        var (bonus, active) = EquipmentRules.Evaluate(pieces, tiers);
+        return (bonus, active.Select(a => new WornSet(a.Code, names[a.Code], a.Pieces, a.ActiveTiers,
+            tiers[a.Code].Select(t => t.Pieces).ToList())).ToList());
+    }
+
+    private static StatBonus ParseStats(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return ParseStats(doc.RootElement);
+    }
+
+    private static StatBonus ParseStats(JsonElement e)
+    {
+        int Get(string name) =>
+            e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number
+            && v.TryGetInt32(out var n) ? n : 0;
+        return new StatBonus(Get("maxHealth"), Get("attackPower"), Get("defense"));
+    }
+
+    /// <summary>{"2": {...}, "4": {...}} → Stufen aufsteigend; unlesbare Schlüssel werden übergangen.</summary>
+    private static List<SetBonusTier> ParseTiers(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        if (doc.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            return [];
+        }
+        return doc.RootElement.EnumerateObject()
+            .Where(p => int.TryParse(p.Name, out var n) && n > 0)
+            .Select(p => new SetBonusTier(int.Parse(p.Name), ParseStats(p.Value)))
+            .OrderBy(t => t.Pieces).ToList();
     }
 
     /// <summary>Inventargröße aus game_rules (INVENTORY_SLOTS, im Original UNKNOWN); fehlt sie, 0 = kein Platz.</summary>

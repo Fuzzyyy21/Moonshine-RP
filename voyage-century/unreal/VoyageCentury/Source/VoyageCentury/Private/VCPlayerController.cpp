@@ -305,9 +305,9 @@ void AVCPlayerController::VCEquip(const FString& InstanceId)
 	ServerInventoryCommand(TEXT("equip"), InstanceId);
 }
 
-void AVCPlayerController::VCUnequip()
+void AVCPlayerController::VCUnequip(const FString& Slot)
 {
-	ServerInventoryCommand(TEXT("unequip"), FString());
+	ServerInventoryCommand(TEXT("unequip"), Slot);
 }
 
 void AVCPlayerController::VCDiscard(const FString& InstanceId, const FString& Quantity)

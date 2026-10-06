@@ -61,6 +61,15 @@ namespace vc::rules
 		return Stats;
 	}
 
+	FCombatStats WithBonus(const FCombatStats& Stats, const FStatBonus& Bonus)
+	{
+		FCombatStats Result = Stats;
+		Result.MaxHealth = std::max(1.0, Stats.MaxHealth + Bonus.MaxHealth);
+		Result.AttackPower = std::max(0.0, Stats.AttackPower + Bonus.AttackPower);
+		Result.Defense = std::max(0.0, Stats.Defense + Bonus.Defense);
+		return Result;
+	}
+
 	double WeaponDamage(const FWeaponDef& Weapon, int WeaponSkillLevel, const FCombatTuning& T)
 	{
 		const double Steps = static_cast<double>(std::max(WeaponSkillLevel, 1) - 1);

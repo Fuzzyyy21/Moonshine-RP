@@ -90,11 +90,32 @@ namespace
 	void ApplyCharacterStats(const APlayerController* PC)
 	{
 		const UVCProgressionComponent* Progression = ProgressionOf(PC);
+		const UWorld* World = PC ? PC->GetWorld() : nullptr;
+		const AVCGameMode* GameMode = World ? World->GetAuthGameMode<AVCGameMode>() : nullptr;
 		if (Progression && FVCCombatData::IsAvailable())
 		{
-			UVCAttributeSet::ApplyStats(AbilitySystemOf(PC),
-				vc::rules::DeriveCharacterStats(Progression->GetLevel(), FVCCombatData::Tuning()));
+			UVCAttributeSet::ApplyStats(AbilitySystemOf(PC), vc::rules::WithBonus(
+				vc::rules::DeriveCharacterStats(Progression->GetLevel(), FVCCombatData::Tuning()),
+				GameMode ? GameMode->EquipmentBonusOf(PC) : vc::rules::FStatBonus()));
 		}
+	}
+
+	/** {maxHealth, attackPower, defense} aus dem Backend; fehlt das Objekt, keine Zusatzwerte. */
+	vc::rules::FStatBonus ParseStatBonus(const TSharedPtr<FJsonObject>& Json)
+	{
+		vc::rules::FStatBonus Bonus;
+		if (Json.IsValid())
+		{
+			Json->TryGetNumberField(TEXT("maxHealth"), Bonus.MaxHealth);
+			Json->TryGetNumberField(TEXT("attackPower"), Bonus.AttackPower);
+			Json->TryGetNumberField(TEXT("defense"), Bonus.Defense);
+		}
+		return Bonus;
+	}
+
+	bool SameBonus(const vc::rules::FStatBonus& A, const vc::rules::FStatBonus& B)
+	{
+		return A.MaxHealth == B.MaxHealth && A.AttackPower == B.AttackPower && A.Defense == B.Defense;
 	}
 
 	FIntVector4 CurrentVitals(const APlayerController* PC)
@@ -375,6 +396,14 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 				}
 			}
 		}
+	}
+
+	// Ausrüstungswerte vor den Kampfwerten übernehmen, damit sie beim ersten Setzen schon zählen.
+	if (FPlayerSession* BonusSession = Sessions.Find(PC))
+	{
+		const TSharedPtr<FJsonObject>* Bonus = nullptr;
+		BonusSession->EquipmentBonus = ParseStatBonus(
+			Result.Json->TryGetObjectField(TEXT("equipmentBonus"), Bonus) && Bonus ? *Bonus : nullptr);
 	}
 
 	// Progression aus der Datenbank übernehmen; der Client erhält sie per Replikation.
@@ -1274,6 +1303,12 @@ int64 AVCGameMode::CharacterIdOf(const AActor* Actor) const
 	return 0;
 }
 
+vc::rules::FStatBonus AVCGameMode::EquipmentBonusOf(const APlayerController* PC) const
+{
+	const FPlayerSession* Session = PC ? Sessions.Find(PC) : nullptr;
+	return Session ? Session->EquipmentBonus : vc::rules::FStatBonus();
+}
+
 bool AVCGameMode::IsPvPAllowedBetween(const AActor* A, const AActor* B) const
 {
 	if (bPvPAllowed)
@@ -2017,12 +2052,12 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 	}
 	if (Command != TEXT("list") && Command != TEXT("unequip") && Command != TEXT("recipes") && Command != TEXT("craft") && (!bHasId || ((Command == TEXT("sell") || Command == TEXT("discard")) && !bHasAmount)))
 	{
-		Player->ClientMessage(TEXT("VCInventory | VCEquip <nr> | VCUnequip | VCDiscard <nr> <menge> | VCSellItem <nr> <menge>"));
+		Player->ClientMessage(TEXT("VCInventory | VCEquip <nr> | VCUnequip [PLATZ] | VCDiscard <nr> <menge> | VCSellItem <nr> <menge>"));
 		return;
 	}
-	if (Command == TEXT("equip") && Cast<AVCShip>(Player->GetPawn()))
+	if ((Command == TEXT("equip") || Command == TEXT("unequip")) && Cast<AVCShip>(Player->GetPawn()))
 	{
-		Player->ClientMessage(TEXT("Waffen wechseln nur an Land."));
+		Player->ClientMessage(TEXT("Ausrüstung wechseln nur an Land."));
 		return;
 	}
 	TWeakObjectPtr<AVCGameMode> WeakSelf(this);
@@ -2136,6 +2171,12 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 	if (Command == TEXT("list"))
 	{
 		FVCServerBackend::LoadInventory(Session->CharacterId, Session->AccountId, MoveTemp(Done));
+	}
+	else if (Command == TEXT("unequip"))
+	{
+		// Platz wie HEAD, BODY …; ohne Angabe die Waffe. Gültige Plätze kennt das Backend.
+		FVCServerBackend::Unequip(Session->CharacterId, Session->AccountId, Parts.Num() > 0 ? Parts[0].ToUpper() : FString(),
+			MoveTemp(Done));
 	}
 	else
 	{
@@ -2365,6 +2406,52 @@ void AVCGameMode::ApplyInventory(APlayerController* PC, const TSharedPtr<FJsonOb
 		{
 			PC->ClientMessage(Line);
 		}
+	}
+	if (bPrint)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Sets = nullptr;
+		if (Inventory->TryGetArrayField(TEXT("sets"), Sets) && Sets)
+		{
+			for (const TSharedPtr<FJsonValue>& Value : *Sets)
+			{
+				const TSharedPtr<FJsonObject> Set = Value.IsValid() ? Value->AsObject() : nullptr;
+				if (!Set.IsValid())
+				{
+					continue;
+				}
+				FString Name, Tiers;
+				if (!Set->TryGetStringField(TEXT("nameDe"), Name) || Name.IsEmpty())
+				{
+					Name = Set->GetStringField(TEXT("code"));
+				}
+				const TArray<TSharedPtr<FJsonValue>>* TierPieces = nullptr;
+				if (Set->TryGetArrayField(TEXT("tierPieces"), TierPieces) && TierPieces)
+				{
+					for (const TSharedPtr<FJsonValue>& Tier : *TierPieces)
+					{
+						Tiers += FString::Printf(TEXT("%s%d"), Tiers.IsEmpty() ? TEXT("") : TEXT("/"), static_cast<int32>(Tier->AsNumber()));
+					}
+				}
+				PC->ClientMessage(FString::Printf(TEXT("  Set %s: %d Teile, Bonusstufen %d (ab %s Teilen)"), *Name,
+					static_cast<int32>(Set->GetNumberField(TEXT("pieces"))), static_cast<int32>(Set->GetNumberField(TEXT("activeTiers"))),
+					Tiers.IsEmpty() ? TEXT("–") : *Tiers));
+			}
+		}
+	}
+	const TSharedPtr<FJsonObject>* BonusJson = nullptr;
+	const vc::rules::FStatBonus Bonus = ParseStatBonus(
+		Inventory->TryGetObjectField(TEXT("bonus"), BonusJson) && BonusJson ? *BonusJson : nullptr);
+	if (bPrint)
+	{
+		PC->ClientMessage(FString::Printf(TEXT("  Ausrüstung: +%.0f Leben, +%.0f Angriff, +%.0f Verteidigung"),
+			Bonus.MaxHealth, Bonus.AttackPower, Bonus.Defense));
+	}
+	if (!SameBonus(Bonus, Session->EquipmentBonus))
+	{
+		Session->EquipmentBonus = Bonus;
+		ApplyCharacterStats(PC);
+		PC->ClientMessage(FString::Printf(TEXT("Ausrüstungswerte: +%.0f Leben, +%.0f Angriff, +%.0f Verteidigung"),
+			Bonus.MaxHealth, Bonus.AttackPower, Bonus.Defense));
 	}
 	if (Weapon != Session->EquippedWeapon)
 	{

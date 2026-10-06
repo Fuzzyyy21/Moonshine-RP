@@ -27,7 +27,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCShipService <REPAIR|HEAL|HIRE n|PROVISIONS n>      Hafendienste für das aktive Schiff beim Werftmeister
  *   VCAdmin "givegold <menge>"
  *   VCMarket | VCTrade <BUY|SELL> <WARE> <menge>         Hafenhandel beim Händler, Ware im Laderaum des aktiven Schiffs
- *   VCInventory | VCEquip <nr> | VCUnequip               Inventar, Waffe aus dem Inventar ausrüsten/ablegen
+ *   VCInventory | VCEquip <nr> | VCUnequip [PLATZ]       Inventar, Waffe/Rüstung ausrüsten, Platz ablegen (ohne = Waffe)
  *   VCDiscard <nr> <menge> | VCSellItem <nr> <menge>     wegwerfen; an den Händler verkaufen
  *   VCAdmin "giveitem <ITEM> [menge]"
  *   VCRecipes | VCCraft <REZEPT> [anzahl]                Rezepte; herstellen (Material, Gebühr, Skill prüft das Backend)
@@ -131,7 +131,7 @@ public:
 	void VCEquip(const FString& InstanceId);
 
 	UFUNCTION(Exec)
-	void VCUnequip();
+	void VCUnequip(const FString& Slot = TEXT(""));
 
 	UFUNCTION(Exec)
 	void VCDiscard(const FString& InstanceId, const FString& Quantity);

@@ -69,11 +69,13 @@ public:
 	/** Kill melden; das Backend vergibt XP aus den Gegnerdaten und führt die PvP-Statistik. */
 	static void ReportKill(const TSharedRef<FJsonObject>& Kill, FVCHttpCallback Callback);
 
-	/** Inventar (Plätze, Stapel, Ausrüstung). Antwort: capacity, items[]. */
+	/** Inventar (Plätze, Stapel, Ausrüstung). Antwort: capacity, items[], bonus {maxHealth, attackPower, defense}, sets[]. */
 	static void LoadInventory(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback);
 	/** Action: equip, unequip (InstanceId), discard, sell (InstanceId, Quantity; sell mit NpcCode). Antwort: Inventar bzw. gold, total, inventory. */
 	static void InventoryAction(int64 CharacterId, int64 AccountId, const FString& Action, int64 InstanceId, int32 Quantity,
 		const FString& NpcCode, FVCHttpCallback Callback);
+	/** Teil aus einem Platz ablegen (leer = WEAPON). Antwort: Inventar mit bonus und sets. */
+	static void Unequip(int64 CharacterId, int64 AccountId, const FString& Slot, FVCHttpCallback Callback);
 	/** Sammeln abgeschlossen. Antwort: itemCode, nameDe, quantity, lost, skill, inventory. */
 	static void Gather(int64 CharacterId, int64 AccountId, const FString& NodeCode, FVCHttpCallback Callback);
 	/** Rezepte mit Material im Inventar und ob es reicht. Antwort: Liste. */

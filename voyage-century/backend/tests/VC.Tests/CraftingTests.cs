@@ -94,6 +94,26 @@ public sealed class CraftingTests(PostgresFixture db)
             "SELECT count(*) FROM skill_progress JOIN skills USING (skill_id) WHERE character_id = @c AND code = 'SEWING'", ("c", p.CharacterId)));
     }
 
+    [Fact]
+    public async Task Synthesis_turns_materials_into_set_pieces()
+    {
+        await using var backend = await TestBackend.StartAsync(db);
+        var p = await InZone(backend, "DEV_TESTZONE");
+        await Grant(backend, p, "DEV_MAT_CANVAS", 1);
+        await Grant(backend, p, "DEV_MAT_SYNTH", 1);
+        await GiveGold(backend, p, 50);
+
+        var recipes = (await backend.GameInternal.GetFromJsonAsync<List<RecipeInfo>>(
+            $"/internal/v1/characters/{p.CharacterId}/recipes?accountId={p.AccountId}"))!;
+        Assert.True(recipes.Single(r => r.Code == "DEV_SYNTH_HAT").CanCraft);
+        Assert.False(recipes.Single(r => r.Code == "DEV_SYNTH_COAT").CanCraft); // 2 Segeltuch nötig
+
+        var hat = await Read(await Craft(backend, p, "DEV_SYNTH_HAT", 1));
+        Assert.Equal(("DEV_ARMOR_HAT", 1, 30L), (hat.ItemCode, hat.Quantity, hat.Gold));
+        Assert.DoesNotContain(hat.Inventory.Items, i => i.Code is "DEV_MAT_CANVAS" or "DEV_MAT_SYNTH");
+        Assert.Equal(HttpStatusCode.Conflict, (await Craft(backend, p, "DEV_SYNTH_HAT", 1)).StatusCode); // Material fehlt
+    }
+
     // ---- Hilfen ------------------------------------------------------------------------------
 
     private sealed record Player(long AccountId, long CharacterId, string ServerId = "");

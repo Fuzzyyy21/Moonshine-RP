@@ -29,7 +29,8 @@ public sealed record CharacterState(
     long CharacterId, long AccountId, string Name, short Level, long Experience, string ProfessionCode, string? ZoneId,
     Position? Position, IReadOnlyList<SkillState> Skills, string Gender, IReadOnlyDictionary<string, int> Appearance,
     Vitals? Vitals = null, IReadOnlyList<HotbarSlot>? Hotbar = null, IReadOnlyList<string>? Discoveries = null,
-    IReadOnlyList<ShipState>? Ships = null, long Gold = 0, string? EquippedWeapon = null, IReadOnlyList<long>? Ignores = null);
+    IReadOnlyList<ShipState>? Ships = null, long Gold = 0, string? EquippedWeapon = null, IReadOnlyList<long>? Ignores = null,
+    StatBonus? EquipmentBonus = null);
 /// <summary>
 /// ServerId: nur der Server, auf dem der Charakter laut World Directory ONLINE ist, darf speichern.
 /// ReleasePresence: letzter Speicherstand beim Ausloggen; gibt die Anwesenheit in derselben Transaktion frei,
@@ -254,6 +255,7 @@ public static partial class GameDataApp
             Gold = await ShipEndpoints.LoadGold(conn, null, characterId, ct),
             EquippedWeapon = await InventoryEndpoints.EquippedWeapon(conn, characterId, ct),
             Ignores = await SocialEndpoints.LoadIgnores(conn, characterId, ct),
+            EquipmentBonus = (await InventoryEndpoints.Equipment(conn, null, characterId, content.Value.AllowDevContent, ct)).Bonus,
         });
     }
 

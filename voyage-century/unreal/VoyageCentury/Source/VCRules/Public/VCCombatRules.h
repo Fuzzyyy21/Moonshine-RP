@@ -38,6 +38,14 @@ namespace vc::rules
 		double DodgeChance = 0.0;
 	};
 
+	/** Zusatzwerte aus Ausrüstung und Setboni; berechnet das Backend (EquipmentRules), hier nur aufgeschlagen. */
+	struct FStatBonus
+	{
+		double MaxHealth = 0.0;
+		double AttackPower = 0.0;
+		double Defense = 0.0;
+	};
+
 	struct FWeaponDef
 	{
 		EWeaponClass Class = EWeaponClass::Unarmed;
@@ -105,6 +113,9 @@ namespace vc::rules
 
 	/** Kampfwerte eines Spielercharakters aus Stufe und Parametern. Stufen < 1 gelten als 1. */
 	VCRULES_API FCombatStats DeriveCharacterStats(int Level, const FCombatTuning& Tuning);
+
+	/** Kampfwerte plus Ausrüstungsbonus. Negative Ergebnisse werden auf 0 begrenzt, Lebenspunkte auf mindestens 1. */
+	VCRULES_API FCombatStats WithBonus(const FCombatStats& Stats, const FStatBonus& Bonus);
 
 	/** Waffenschaden inklusive Skillbonus. Skillstufen < 1 gelten als 1. */
 	VCRULES_API double WeaponDamage(const FWeaponDef& Weapon, int WeaponSkillLevel, const FCombatTuning& Tuning);

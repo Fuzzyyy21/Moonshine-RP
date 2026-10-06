@@ -4,6 +4,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "UObject/ObjectKey.h"
 #include "VCAppearance.h"
+#include "VCCombatRules.h"
 #include "VCServerHooks.h"
 #include "VCGameMode.generated.h"
 
@@ -54,6 +55,9 @@ public:
 	virtual void HandleAdminCommand(APlayerController* Issuer, const FString& CommandLine) override;
 	virtual bool IsPvPAllowed() const override { return bPvPAllowed; }
 	virtual bool IsPvPAllowedBetween(const AActor* A, const AActor* B) const override;
+
+	/** Werte aus Ausrüstung und Setboni (vom Backend berechnet); ohne Sitzung keine. */
+	vc::rules::FStatBonus EquipmentBonusOf(const APlayerController* PC) const;
 	virtual FString GetZoneId() const override;
 	virtual void HandleKill(AActor* Killer, AActor* Victim) override;
 	virtual void HandleSkillUse(AActor* User, FName SkillCode) override;
@@ -108,6 +112,8 @@ private:
 		FIntVector4 SavedVitals = FIntVector4(0, 0, 0, 0);
 		/** Ausgerüstete Waffe; überdauert Tod und Respawn. */
 		FName EquippedWeapon;
+		/** Zusatzwerte aus Ausrüstung und Setboni (Inventar-Antwort bzw. Zustand: bonus/equipmentBonus). */
+		vc::rules::FStatBonus EquipmentBonus;
 		/** Eine Hotbar-Speicherung zur Zeit; weitere Änderungen werden bis zur Antwort abgewiesen. */
 		bool bHotbarSaveInFlight = false;
 		/** Im World Directory auf diesem Server ONLINE gesetzt. */

@@ -339,6 +339,13 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * Seltenheit Common … Endgame `[DESIGN]`, bis Originalstufen bekannt sind.
 * Haltbarkeit sinkt durch Kampf, Reparatur kostet Gold.
 
+**Umgesetzt (Phase 8, Iteration 1)**, Regeln in `backend/src/VC.GameData/EquipmentRules.cs` (getestet), Werte in `design_data/dev_equipment.json`
+* Belegt: Sets mit Stufe (SET-KING-148, SET-SIDONIA-150, SET-THOMAS-155, SET-TALOS-168) und Ausrüstungs-Synthese aus Synthese-Materialien (SYS-EQUIP-SYNTHESIS). Teile, Werte, Boni und Rezepte UNKNOWN; die echten Sets stehen ohne Boni in `item_sets`.
+* `[DESIGN]`: Plätze Waffe, Kopf, Körper, Hände, Füße. Ein Teil hat Werte (Leben, Angriff, Verteidigung) und optional eine Mindeststufe (Charakterstufe). Setboni sind gestaffelt (ab 2, ab 4 Teilen …) und addieren sich. Ausrüsten tauscht mit dem Teil im selben Platz; Ablegen braucht einen freien Inventarplatz; Wechsel nur an Land.
+* Das Backend berechnet Bonus und getragene Sets; der Zonen-Server schlägt den Bonus auf die Kampfwerte aus der Stufe auf.
+* Synthese läuft über die Herstellung (Rezepte mit Synthesestein als Material, Testinhalt).
+* Offen: Seltenheit, Haltbarkeit, Verfeinerung, Sockel, echte Sets.
+
 ---
 
 ## 16. Quests, Exploration, Dungeons

@@ -185,6 +185,19 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Ausrüstung und Sets (Phase 8, Iteration 1)
+
+```
+VCAdmin "giveitem DEV_ARMOR_HAT 1"  → (ebenso DEV_ARMOR_COAT, _GLOVES, _BOOTS, DEV_ARMOR_ELITE_HAT)
+VCInventory                         → Plätze, getragene Sets mit Bonusstufen, Ausrüstungsbonus
+VCEquip <nr>                        → Waffe oder Rüstung in ihren Platz (tauscht mit dem getragenen Teil)
+VCUnequip HEAD                      → Platz ablegen (ohne Angabe: Waffe)
+VCCraft DEV_SYNTH_HAT               → Synthese: 1 Segeltuch + 1 Synthesestein (Beute von Piraten)
+```
+
+Den Bonus (Leben, Angriff, Verteidigung samt Setboni) berechnet das Backend; der Server schlägt ihn beim Login und nach jeder
+Inventar-Antwort auf die Kampfwerte der Stufe auf. Der Elitehut braucht Stufe 160.
+
 ## Belagerung (Phase 7, Iteration 4)
 
 ```
