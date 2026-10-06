@@ -1,12 +1,51 @@
 {
-  "_comment": "Gilden. Belegt (SYS-GUILD, LIKELY): Der Gildenleiter gründet die Gilde und legt Name und Banner fest; Ränge mindestens Gildenleiter und Gildenoffiziere. Gründungskosten, Mitgliederzahl, Einladungsdauer, weitere Ränge und die Rechte der Ränge sind UNKNOWN (DESIGNENTSCHEIDUNG, is_dev). Rang 2 'Mitglied' ist reine Designergänzung.",
+  "_comment": "Gilden. Belegt (SYS-GUILD, LIKELY): Der Gildenleiter gründet die Gilde und legt Name und Banner fest; Ränge mindestens Gildenleiter und Gildenoffiziere. Gründungskosten, Mitgliederzahl, Einladungsdauer, weitere Ränge und die Rechte der Ränge sind UNKNOWN (DESIGNENTSCHEIDUNG, is_dev). Rang 2 'Mitglied' ist reine Designergänzung. Städtebesitz: belegt ist, dass Gildenoffiziere Städte kaufen und besetzen und Belohnungen sowie Verwaltungsrechte erhalten (SYS-GUILD). Preise, Belohnung (hier: Anteil der Handelssteuer) und Verwaltungsrechte (hier: Steuersatz in Grenzen) sind UNKNOWN (is_dev). Auszahlen aus der Gildenkasse darf nur der Leiter (Design).",
   "source": "SRC-DESIGN",
   "found_cost_gold": 1000,
   "max_members": 50,
   "invite_hours": 48,
   "ranks": [
-    { "rank_no": 0, "name_de": "Gildenleiter", "recon_id": "SYS-GUILD", "permissions": ["INVITE", "KICK", "PROMOTE"] },
-    { "rank_no": 1, "name_de": "Gildenoffizier", "recon_id": "SYS-GUILD", "permissions": ["INVITE", "KICK", "PROMOTE"] },
-    { "rank_no": 2, "name_de": "Mitglied", "recon_id": null, "permissions": [] }
+    {
+      "rank_no": 0,
+      "name_de": "Gildenleiter",
+      "recon_id": "SYS-GUILD",
+      "permissions": [
+        "CITY",
+        "INVITE",
+        "KICK",
+        "PROMOTE",
+        "TREASURY"
+      ]
+    },
+    {
+      "rank_no": 1,
+      "name_de": "Gildenoffizier",
+      "recon_id": "SYS-GUILD",
+      "permissions": [
+        "CITY",
+        "INVITE",
+        "KICK",
+        "PROMOTE"
+      ]
+    },
+    {
+      "rank_no": 2,
+      "name_de": "Mitglied",
+      "recon_id": null,
+      "permissions": []
+    }
+  ],
+  "city_tax_share_permille": 500,
+  "city_tax_min_permille": 0,
+  "city_tax_max_permille": 150,
+  "cities": [
+    {
+      "city": "LONDON",
+      "price_gold": 20000
+    },
+    {
+      "city": "ATHENS",
+      "price_gold": 15000
+    }
   ]
 }

@@ -95,6 +95,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0015__auction_house.sql` | `market_listings`: `listing_key`, `item_id`, `quantity`, `sale_tax`, `sold_at`, `closed_at`, Exemplar nach Verkauf optional (geht beim Käufer auf); Arten AUCTION_BUY/AUCTION_CANCEL in `inventory_operations` |
 | `V0016__chat_friends.sql` | `chat_log.target_character_id` (Flüstern) und Index auf `message_id` (Verteiler zwischen Servern), Indizes für Rate-Limit, Stummschaltungen und offene Meldungen |
 | `V0017__guilds.sql` | `guild_rank_defaults` (Rang-Vorlagen), `guilds.found_key` und Prüfungen für Name/Kürzel (Kürzel eindeutig), `chat_log.target_guild_id` (Gildenchat) |
+| `V0018__guild_treasury_cities.sql` | `guild_ledger` (jede Bewegung der Gildenkasse), `territories.is_dev` und Index auf den Besitzer |
 | `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Häfen, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten, Zonen und Übergänge, Schiffe, Waren, Märkte, Händler) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);

@@ -15,7 +15,11 @@ public static partial class GuildRules
     public const string Invite = "INVITE";
     public const string Kick = "KICK";
     public const string Promote = "PROMOTE";
-    public static readonly IReadOnlySet<string> KnownPermissions = new HashSet<string> { Invite, Kick, Promote };
+    /// <summary>Aus der Gildenkasse auszahlen.</summary>
+    public const string Treasury = "TREASURY";
+    /// <summary>Städte kaufen und verwalten (belegt: Gildenoffiziere kaufen Städte).</summary>
+    public const string City = "CITY";
+    public static readonly IReadOnlySet<string> KnownPermissions = new HashSet<string> { Invite, Kick, Promote, Treasury, City };
 
     /// <summary>Banner: Symbol und zwei Farben aus festen Paletten, bis es Assets gibt (Gestaltung im Original UNKNOWN).</summary>
     public const int BannerSymbols = 16;

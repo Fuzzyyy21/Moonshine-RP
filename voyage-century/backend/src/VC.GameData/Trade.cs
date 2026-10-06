@@ -64,14 +64,16 @@ public static class TradeEndpoints
         }
         var ship = await LoadActiveShip(conn, tx, characterId, forUpdate: false, ct);
         var now = await DbNow(conn, tx, ct);
+        var ownerTax = (await GuildCityEndpoints.OwnerOfPort(conn, tx, merchant.PortId, ct))?.TaxPermille;
         var goods = new List<MarketGood>();
         foreach (var m in await LoadMarkets(conn, tx, merchant.PortId, null, content.Value.AllowDevContent, forUpdate: false, ct))
         {
             // Nur anzeigen: der Bestand wird erst beim Handel fortgeschrieben.
             var stock = TradePricing.Restock(m.Stock, m.TargetStock, m.RestockPerHour, now - m.UpdatedAt).Stock;
+            var tax = CityRules.EffectiveTaxRate(m.TaxRate, ownerTax);
             goods.Add(new MarketGood(m.Code, m.NameDe, stock, m.TargetStock,
-                stock > 0 ? TradePricing.BuyUnit(m.BasePrice, stock - 1, m.TargetStock, m.TaxRate, tuning) : null,
-                TradePricing.SellUnit(m.BasePrice, stock + 1, m.TargetStock, m.TaxRate, tuning),
+                stock > 0 ? TradePricing.BuyUnit(m.BasePrice, stock - 1, m.TargetStock, tax, tuning) : null,
+                TradePricing.SellUnit(m.BasePrice, stock + 1, m.TargetStock, tax, tuning),
                 ship is null ? 0 : await CargoOf(conn, tx, ship.InstanceId, m.ItemId, ct)));
         }
         var gold = await ShipEndpoints.LoadGold(conn, tx, characterId, ct);
@@ -139,6 +141,9 @@ public static class TradeEndpoints
 
         var now = await DbNow(conn, tx, ct);
         var (stock, used) = TradePricing.Restock(market.Stock, market.TargetStock, market.RestockPerHour, now - market.UpdatedAt);
+        // Besitzt eine Gilde die Stadt, gilt ihr Steuersatz, und sie erhält einen Anteil der Steuer (SYS-GUILD: Belohnungen).
+        var owner = await GuildCityEndpoints.OwnerOfPort(conn, tx, merchant.PortId, ct);
+        var taxRate = CityRules.EffectiveTaxRate(market.TaxRate, owner?.TaxPermille);
         var updatedAt = market.UpdatedAt + used;
         var inCargo = await CargoOf(conn, tx, ship.InstanceId, market.ItemId, ct);
         var buy = req.Side == "BUY";
@@ -149,7 +154,7 @@ public static class TradeEndpoints
             {
                 return Problem(StatusCodes.Status409Conflict, $"Laderaum reicht nicht ({ship.Used} von {ship.Capacity} belegt)");
             }
-            quote = TradePricing.QuoteBuy(market.BasePrice, stock, market.TargetStock, market.TaxRate, req.Quantity, tuning);
+            quote = TradePricing.QuoteBuy(market.BasePrice, stock, market.TargetStock, taxRate, req.Quantity, tuning);
             if (quote is null)
             {
                 return Problem(StatusCodes.Status409Conflict, $"Nur {stock} vorrätig");
@@ -165,7 +170,7 @@ public static class TradeEndpoints
             {
                 return Problem(StatusCodes.Status409Conflict, $"Nur {inCargo} an Bord");
             }
-            quote = TradePricing.QuoteSell(market.BasePrice, stock, market.TargetStock, market.TaxRate, req.Quantity, tuning);
+            quote = TradePricing.QuoteSell(market.BasePrice, stock, market.TargetStock, taxRate, req.Quantity, tuning);
             if (quote is null)
             {
                 return Problem(StatusCodes.Status409Conflict, "Der Markt nimmt nicht mehr an");
@@ -186,6 +191,12 @@ public static class TradeEndpoints
             // Der Händler ist kein Spieler: Kauf nimmt Gold aus dem Spiel, Verkauf bringt neues hinein.
             gold = await ShipEndpoints.Book(conn, tx, characterId, buy ? -quote.Total : quote.Total, buy ? "TRADE_BUY" : "TRADE_SELL",
                 buy ? "SINK" : "SOURCE", req.Key, req.ServerId, ct);
+        }
+        if (owner is { } city && await GuildCityEndpoints.LoadTuning(conn, tx, content.Value.AllowDevContent, ct) is { } cityTuning
+            && CityRules.OwnerShare(quote.Tax, cityTuning) is var share and > 0)
+        {
+            await GuildCityEndpoints.BookGuild(conn, tx, city.GuildId, null, share, "CITY_TAX", "SOURCE", AuctionRules.DeriveKey(req.Key, "city"),
+                req.ServerId, ct);
         }
         inCargo = buy ? inCargo + req.Quantity : inCargo - req.Quantity;
         await SetCargo(conn, tx, characterId, ship.InstanceId, market.ItemId, inCargo, ct);
@@ -239,9 +250,10 @@ public static class TradeEndpoints
         await using var cmd = new NpgsqlCommand(
             """
             SELECT (created_at AT TIME ZONE 'UTC')::date AS day, reason, flow, count(*), sum(delta)
-            FROM currency_ledger
-            WHERE currency_code = 'GOLD'
-              AND created_at >= (date_trunc('day', now() AT TIME ZONE 'UTC') - make_interval(days => @days - 1)) AT TIME ZONE 'UTC'
+            FROM (SELECT created_at, reason, flow, delta FROM currency_ledger WHERE currency_code = 'GOLD'
+                  UNION ALL
+                  SELECT created_at, reason, flow, delta FROM guild_ledger) l   -- Gildenkassen zählen mit (z. B. CITY_BUY, CITY_TAX)
+            WHERE created_at >= (date_trunc('day', now() AT TIME ZONE 'UTC') - make_interval(days => @days - 1)) AT TIME ZONE 'UTC'
             GROUP BY 1, 2, 3 ORDER BY 1, 3, 2
             """, conn);
         cmd.Parameters.AddWithValue("days", span);

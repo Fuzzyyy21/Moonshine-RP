@@ -1505,6 +1505,69 @@ void AVCGameMode::HandleGuildCommand(APlayerController* Player, const FString& C
 	FString Action, Name, Tag;
 	int32 RankNo = 0;
 	int64 GuildId = 0;
+	// Kasse und Städte: guilddeposit/guildwithdraw <gold>, guildcities, guildbuycity <STADT>, guildcitytax <STADT> <promille>
+	int64 Value = 0;
+	FString CityAction;
+	if ((Command == TEXT("guilddeposit") || Command == TEXT("guildwithdraw")) && LexTryParseString(Value, *First) && Value > 0)
+	{
+		CityAction = Command.RightChop(5);
+	}
+	else if (Command == TEXT("guildcities"))
+	{
+		CityAction = TEXT("cities");
+	}
+	else if (Command == TEXT("guildbuycity") && !First.IsEmpty())
+	{
+		CityAction = TEXT("buycity");
+	}
+	else if (Command == TEXT("guildcitytax") && !First.IsEmpty() && LexTryParseString(Value, *Rest) && Value >= 0)
+	{
+		CityAction = TEXT("citytax");
+	}
+	if (!CityAction.IsEmpty())
+	{
+		TWeakObjectPtr<AVCGameMode> WeakThis(this);
+		TWeakObjectPtr<APlayerController> WeakPlayer(Player);
+		FVCServerBackend::GuildCity(Session->CharacterId, Session->AccountId, CityAction, First.ToUpper(), Value,
+			[WeakThis, WeakPlayer, CityAction](const FVCHttpResult& Result)
+			{
+				APlayerController* PC = WeakPlayer.Get();
+				if (!PC || !WeakThis.IsValid())
+				{
+					return;
+				}
+				if (!Result.IsOk())
+				{
+					PC->ClientMessage(FString::Printf(TEXT("Gilde: %s"), *Result.ErrorMessage()));
+					return;
+				}
+				if (CityAction == TEXT("cities"))
+				{
+					TArray<TSharedPtr<FJsonValue>> Cities;
+					FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Result.Body), Cities);
+					for (const TSharedPtr<FJsonValue>& Entry : Cities)
+					{
+						const TSharedPtr<FJsonObject> C = Entry->AsObject();
+						FString Owner, Tag;
+						const bool bOwned = C->TryGetStringField(TEXT("ownerName"), Owner);
+						C->TryGetStringField(TEXT("ownerTag"), Tag);
+						double Price = 0.0, Tax = 0.0;
+						const bool bPrice = C->TryGetNumberField(TEXT("price"), Price);
+						const bool bTax = C->TryGetNumberField(TEXT("taxPermille"), Tax);
+						PC->ClientMessage(FString::Printf(TEXT("  %s – %s%s"), *C->GetStringField(TEXT("cityCode")),
+							bOwned ? *FString::Printf(TEXT("besetzt von %s%s"), *Owner, Tag.IsEmpty() ? TEXT("") : *FString::Printf(TEXT(" [%s]"), *Tag))
+								: bPrice ? *FString::Printf(TEXT("frei, %lld Gold"), static_cast<int64>(Price)) : TEXT("frei, Preis UNKNOWN"),
+							bTax ? *FString::Printf(TEXT(", Steuer %.1f %%"), Tax / 10.0) : TEXT("")));
+					}
+					return;
+				}
+				if (Result.Json.IsValid())
+				{
+					PC->ClientMessage(FString::Printf(TEXT("Gildenkasse: %lld Gold"), static_cast<int64>(Result.Json->GetNumberField(TEXT("treasuryGold")))));
+				}
+			});
+		return;
+	}
 	if (Command == TEXT("guild"))
 	{
 		Action = TEXT("get");
@@ -1539,7 +1602,7 @@ void AVCGameMode::HandleGuildCommand(APlayerController* Player, const FString& C
 	}
 	else
 	{
-		Player->ClientMessage(TEXT("VCGuild | VCGuildCreate \"Name\" [KÜRZEL] | VCGuildInvite <name> | VCGuildInvites | VCGuildAccept <nr> | VCGuildDecline <nr> | VCGuildKick <name> | VCGuildRank <name> <rang> | VCGuildLeave | VCGuildDisband | VCGuildChat \"text\""));
+		Player->ClientMessage(TEXT("VCGuild | VCGuildCreate \"Name\" [KÜRZEL] | VCGuildInvite <name> | VCGuildInvites | VCGuildAccept <nr> | VCGuildDecline <nr> | VCGuildKick <name> | VCGuildRank <name> <rang> | VCGuildLeave | VCGuildDisband | VCGuildChat \"text\" | VCGuildDeposit <gold> | VCGuildWithdraw <gold> | VCCities | VCGuildBuyCity <STADT> | VCGuildCityTax <STADT> <promille>"));
 		return;
 	}
 	TWeakObjectPtr<APlayerController> WeakPC(Player);
@@ -1581,6 +1644,17 @@ void AVCGameMode::HandleGuildCommand(APlayerController* Player, const FString& C
 		PC->ClientMessage(FString::Printf(TEXT("%s%s – dein Rang: %s, Mitglieder %d/%d"), Tag.IsEmpty() ? TEXT("") : *FString::Printf(TEXT("[%s] "), *Tag),
 			*Result.Json->GetStringField(TEXT("name")), *Result.Json->GetStringField(TEXT("myRankName")), Members.Num(),
 			static_cast<int32>(Result.Json->GetNumberField(TEXT("maxMembers")))));
+		FString CityList;
+		const TArray<TSharedPtr<FJsonValue>>* Cities = nullptr;
+		if (Result.Json->TryGetArrayField(TEXT("cities"), Cities) && Cities)
+		{
+			for (const TSharedPtr<FJsonValue>& City : *Cities)
+			{
+				CityList += (CityList.IsEmpty() ? TEXT("") : TEXT(", ")) + City->AsString();
+			}
+		}
+		PC->ClientMessage(FString::Printf(TEXT("  Gildenkasse %lld Gold, Städte: %s"), static_cast<int64>(Result.Json->GetNumberField(TEXT("treasuryGold"))),
+			CityList.IsEmpty() ? TEXT("keine") : *CityList));
 		for (const TSharedPtr<FJsonValue>& Value : Members)
 		{
 			const TSharedPtr<FJsonObject> M = Value->AsObject();

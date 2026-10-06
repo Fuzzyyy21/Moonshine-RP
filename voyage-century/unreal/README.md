@@ -185,6 +185,17 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Gildenkasse und Städte (Phase 7, Iteration 3)
+
+```
+VCGuildDeposit 16000                → in die Gildenkasse (zählt als Beitrag)
+VCCities                            → Städte: Besitzer, Preis, Steuersatz
+VCGuildBuyCity ATHENS               → Offizier/Leiter kauft aus der Kasse (15 000)
+VCGuildCityTax ATHENS 120           → Steuersatz 12 % (0–150 Promille); Händlerpreise in Athen ändern sich
+VCGuild                             → Kasse und Städte; Handel in Athen füllt die Kasse (50 % der Steuer)
+VCGuildWithdraw 500                 → nur der Leiter
+```
+
 ## Gilden (Phase 7, Iteration 2)
 
 Keine Data Table. Namen mit Leerzeichen in Anführungszeichen.

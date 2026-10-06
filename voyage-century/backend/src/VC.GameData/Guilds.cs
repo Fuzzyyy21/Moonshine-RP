@@ -8,7 +8,7 @@ namespace VC.GameData;
 public sealed record GuildMemberInfo(long CharacterId, string Name, short RankNo, string RankName, bool Online, string? ZoneId);
 public sealed record GuildInfo(
     long GuildId, string Name, string? Tag, int BannerSymbol, int BannerColor1, int BannerColor2, short MyRank, string MyRankName,
-    IReadOnlyList<string> MyPermissions, int MaxMembers, List<GuildMemberInfo> Members);
+    IReadOnlyList<string> MyPermissions, int MaxMembers, List<GuildMemberInfo> Members, long TreasuryGold = 0, List<string>? Cities = null);
 public sealed record GuildFoundRequest(
     long AccountId, string? ServerId, string? Name, string? Tag, int BannerSymbol, int BannerColor1, int BannerColor2, Guid Key);
 public sealed record GuildTargetRequest(long AccountId, string? ServerId, string? Name, short RankNo = 0);
@@ -37,7 +37,15 @@ public static class GuildEndpoints
 
     private sealed record Config(long FoundCost, int MaxMembers, int InviteHours);
 
-    private sealed record Membership(long GuildId, GuildRank Rank);
+    internal sealed record Membership(long GuildId, GuildRank Rank);
+
+    /// <summary>Für andere Gildenendpunkte: Charakter gesperrt, auf diesem Server, Mitglied; Gildenzeile gesperrt.</summary>
+    internal static async Task<Membership?> BeginMember(
+        NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, long accountId, string? serverId, CancellationToken ct) =>
+        await Begin(conn, tx, characterId, accountId, serverId, ct) is null ? await MembershipOf(conn, tx, characterId, ct, lockGuild: true) : null;
+
+    internal static Task<GuildInfo?> LoadInfo(NpgsqlConnection conn, NpgsqlTransaction tx, long characterId, bool allowDev, CancellationToken ct) =>
+        Load(conn, tx, characterId, allowDev, ct);
 
     // ---- Ansehen ------------------------------------------------------------------------------
 
@@ -385,7 +393,7 @@ public static class GuildEndpoints
             {
                 return Problem(StatusCodes.Status409Conflict, "Erst die Leitung übergeben (Rang 0 an ein anderes Mitglied)");
             }
-            await DisbandGuild(conn, tx, me.GuildId, ct);
+            await DisbandGuild(conn, tx, me.GuildId, characterId, req.ServerId!, ct);
         }
         else
         {
@@ -410,7 +418,7 @@ public static class GuildEndpoints
         {
             return Problem(StatusCodes.Status403Forbidden, "Auflösen darf nur der Gildenleiter");
         }
-        await DisbandGuild(conn, tx, me.GuildId, ct);
+        await DisbandGuild(conn, tx, me.GuildId, characterId, req.ServerId!, ct);
         await GameEventLog.WriteAsync(conn, tx, new GameEvent("GUILD_DISBAND", req.AccountId, characterId, NewValue: new { guild = me.GuildId }),
             identity.Value.InstanceId, ct);
         await tx.CommitAsync(ct);
@@ -427,9 +435,11 @@ public static class GuildEndpoints
         return await cmd.ExecuteScalarAsync(ct) as long?;
     }
 
-    private static async Task DisbandGuild(NpgsqlConnection conn, NpgsqlTransaction tx, long guildId, CancellationToken ct)
+    private static async Task DisbandGuild(NpgsqlConnection conn, NpgsqlTransaction tx, long guildId, long leaderId, string serverId, CancellationToken ct)
     {
-        // Name und Kürzel werden wieder frei (eindeutig nur unter nicht aufgelösten Gilden); die Zeile bleibt als Verlauf.
+        // Städte werden frei, das Restgeld geht an den Leiter [DESIGN]. Name und Kürzel werden wieder frei (eindeutig nur unter
+        // nicht aufgelösten Gilden); die Zeile bleibt als Verlauf.
+        await GuildCityEndpoints.Release(conn, tx, guildId, leaderId, serverId, ct);
         await Exec(conn, tx, "DELETE FROM guild_members WHERE guild_id = @g", ct, ("g", guildId));
         await Exec(conn, tx, "DELETE FROM guild_invites WHERE guild_id = @g", ct, ("g", guildId));
         await Exec(conn, tx, "UPDATE guilds SET disbanded_at = now() WHERE guild_id = @g", ct, ("g", guildId));
@@ -565,7 +575,19 @@ public static class GuildEndpoints
             }
         }
         var permissions = me.Rank.RankNo == GuildRules.LeaderRank ? GuildRules.KnownPermissions : me.Rank.Permissions;
-        return new GuildInfo(me.GuildId, name, tag, symbol, color1, color2, me.Rank.RankNo, me.Rank.Name, permissions.Order().ToList(), max, members);
+        var cities = new List<string>();
+        await using (var c = new NpgsqlCommand(
+            "SELECT c.code FROM territories t JOIN cities c USING (city_id) WHERE t.owner_guild_id = @g ORDER BY c.code", conn, tx))
+        {
+            c.Parameters.AddWithValue("g", me.GuildId);
+            await using var r = await c.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct))
+            {
+                cities.Add(r.GetString(0));
+            }
+        }
+        return new GuildInfo(me.GuildId, name, tag, symbol, color1, color2, me.Rank.RankNo, me.Rank.Name, permissions.Order().ToList(), max, members,
+            await GuildCityEndpoints.Treasury(conn, tx, me.GuildId, ct), cities);
     }
 
     private static async Task<int> Exec(

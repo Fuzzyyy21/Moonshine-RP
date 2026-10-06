@@ -39,6 +39,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCReport <name> "grund"                              Spieler melden (letzte Nachrichten gehen mit)
  *   VCGuild | VCGuildCreate "Name" [KÜRZEL] | VCGuildInvite <name> | VCGuildInvites | VCGuildAccept <nr> | VCGuildDecline <nr>
  *   VCGuildKick <name> | VCGuildRank <name> <rang> (0 = Leitung übergeben) | VCGuildLeave | VCGuildDisband | VCGuildChat "text"
+ *   VCGuildDeposit <gold> | VCGuildWithdraw <gold> | VCCities | VCGuildBuyCity <STADT> | VCGuildCityTax <STADT> <promille>
  *   VCAdmin "mute <name> <minuten> [kanal] <grund>" | VCAdmin "announce <text>"
  *   VCAuction [WARE] | VCAuctionMine                     Auktionshaus durchsuchen / eigene Angebote
  *   VCAuctionSell <nr> <menge> <preis> | VCAuctionBuy <angebot> | VCAuctionCancel <angebot> | VCAuctionCollect  (beim Auktionator)
@@ -208,6 +209,21 @@ public:
 
 	UFUNCTION(Exec)
 	void VCGuildChat(const FString& Message);
+
+	UFUNCTION(Exec)
+	void VCGuildDeposit(const FString& Gold);
+
+	UFUNCTION(Exec)
+	void VCGuildWithdraw(const FString& Gold);
+
+	UFUNCTION(Exec)
+	void VCCities();
+
+	UFUNCTION(Exec)
+	void VCGuildBuyCity(const FString& City);
+
+	UFUNCTION(Exec)
+	void VCGuildCityTax(const FString& City, const FString& Permille);
 
 	UFUNCTION(Exec)
 	void VCAuction(const FString& ItemCode);

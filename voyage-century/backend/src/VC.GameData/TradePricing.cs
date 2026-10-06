@@ -3,8 +3,8 @@ namespace VC.GameData;
 /// <summary>Preismodell-Parameter (game_rules TRADE_*, Promille). Im Original ist das Preismodell UNKNOWN (SYS-TRADE).</summary>
 public sealed record TradeTuning(double Elasticity, double MinFactor, double MaxFactor, double Spread);
 
-/// <summary>Kurs einer Menge: Summe der Einzelpreise und der Bestand danach.</summary>
-public sealed record TradeQuote(long Total, int StockAfter);
+/// <summary>Kurs einer Menge: Summe der Einzelpreise, Bestand danach und der Steueranteil darin (Unterschied zum steuerfreien Preis).</summary>
+public sealed record TradeQuote(long Total, int StockAfter, long Tax = 0);
 
 /// <summary>
 /// Hafenpreise [DESIGN], reine Funktionen ohne Datenbank. Der Mittelpreis hängt am Verhältnis von Gleichgewichtsbestand zu
@@ -40,12 +40,13 @@ public static class TradePricing
         {
             return null;
         }
-        long total = 0;
+        long total = 0, untaxed = 0;
         for (var i = 1; i <= quantity; i++)
         {
             total += BuyUnit(basePrice, stock - i, targetStock, taxRate, t);
+            untaxed += BuyUnit(basePrice, stock - i, targetStock, 0, t);
         }
-        return new TradeQuote(total, stock - quantity);
+        return new TradeQuote(total, stock - quantity, total - untaxed);
     }
 
     /// <summary>Gesamterlös für Quantity verkaufte Einheiten.</summary>
@@ -55,12 +56,13 @@ public static class TradePricing
         {
             return null;
         }
-        long total = 0;
+        long total = 0, untaxed = 0;
         for (var i = 1; i <= quantity; i++)
         {
             total += SellUnit(basePrice, stock + i, targetStock, taxRate, t);
+            untaxed += SellUnit(basePrice, stock + i, targetStock, 0, t);
         }
-        return new TradeQuote(total, stock + quantity);
+        return new TradeQuote(total, stock + quantity, untaxed - total);
     }
 
     /// <summary>

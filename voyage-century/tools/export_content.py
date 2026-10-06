@@ -495,6 +495,10 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
         upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
                [{"rule_key": key, "int_value": guild[field], "is_dev": True, "confidence": "UNKNOWN"}
                 for key, field in sorted(GUILD_RULES.items())]),
+        upsert("territories", "city_id", ["city_id", "purchase_price", "is_dev", "recon_id", "confidence"],
+               [{"city_id": SqlExpr(f"(SELECT city_id FROM cities WHERE code = {sql_literal(c['city'])})"),
+                 "purchase_price": c["price_gold"], "is_dev": True, "recon_id": "SYS-GUILD", "confidence": "UNKNOWN"}
+                for c in sorted(guild["cities"], key=lambda c: c["city"])]),
         upsert("level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
                dev_curve(curves["character_levels"])),
         upsert("skill_level_table", "level", ["level", "xp_required", "is_dev", "recon_id", "confidence"],
@@ -574,12 +578,21 @@ def check_crafting(crafting: dict, item_codes: set[str], skill_categories: dict[
         raise SystemExit("design_data/dev_crafting.json:\n  " + "\n  ".join(problems))
 
 
-GUILD_RULES = {"GUILD_FOUND_COST": "found_cost_gold", "GUILD_MAX_MEMBERS": "max_members", "GUILD_INVITE_HOURS": "invite_hours"}
-GUILD_PERMISSIONS = {"INVITE", "KICK", "PROMOTE"}
+GUILD_RULES = {"GUILD_FOUND_COST": "found_cost_gold", "GUILD_MAX_MEMBERS": "max_members", "GUILD_INVITE_HOURS": "invite_hours",
+               "CITY_TAX_SHARE_PERMILLE": "city_tax_share_permille", "CITY_TAX_MIN_PERMILLE": "city_tax_min_permille",
+               "CITY_TAX_MAX_PERMILLE": "city_tax_max_permille"}
+GUILD_PERMISSIONS = {"INVITE", "KICK", "PROMOTE", "TREASURY", "CITY"}
 
 
-def check_guild(guild: dict, records: dict[str, dict]) -> None:
+def check_guild(guild: dict, records: dict[str, dict], port_cities: set[str]) -> None:
     problems = []
+    if not (0 <= guild["city_tax_share_permille"] <= 1000 and 0 <= guild["city_tax_min_permille"] <= guild["city_tax_max_permille"] <= 1000):
+        problems.append("Stadtsteuer: Anteil 0 … 1000, 0 ≤ min ≤ max ≤ 1000 (Promille)")
+    for c in guild["cities"]:
+        if c["city"] not in port_cities or c["price_gold"] <= 0:
+            problems.append(f"Stadt {c['city']}: Hafenstadt und Preis > 0 nötig")
+    if not set(guild["ranks"][0]["permissions"]) >= GUILD_PERMISSIONS:
+        problems.append("Rang 0 (Gildenleiter) braucht alle Rechte")
     numbers = [r["rank_no"] for r in guild["ranks"]]
     if numbers != list(range(len(numbers))) or len(numbers) < 2:
         problems.append("Ränge: mindestens 2, Nummern 0, 1, 2 … ohne Lücke (0 = Gildenleiter)")
@@ -847,7 +860,7 @@ def outputs() -> dict[Path, str]:
     check_auction(auction, {strip_prefix(z["city"]) for z in world["zones"] if z["city"]}, {p["city"] for p in rows["ports"]})
     guild = json.loads((DESIGN_DIR / "dev_guild.json").read_text(encoding="utf-8"))
     records = load_records()
-    check_guild(guild, records)
+    check_guild(guild, records, {p["city"] for p in rows["ports"]})
     files = {SEED_FILE: render_sql(rows, curves, appearance, combat, abilities, world, discoveries, ships, trade, loot, crafting,
                                    auction, guild, records)}
     for name, table in render_ue(rows, appearance, combat, abilities, discoveries, ships, trade, crafting, auction).items():

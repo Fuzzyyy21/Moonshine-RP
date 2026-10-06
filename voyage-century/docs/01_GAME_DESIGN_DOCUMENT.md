@@ -370,7 +370,13 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * `[DESIGN]`: Name 3–20 Zeichen, Kürzel 2–4 Großbuchstaben/Ziffern (beides eindeutig unter bestehenden Gilden), Banner aus Symbol und zwei Farben (Platzhalter bis zur Oberfläche). Gründung kostet 1000 Gold (Senke `GUILD_FOUND`), höchstens 50 Mitglieder, Einladungen gelten 48 h. Dritter Rang „Mitglied“ ohne Rechte.
 * Rechte: Einladen, Entfernen, Rang setzen (Leiter und Offiziere). Entfernt und befördert wird nur unterhalb des eigenen Rangs; die Leitung gibt nur der Leiter ab (er wird dabei Offizier). Der Leiter tritt erst nach der Übergabe aus; das letzte Mitglied löst die Gilde auf (Name und Kürzel werden wieder frei).
 * Gildenchat (Kanal GUILD) läuft über denselben Verteiler wie der übrige Chat; das Backend nennt je Server die Mitglieder, die ihn bekommen.
-* Offen: Städtekauf und -besetzung durch Offiziere (belegt, Regeln UNKNOWN), Gildenlager, -level, -skills, -quests.
+* Offen: Gildenlager, -level, -skills, -quests.
+
+**Umgesetzt (Phase 7, Iteration 3)**, Regeln in `backend/src/VC.GameData/CityRules.cs` (getestet), Werte in `design_data/dev_guild.json`
+* Belegt und umgesetzt: Gildenoffiziere kaufen Städte und erhalten Belohnungen und Verwaltungsrechte (SYS-GUILD). Besetzen per Belagerung folgt.
+* `[DESIGN]`: Gekauft wird aus der Gildenkasse (London 20 000, Athen 15 000 Gold; Senke `CITY_BUY`), nur freie Städte. Belohnung: 50 % der Handelssteuer im Hafen der Stadt fließen in die Kasse (Quelle `CITY_TAX`, der Rest bleibt Senke). Verwaltungsrecht: Steuersatz 0–15 %, er ersetzt die Marktsteuer im Hafen.
+* Gildenkasse: Einzahlen dürfen alle (zählt als Beitrag), Auszahlen nur mit Recht TREASURY (Leiter). Jede Bewegung im `guild_ledger`; die Wirtschaftsübersicht zählt sie mit.
+* Auflösen: Städte werden frei, das Restgeld der Kasse geht an den Leiter.
 
 ---
 

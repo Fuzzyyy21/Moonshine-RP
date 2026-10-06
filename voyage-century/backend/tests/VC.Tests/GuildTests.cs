@@ -23,7 +23,7 @@ public sealed class GuildTests(PostgresFixture db)
 
         var guild = await Read(await Found(backend, a, name, tag, key));
         Assert.Equal((name, tag, (short)0, "Gildenleiter"), (guild.Name, guild.Tag, guild.MyRank, guild.MyRankName));
-        Assert.Equal(["INVITE", "KICK", "PROMOTE"], guild.MyPermissions);
+        Assert.Equal(["CITY", "INVITE", "KICK", "PROMOTE", "TREASURY"], guild.MyPermissions);
         Assert.Equal(50, guild.MaxMembers);
         Assert.Single(guild.Members);
         var again = await Read(await Found(backend, a, name, tag, key));

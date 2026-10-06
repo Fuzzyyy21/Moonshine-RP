@@ -344,6 +344,34 @@ void FVCServerBackend::Guild(int64 CharacterId, int64 AccountId, const FString& 
 	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + Path, Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::GuildCity(int64 CharacterId, int64 AccountId, const FString& Action, const FString& City, int64 Value,
+	FVCHttpCallback Callback)
+{
+	if (Action == TEXT("cities"))
+	{
+		FVCHttp::Send(TEXT("GET"), UVCBackendSettings::GetGameDataBaseUrl() + TEXT("/internal/v1/cities"), nullptr, Headers(), MoveTemp(Callback));
+		return;
+	}
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FString Path;
+	if (Action == TEXT("deposit") || Action == TEXT("withdraw"))
+	{
+		Body->SetNumberField(TEXT("amount"), static_cast<double>(Value));
+		Path = TEXT("/guild/treasury/") + Action;
+	}
+	else if (Action == TEXT("buycity"))
+	{
+		Path = TEXT("/guild/cities/") + FGenericPlatformHttp::UrlEncode(City) + TEXT("/buy");
+	}
+	else
+	{
+		Body->SetNumberField(TEXT("taxPermille"), static_cast<double>(Value));
+		Path = TEXT("/guild/cities/") + FGenericPlatformHttp::UrlEncode(City) + TEXT("/tax");
+	}
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + Path, Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::ReportPlayer(int64 CharacterId, int64 AccountId, const FString& Name, const FString& Reason, FVCHttpCallback Callback)
 {
 	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
@@ -526,6 +554,7 @@ void FVCServerBackend::PollChat(int64, FVCHttpCallback Callback) { Refuse(Callba
 void FVCServerBackend::SocialList(int64, int64, const FString&, const FString&, const FString&, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportPlayer(int64, int64, const FString&, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Guild(int64, int64, const FString&, const FString&, const FString&, int32, int64, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::GuildCity(int64, int64, const FString&, const FString&, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminMute(const FString&, int32, const FString&, const FString&, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::AdminAnnounce(const FString&, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Auction(int64, int64, const FString&, const FString&, int64, int32, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }

@@ -97,6 +97,11 @@ public:
 	 */
 	static void Guild(int64 CharacterId, int64 AccountId, const FString& Action, const FString& Name, const FString& Tag, int32 RankNo,
 		int64 GuildId, FVCHttpCallback Callback);
+	/**
+	 * Gildenkasse und Städte. Action: cities (GET, alle Städte), deposit/withdraw (Value = Gold), buycity (City),
+	 * citytax (City, Value = Promille). Antwort: Städteliste bzw. Gildeninfo.
+	 */
+	static void GuildCity(int64 CharacterId, int64 AccountId, const FString& Action, const FString& City, int64 Value, FVCHttpCallback Callback);
 	static void ReportPlayer(int64 CharacterId, int64 AccountId, const FString& Name, const FString& Reason, FVCHttpCallback Callback);
 	/** Admin: stummschalten bzw. Systemmeldung; Rechte und Audit im Backend. */
 	static void AdminMute(const FString& Name, int32 Minutes, const FString& Channel, const FString& Reason,

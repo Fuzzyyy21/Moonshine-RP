@@ -177,7 +177,7 @@ Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-D
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Händler Öl kaufen (Gold sinkt, Ware im Laderaum, Laderaum begrenzt), über die Seezone nach London segeln und dort mit Gewinn verkaufen; viele Käufe hintereinander machen die Ware teurer, nach einer Weile füllt sich der Bestand wieder auf; ein wiederholter Auftrag bucht nichts doppelt; die Wirtschaftsübersicht zeigt Kauf als Senke und Verkauf als Quelle.
 
-## Phase 7 – Sozial (Iteration 2 fertig)
+## Phase 7 – Sozial (Iteration 3 fertig)
 
 Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 
@@ -192,7 +192,13 @@ Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 | Backend: gründen (Senke `GUILD_FOUND`, genau einmal), Gilde ansehen, einladen/annehmen/ablehnen, entfernen, Rang setzen und Leitung übergeben, austreten (letztes Mitglied löst auf), auflösen; Gildenchat über den Chat-Verteiler | ✅ It. 2 | `GuildTests` (4 Tests) |
 | UE: `VCGuild…`-Befehle, `VCGuildChat`, Zustellung an die vom Backend genannten Mitglieder | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
 | Gildenlager, Gildenlevel und -skills, Gildenmissionen | ❌ | belegt als vorhanden (SYS-GUILD), Inhalte UNKNOWN |
-| Städtebesitz, Belagerung, Gruppen, Post, Handelsfenster | ❌ | Regeln UNKNOWN |
+| Regeln: Steueranteil im Handelspreis (`TradeQuote.Tax`), `CityRules` (Besitzeranteil, Steuergrenzen, geltender Steuersatz) | ✅ It. 3 | `CityRulesTests` (3 Fälle) |
+| Daten: Rechte CITY (Leiter, Offiziere) und TREASURY (Leiter), London 20 000 und Athen 15 000 Gold, Anteil 50 %, Steuer 0–15 %; `V0018` (`guild_ledger`, `territories.is_dev`) | ✅ It. 3 | Export `--check`, Schematest |
+| Backend: Gildenkasse (einzahlen = Beitrag, auszahlen mit Recht, genau einmal), Städteliste, Stadt aus der Kasse kaufen (Senke `CITY_BUY`), Steuersatz setzen, Steueranteil beim Handel im Hafen (Quelle `CITY_TAX`), Auflösen gibt Städte frei und zahlt die Kasse an den Leiter; Wirtschaftsübersicht mit Gildenkassen | ✅ It. 3 | `GuildCityTests` (3 Tests) |
+| UE: `VCGuildDeposit`, `VCGuildWithdraw`, `VCCities`, `VCGuildBuyCity`, `VCGuildCityTax`; `VCGuild` zeigt Kasse und Städte | ⚠️ It. 3, geschrieben, nicht kompiliert | lokal |
+| Belagerung (Städte besetzen), Gruppen, Post, Handelsfenster | ❌ | Regeln UNKNOWN |
+
+**Abnahme Iteration 3 (Vorschlag)**: Mitglieder zahlen in die Gildenkasse ein, nur der Leiter zahlt aus; ein Offizier kauft mit `VCGuildBuyCity ATHENS` die Stadt aus der Kasse; ein Handel in Athen bringt der Gilde die Hälfte der Steuer; `VCGuildCityTax ATHENS 150` macht Waren dort teurer, 151 wird abgelehnt; `VCCities` zeigt den Besitzer; nach dem Auflösen ist Athen wieder frei und der Leiter hat das Restgeld.
 
 **Abnahme Iteration 2 (Vorschlag)**: Spieler A gründet mit `VCGuildCreate "Die Seefahrer" SEE` (1000 Gold weg), lädt B ein, B nimmt an (`VCGuildInvites`, `VCGuildAccept`); B kann als Mitglied niemanden einladen, nach Beförderung zum Offizier schon; `VCGuildChat` erreicht nur Mitglieder, auch auf anderen Servern; A übergibt die Leitung an B und tritt aus; B tritt als Letzter aus und die Gilde ist aufgelöst, der Name wieder frei.
 

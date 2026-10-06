@@ -458,6 +458,31 @@ void AVCPlayerController::VCGuildChat(const FString& Message)
 	ServerChat(TEXT("GUILD"), FString(), Message);
 }
 
+void AVCPlayerController::VCGuildDeposit(const FString& Gold)
+{
+	ServerSocialCommand(TEXT("guilddeposit"), Gold);
+}
+
+void AVCPlayerController::VCGuildWithdraw(const FString& Gold)
+{
+	ServerSocialCommand(TEXT("guildwithdraw"), Gold);
+}
+
+void AVCPlayerController::VCCities()
+{
+	ServerSocialCommand(TEXT("guildcities"), FString());
+}
+
+void AVCPlayerController::VCGuildBuyCity(const FString& City)
+{
+	ServerSocialCommand(TEXT("guildbuycity"), City);
+}
+
+void AVCPlayerController::VCGuildCityTax(const FString& City, const FString& Permille)
+{
+	ServerSocialCommand(TEXT("guildcitytax"), City + TEXT(" ") + Permille);
+}
+
 bool AVCPlayerController::ServerChat_Validate(const FString& Channel, const FString& Target, const FString& Message)
 {
 	return Channel.Len() <= 16 && Target.Len() <= 24 && Message.Len() <= 1000;
