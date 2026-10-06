@@ -62,6 +62,8 @@ public:
 	virtual void HandleShipCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
 	virtual void HandleInventoryCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
 	virtual void HandleGather(APawn* Pawn, FName NodeCode, TFunction<void(bool)> Done) override;
+	virtual void HandleChat(APlayerController* Player, const FString& Channel, const FString& Target, const FString& Message) override;
+	virtual void HandleSocialCommand(APlayerController* Player, const FString& Command, const FString& Argument) override;
 	virtual void HandleShipSunk(APawn* Ship, AActor* Killer) override;
 	virtual void HandleMonsterKill(AActor* Killer, FName MonsterCode) override;
 
@@ -117,6 +119,9 @@ private:
 		FString ArrivalTag;
 		/** Bereits entdeckt (aus dem Charakterzustand) oder Meldung unterwegs: nicht erneut melden. */
 		TSet<FName> Discoveries;
+		/** Ignorierte Charaktere (aus dem Zustand, bei Änderung aktualisiert): deren Chat wird nicht zugestellt. */
+		TSet<int64> Ignores;
+		FString Name;
 		/** Schiffe laut Backend (Stand des letzten Ladens, Kaufs bzw. Speicherns). */
 		struct FShip
 		{
@@ -146,6 +151,10 @@ private:
 	FTimerHandle SaveTimer;
 	FTimerHandle AuthTimeoutTimer;
 	FTimerHandle DirectoryTimer;
+	FTimerHandle ChatTimer;
+	/** Letzte abgeholte Chat-Nachricht; −1 = noch nicht initialisiert (beim Start wird nichts Altes zugestellt). */
+	int64 LastChatId = -1;
+	bool bChatPollInFlight = false;
 
 	bool IsAuthRequired() const;
 	void BeginAuthentication(APlayerController* PC);
@@ -167,6 +176,10 @@ private:
 
 	void RegisterWithDirectory();
 	void SendHeartbeat();
+	void PollChat();
+	/** Zustellen an einen Spieler, außer er ignoriert den Absender. */
+	void DeliverChat(APlayerController* PC, const FPlayerSession& Session, int64 SenderId, const FString& Line) const;
+	static FString ChatLine(const FString& Channel, const FString& Sender, const FString& Message);
 	void CompleteTransfer(APlayerController* PC, int64 CharacterId, const FString& Address);
 	void CancelTransfer(APlayerController* PC, const FString& Reason);
 	void ReportKill(APlayerController* KillerPC, const FPlayerSession& Killer, const TSharedRef<FJsonObject>& Kill);

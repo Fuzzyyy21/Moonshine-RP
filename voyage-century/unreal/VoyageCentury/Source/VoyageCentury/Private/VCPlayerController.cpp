@@ -348,6 +348,89 @@ void AVCPlayerController::VCCraft(const FString& RecipeCode, const FString& Time
 	ServerInventoryCommand(TEXT("craft"), Times.IsEmpty() ? RecipeCode : RecipeCode + TEXT(" ") + Times);
 }
 
+void AVCPlayerController::VCSay(const FString& Message)
+{
+	ServerChat(TEXT("LOCAL"), FString(), Message);
+}
+
+void AVCPlayerController::VCWorld(const FString& Message)
+{
+	ServerChat(TEXT("WORLD"), FString(), Message);
+}
+
+void AVCPlayerController::VCTradeChat(const FString& Message)
+{
+	ServerChat(TEXT("TRADE"), FString(), Message);
+}
+
+void AVCPlayerController::VCWhisper(const FString& Name, const FString& Message)
+{
+	ServerChat(TEXT("WHISPER"), Name, Message);
+}
+
+void AVCPlayerController::VCFriends()
+{
+	ServerSocialCommand(TEXT("friends"), FString());
+}
+
+void AVCPlayerController::VCFriendAdd(const FString& Name)
+{
+	ServerSocialCommand(TEXT("friendadd"), Name);
+}
+
+void AVCPlayerController::VCFriendRemove(const FString& Name)
+{
+	ServerSocialCommand(TEXT("friendremove"), Name);
+}
+
+void AVCPlayerController::VCIgnores()
+{
+	ServerSocialCommand(TEXT("ignores"), FString());
+}
+
+void AVCPlayerController::VCIgnore(const FString& Name)
+{
+	ServerSocialCommand(TEXT("ignore"), Name);
+}
+
+void AVCPlayerController::VCUnignore(const FString& Name)
+{
+	ServerSocialCommand(TEXT("unignore"), Name);
+}
+
+void AVCPlayerController::VCReport(const FString& Name, const FString& Reason)
+{
+	ServerSocialCommand(TEXT("report"), Name + TEXT(" ") + Reason);
+}
+
+bool AVCPlayerController::ServerChat_Validate(const FString& Channel, const FString& Target, const FString& Message)
+{
+	return Channel.Len() <= 16 && Target.Len() <= 24 && Message.Len() <= 1000;
+}
+
+void AVCPlayerController::ServerChat_Implementation(const FString& Channel, const FString& Target, const FString& Message)
+{
+	UWorld* World = GetWorld();
+	if (IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr))
+	{
+		Hooks->HandleChat(this, Channel, Target, Message);
+	}
+}
+
+bool AVCPlayerController::ServerSocialCommand_Validate(const FString& Command, const FString& Argument)
+{
+	return Command.Len() <= 16 && Argument.Len() <= 600;
+}
+
+void AVCPlayerController::ServerSocialCommand_Implementation(const FString& Command, const FString& Argument)
+{
+	UWorld* World = GetWorld();
+	if (IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr))
+	{
+		Hooks->HandleSocialCommand(this, Command, Argument);
+	}
+}
+
 void AVCPlayerController::VCAuction(const FString& ItemCode)
 {
 	ServerInventoryCommand(TEXT("auction"), ItemCode.IsEmpty() ? FString(TEXT("search")) : TEXT("search ") + ItemCode);

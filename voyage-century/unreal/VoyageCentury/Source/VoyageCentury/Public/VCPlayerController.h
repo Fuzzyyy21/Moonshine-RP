@@ -32,6 +32,12 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCAdmin "giveitem <ITEM> [menge]"
  *   VCRecipes | VCCraft <REZEPT> [anzahl]                Rezepte; herstellen (Material, Gebühr, Skill prüft das Backend)
  *   E an einem Sammelpunkt                               sammeln (Sammelzeit stillstehen)
+ *   VCSay "text" | VCWorld "text" | VCTradeChat "text"  Chat lokal (50 m) / alle Server / Handel; Text in Anführungszeichen
+ *   VCWhisper <name> "text"                              Flüstern, auch auf anderen Servern
+ *   VCFriends | VCFriendAdd <name> | VCFriendRemove <name>   Freunde mit Online-Status und Zone
+ *   VCIgnores | VCIgnore <name> | VCUnignore <name>      Ignorieren (Chat und Flüstern)
+ *   VCReport <name> "grund"                              Spieler melden (letzte Nachrichten gehen mit)
+ *   VCAdmin "mute <name> <minuten> [kanal] <grund>" | VCAdmin "announce <text>"
  *   VCAuction [WARE] | VCAuctionMine                     Auktionshaus durchsuchen / eigene Angebote
  *   VCAuctionSell <nr> <menge> <preis> | VCAuctionBuy <angebot> | VCAuctionCancel <angebot> | VCAuctionCollect  (beim Auktionator)
  *
@@ -136,6 +142,39 @@ public:
 	void VCCraft(const FString& RecipeCode, const FString& Times);
 
 	UFUNCTION(Exec)
+	void VCSay(const FString& Message);
+
+	UFUNCTION(Exec)
+	void VCWorld(const FString& Message);
+
+	UFUNCTION(Exec)
+	void VCTradeChat(const FString& Message);
+
+	UFUNCTION(Exec)
+	void VCWhisper(const FString& Name, const FString& Message);
+
+	UFUNCTION(Exec)
+	void VCFriends();
+
+	UFUNCTION(Exec)
+	void VCFriendAdd(const FString& Name);
+
+	UFUNCTION(Exec)
+	void VCFriendRemove(const FString& Name);
+
+	UFUNCTION(Exec)
+	void VCIgnores();
+
+	UFUNCTION(Exec)
+	void VCIgnore(const FString& Name);
+
+	UFUNCTION(Exec)
+	void VCUnignore(const FString& Name);
+
+	UFUNCTION(Exec)
+	void VCReport(const FString& Name, const FString& Reason);
+
+	UFUNCTION(Exec)
 	void VCAuction(const FString& ItemCode);
 
 	UFUNCTION(Exec)
@@ -165,6 +204,13 @@ protected:
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerInventoryCommand(const FString& Command, const FString& Argument);
+
+	/** Länge grob begrenzt (Bandbreite); Inhalt, Stummschaltung und Rate prüft das Backend. */
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerChat(const FString& Channel, const FString& Target, const FString& Message);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSocialCommand(const FString& Command, const FString& Argument);
 
 private:
 	class UVCSessionSubsystem* Session() const;

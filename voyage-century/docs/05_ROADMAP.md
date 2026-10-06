@@ -177,9 +177,20 @@ Handel mit Hafenpreisen, Märkte, Crafting, Sammelberufe, Auktionshaus, Ledger-D
 
 **Abnahme Iteration 1 (Vorschlag)**: In Athen beim Händler Öl kaufen (Gold sinkt, Ware im Laderaum, Laderaum begrenzt), über die Seezone nach London segeln und dort mit Gewinn verkaufen; viele Käufe hintereinander machen die Ware teurer, nach einer Weile füllt sich der Bestand wieder auf; ein wiederholter Auftrag bucht nichts doppelt; die Wirtschaftsübersicht zeigt Kauf als Senke und Verkauf als Quelle.
 
-## Phase 7 – Sozial
+## Phase 7 – Sozial (Iteration 1 fertig)
 
 Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
+
+| Schritt | Status | Prüfung |
+|---|---|---|
+| Regeln (`ChatRules`, Backend): Nachricht bereinigen (Steuer- und Richtungszeichen, Leerraum), Länge, Rate-Limit je Kanal | ✅ It. 1 | `ChatRulesTests` (4 Fälle) |
+| Backend: Chat (LOCAL, WORLD, TRADE, WHISPER; SYSTEM nur Admin) mit Stummschaltung und Rate-Limit, Verteilung über `chat_log` an alle Zonen-Server, Flüstern nur an Online-Spieler, die nicht ignorieren; Freunde mit Online-Status und Zone; Ignorieren (im Charakterzustand); Melden mit Nachrichtenkontext; Admin `mute`/`announce` mit Audit; `V0016` | ✅ It. 1 | `SocialTests` (4 Tests) |
+| UE: `VCSay`, `VCWorld`, `VCTradeChat`, `VCWhisper`, `VCFriends`/`VCFriendAdd`/`VCFriendRemove`, `VCIgnores`/`VCIgnore`/`VCUnignore`, `VCReport`, `VCAdmin "mute"`/`"announce"`; Abfrage jede Sekunde, Zustellung ohne Ignorierte | ⚠️ It. 1, geschrieben, nicht kompiliert | lokal |
+| Chat-Fenster im HUD | ❌ | UI-Layout des Originals UNKNOWN |
+| Gilden (Gründung, Ränge, Einladung, Gildenchat), Gildenlager, Gildenmissionen | ❌ Iteration 2+ | belegt: SYS-GUILD (LIKELY) |
+| Städtebesitz, Belagerung, Gruppen, Post, Handelsfenster | ❌ | Regeln UNKNOWN |
+
+**Abnahme Iteration 1 (Vorschlag)**: Zwei Spieler auf verschiedenen Servern (Testzone und Athen): `VCWorld "Hallo"` erscheint bei beiden innerhalb von etwa einer Sekunde, `VCSay` nur in 50 m Umkreis; `VCWhisper` erreicht den anderen Server, nach `VCIgnore` nicht mehr; ein dritter WORLD-Satz in 10 s wird abgelehnt; `VCFriends` zeigt den anderen online mit Zone; ein Admin schaltet per `mute` stumm (Audit-Eintrag), `announce` erscheint bei allen als [System].
 
 ## Phase 8 – Endgame
 

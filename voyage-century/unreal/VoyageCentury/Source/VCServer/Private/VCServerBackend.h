@@ -83,6 +83,19 @@ public:
 	/** Auktionshaus. Action: search (Argument = Ware oder leer), mine, list, buy, cancel, collect. Antwort je Endpunkt. */
 	static void Auction(int64 CharacterId, int64 AccountId, const FString& Action, const FString& NpcCode, int64 Id, int32 Quantity,
 		int64 Price, const FString& ItemCode, FVCHttpCallback Callback);
+	/** Chat senden (Prüfung, Stummschaltung, Rate-Limit, Protokoll). Antwort: messageId, channel, senderName, message, target…. */
+	static void SendChat(int64 CharacterId, int64 AccountId, const FString& Channel, const FString& Message, const FString& TargetName,
+		FVCHttpCallback Callback);
+	/** Neue Nachrichten für diesen Server ab After (−1: nur Stand holen). Antwort: lastId, messages[]. */
+	static void PollChat(int64 After, FVCHttpCallback Callback);
+	/** Freundes-/Ignorierliste: Verb GET, POST (Name) oder DELETE (OtherId). List = "friends" oder "ignores". Antwort: Liste. */
+	static void SocialList(int64 CharacterId, int64 AccountId, const FString& Verb, const FString& List, const FString& Name, int64 OtherId,
+		FVCHttpCallback Callback);
+	static void ReportPlayer(int64 CharacterId, int64 AccountId, const FString& Name, const FString& Reason, FVCHttpCallback Callback);
+	/** Admin: stummschalten bzw. Systemmeldung; Rechte und Audit im Backend. */
+	static void AdminMute(const FString& Name, int32 Minutes, const FString& Channel, const FString& Reason,
+		const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback);
+	static void AdminAnnounce(const FString& Message, const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback);
 	/** Admin: Item ins Inventar; Rechte, Vergabe und Audit im Backend. Antwort: placed, lost, inventory. */
 	static void AdminGrantItem(int64 CharacterId, const FString& ItemCode, int32 Quantity, const TSharedRef<FJsonObject>& AdminContext,
 		FVCHttpCallback Callback);

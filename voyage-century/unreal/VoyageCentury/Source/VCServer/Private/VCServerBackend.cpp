@@ -268,6 +268,73 @@ void FVCServerBackend::Auction(int64 CharacterId, int64 AccountId, const FString
 	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + Path, Body, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::SendChat(int64 CharacterId, int64 AccountId, const FString& Channel, const FString& Message,
+	const FString& TargetName, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetNumberField(TEXT("characterId"), static_cast<double>(CharacterId));
+	Body->SetStringField(TEXT("channel"), Channel);
+	Body->SetStringField(TEXT("message"), Message);
+	if (!TargetName.IsEmpty())
+	{
+		Body->SetStringField(TEXT("targetName"), TargetName);
+	}
+	FVCHttp::Send(TEXT("POST"), UVCBackendSettings::GetGameDataBaseUrl() + TEXT("/internal/v1/chat"), Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::PollChat(int64 After, FVCHttpCallback Callback)
+{
+	FVCHttp::Send(TEXT("GET"), FString::Printf(TEXT("%s/internal/v1/chat?serverId=%s&after=%lld"), *UVCBackendSettings::GetGameDataBaseUrl(),
+		*FGenericPlatformHttp::UrlEncode(UVCServerSettings::GetServerId()), After), nullptr, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::SocialList(int64 CharacterId, int64 AccountId, const FString& Verb, const FString& List, const FString& Name,
+	int64 OtherId, FVCHttpCallback Callback)
+{
+	const FString Base = CharacterUrl(CharacterId) + TEXT("/") + List;
+	if (Verb == TEXT("POST"))
+	{
+		const TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+		Body->SetNumberField(TEXT("accountId"), static_cast<double>(AccountId));
+		Body->SetStringField(TEXT("name"), Name);
+		FVCHttp::Send(TEXT("POST"), Base, Body, Headers(), MoveTemp(Callback));
+		return;
+	}
+	const FString Url = Verb == TEXT("DELETE")
+		? FString::Printf(TEXT("%s/%lld?accountId=%lld"), *Base, OtherId, AccountId)
+		: FString::Printf(TEXT("%s?accountId=%lld"), *Base, AccountId);
+	FVCHttp::Send(Verb == TEXT("DELETE") ? TEXT("DELETE") : TEXT("GET"), Url, nullptr, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::ReportPlayer(int64 CharacterId, int64 AccountId, const FString& Name, const FString& Reason, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetStringField(TEXT("name"), Name);
+	Body->SetStringField(TEXT("reason"), Reason);
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/reports"), Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::AdminMute(const FString& Name, int32 Minutes, const FString& Channel, const FString& Reason,
+	const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback)
+{
+	AdminContext->SetStringField(TEXT("characterName"), Name);
+	AdminContext->SetNumberField(TEXT("minutes"), Minutes);
+	if (!Channel.IsEmpty())
+	{
+		AdminContext->SetStringField(TEXT("channel"), Channel);
+	}
+	AdminContext->SetStringField(TEXT("reason"), Reason);
+	FVCHttp::Send(TEXT("POST"), UVCBackendSettings::GetGameDataBaseUrl() + TEXT("/internal/v1/admin/mutes"), AdminContext, Headers(),
+		MoveTemp(Callback));
+}
+
+void FVCServerBackend::AdminAnnounce(const FString& Message, const TSharedRef<FJsonObject>& AdminContext, FVCHttpCallback Callback)
+{
+	AdminContext->SetStringField(TEXT("message"), Message);
+	FVCHttp::Send(TEXT("POST"), UVCBackendSettings::GetGameDataBaseUrl() + TEXT("/internal/v1/admin/announce"), AdminContext, Headers(),
+		MoveTemp(Callback));
+}
+
 void FVCServerBackend::AdminGrantItem(int64 CharacterId, const FString& ItemCode, int32 Quantity, const TSharedRef<FJsonObject>& AdminContext,
 	FVCHttpCallback Callback)
 {
@@ -416,6 +483,12 @@ void FVCServerBackend::AdminGrantGold(int64, int64, const TSharedRef<FJsonObject
 void FVCServerBackend::ViewMarket(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadInventory(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Gather(int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::SendChat(int64, int64, const FString&, const FString&, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::PollChat(int64, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::SocialList(int64, int64, const FString&, const FString&, const FString&, int64, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ReportPlayer(int64, int64, const FString&, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::AdminMute(const FString&, int32, const FString&, const FString&, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::AdminAnnounce(const FString&, const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Auction(int64, int64, const FString&, const FString&, int64, int32, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadRecipes(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::Craft(int64, int64, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }

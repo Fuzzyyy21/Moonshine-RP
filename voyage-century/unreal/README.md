@@ -185,6 +185,22 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Chat und Freunde (Phase 7, Iteration 1)
+
+Keine Data Table. Der Server holt Chat jede Sekunde vom Backend (nach der Anmeldung im World Directory). Text mit
+Leerzeichen in Anführungszeichen setzen.
+
+```
+VCSay "Hallo"                   → [Lokal] im Umkreis von 50 m
+VCWorld "Wer handelt Öl?"       → [Welt] auf allen Servern (höchstens 2 je 10 s)
+VCTradeChat "Kaufe Eisen"       → [Handel]
+VCWhisper Anna "Treffen am Hafen?" → [Flüstern] bei Anna, auch auf einem anderen Server; du siehst [An Anna]
+VCFriendAdd Anna | VCFriends    → Freunde mit online/offline und Zone
+VCIgnore Bob | VCUnignore Bob   → Bobs Nachrichten ausblenden
+VCReport Bob "beleidigt"        → Meldung mit Bobs letzten Nachrichten
+VCAdmin "mute Bob 30 WORLD Spam" | VCAdmin "announce Wartung um 20 Uhr"
+```
+
 ## Auktionshaus (Phase 6, Iteration 4)
 
 `DT_Npcs` neu importieren (Rolle `Auctioneer`). In `L_London` einen **VCNpc** `DEV_LONDON_AUCTIONEER`, in `L_Athens`

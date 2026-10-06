@@ -379,4 +379,11 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 
 * **Events**: serverseitiger Scheduler, Eventtypen aus `events.event_type`, Konfiguration in JSON.
 * **Chat**: Kanäle Local, World, Trade, Guild, Party, Whisper, System, Combat; Moderation mit Mute, Ignore, Report, Log, Admin-Kontrolle.
+
+**Umgesetzt (Phase 7, Iteration 1)** `[DESIGN]` (Chat und Freundesliste des Originals UNKNOWN), Regeln in `backend/src/VC.GameData/ChatRules.cs` (getestet)
+* LOCAL: Umkreis 50 m um den Sprecher, stellt der Zonen-Server sofort zu. WORLD und TRADE: alle Server. WHISPER: an einen Online-Spieler auf beliebigem Server. SYSTEM: nur Admin-Ankündigung. GUILD und PARTY folgen mit Gilden und Gruppen, COMBAT bleibt lokal auf dem Server.
+* Jede Nachricht geht durch das Backend: bereinigt (Steuer- und Schreibrichtungszeichen raus, Leerraum zusammengefasst), höchstens 200 Zeichen (länger wird abgelehnt, nicht gekürzt), Stummschaltung je Kanal oder ganz, Rate-Limit 5 je 10 s (WORLD/TRADE: 2). Alles steht im `chat_log`, das zugleich der Verteiler ist: Jeder Zonen-Server holt einmal je Sekunde ab.
+* Ignorieren blendet Chat und Flüstern des Ignorierten aus; Flüstern an jemanden, der einen ignoriert, wird abgelehnt.
+* Freunde: einseitige Liste (bis 100) mit Online-Status und Zone. Melden speichert die letzten Nachrichten des Gemeldeten der vergangenen Stunde als Kontext.
+* Admins: `mute <name> <minuten> [kanal] <grund>` und `announce <text>`, beides im Admin-Audit.
 * **Admin**: `/give /item /setlevel /teleport /spawn /kick /ban /mute /announce /event /setmoney /setskill`; jedes Kommando schreibt genau eine Zeile in `admin_audit_log` (append-only, per Trigger erzwungen).

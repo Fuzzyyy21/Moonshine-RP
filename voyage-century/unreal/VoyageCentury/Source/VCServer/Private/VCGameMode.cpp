@@ -421,6 +421,16 @@ void AVCGameMode::OnCharacterLoaded(APlayerController* PC, const FVCHttpResult& 
 		// Ausgerüstete Waffe kommt aus dem Inventar des Backends (EQUIPMENT/WEAPON); ohne Eintrag unbewaffnet.
 		FString Weapon;
 		Session->EquippedWeapon = Result.Json->TryGetStringField(TEXT("equippedWeapon"), Weapon) ? FName(*Weapon) : NAME_None;
+		Session->Name = Name;
+		Session->Ignores.Reset();
+		const TArray<TSharedPtr<FJsonValue>>* IgnoreValues = nullptr;
+		if (Result.Json->TryGetArrayField(TEXT("ignores"), IgnoreValues) && IgnoreValues)
+		{
+			for (const TSharedPtr<FJsonValue>& Value : *IgnoreValues)
+			{
+				Session->Ignores.Add(static_cast<int64>(Value->AsNumber()));
+			}
+		}
 
 		const TArray<TSharedPtr<FJsonValue>>* Found = nullptr;
 		if (Result.Json->TryGetArrayField(TEXT("discoveries"), Found) && Found)
@@ -729,6 +739,39 @@ void AVCGameMode::HandleAdminCommand(APlayerController* Issuer, const FString& C
 				S->Gold = static_cast<int64>(Gold);
 			}
 			PC->ClientMessage(FString::Printf(TEXT("Gold: %lld"), static_cast<int64>(Gold)));
+		});
+	}
+	else if (Command == TEXT("mute") && Args.Num() >= 3)
+	{
+		// "mute <name> <minuten> [LOCAL|WORLD|TRADE|WHISPER] <grund …>"
+		int32 Minutes = 0;
+		if (!LexTryParseString(Minutes, *Args[1]) || Minutes <= 0)
+		{
+			Issuer->ClientMessage(TEXT("Aufruf: VCAdmin \"mute <name> <minuten> [kanal] <grund>\""));
+			return;
+		}
+		static const TSet<FString> Channels = { TEXT("LOCAL"), TEXT("WORLD"), TEXT("TRADE"), TEXT("WHISPER") };
+		const bool bChannel = Channels.Contains(Args[2].ToUpper()) && Args.Num() >= 4;
+		const FString Reason = FString::Join(TArrayView<const FString>(Args).RightChop(bChannel ? 3 : 2), TEXT(" "));
+		TWeakObjectPtr<APlayerController> WeakPC(Issuer);
+		FVCServerBackend::AdminMute(Args[0], Minutes, bChannel ? Args[2].ToUpper() : FString(), Reason, AdminContext(Issuer, *Session),
+			[WeakPC](const FVCHttpResult& Result)
+			{
+				if (APlayerController* PC = WeakPC.Get())
+				{
+					PC->ClientMessage(Result.IsOk() ? FString(TEXT("Stummgeschaltet (protokolliert).")) : FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+				}
+			});
+	}
+	else if (Command == TEXT("announce") && Args.Num() >= 1)
+	{
+		TWeakObjectPtr<APlayerController> WeakPC(Issuer);
+		FVCServerBackend::AdminAnnounce(FString::Join(Args, TEXT(" ")), AdminContext(Issuer, *Session), [WeakPC](const FVCHttpResult& Result)
+		{
+			if (APlayerController* PC = WeakPC.Get(); PC && !Result.IsOk())
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+			}
 		});
 	}
 	else if (Command == TEXT("giveitem") && (Args.Num() == 1 || Args.Num() == 2))
@@ -1195,7 +1238,240 @@ void AVCGameMode::RegisterWithDirectory()
 		UE_LOG(LogVC, Display, TEXT("Im World Directory angemeldet: %s unter %s"), *UVCServerSettings::GetServerId(), *Address);
 		Self->GetWorldTimerManager().SetTimer(Self->DirectoryTimer, Self, &AVCGameMode::SendHeartbeat,
 			static_cast<float>(FMath::Max(1.0, Interval)), true);
+		// Chat über alle Server: einmal je Sekunde abholen (Latenz gegen Last; ein Abruf je Server, nicht je Spieler).
+		Self->GetWorldTimerManager().SetTimer(Self->ChatTimer, Self, &AVCGameMode::PollChat, 1.f, true);
 	});
+}
+
+FString AVCGameMode::ChatLine(const FString& Channel, const FString& Sender, const FString& Message)
+{
+	const TCHAR* Prefix = Channel == TEXT("WORLD") ? TEXT("Welt") : Channel == TEXT("TRADE") ? TEXT("Handel")
+		: Channel == TEXT("WHISPER") ? TEXT("Flüstern") : Channel == TEXT("SYSTEM") ? TEXT("System") : TEXT("Lokal");
+	return Sender.IsEmpty() ? FString::Printf(TEXT("[%s] %s"), Prefix, *Message) : FString::Printf(TEXT("[%s] %s: %s"), Prefix, *Sender, *Message);
+}
+
+void AVCGameMode::DeliverChat(APlayerController* PC, const FPlayerSession& Session, int64 SenderId, const FString& Line) const
+{
+	if (PC && Session.bClaimed && !Session.Ignores.Contains(SenderId))
+	{
+		PC->ClientMessage(Line);
+	}
+}
+
+void AVCGameMode::PollChat()
+{
+	if (bChatPollInFlight)
+	{
+		return;
+	}
+	bChatPollInFlight = true;
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	FVCServerBackend::PollChat(LastChatId, [WeakThis](const FVCHttpResult& Result)
+	{
+		AVCGameMode* Self = WeakThis.Get();
+		double Last = 0.0;
+		if (!Self)
+		{
+			return;
+		}
+		Self->bChatPollInFlight = false;
+		const TArray<TSharedPtr<FJsonValue>>* Messages = nullptr;
+		if (!Result.IsOk() || !Result.Json.IsValid() || !Result.Json->TryGetNumberField(TEXT("lastId"), Last)
+			|| !Result.Json->TryGetArrayField(TEXT("messages"), Messages) || !Messages)
+		{
+			return; // nächster Versuch in einer Sekunde, ab demselben Stand
+		}
+		for (const TSharedPtr<FJsonValue>& Value : *Messages)
+		{
+			const TSharedPtr<FJsonObject> M = Value.IsValid() ? Value->AsObject() : nullptr;
+			if (!M.IsValid())
+			{
+				continue;
+			}
+			const FString Channel = M->GetStringField(TEXT("channel"));
+			FString Sender;
+			M->TryGetStringField(TEXT("senderName"), Sender);
+			double SenderId = 0.0, TargetId = 0.0;
+			M->TryGetNumberField(TEXT("senderCharacterId"), SenderId);
+			const bool bWhisper = M->TryGetNumberField(TEXT("targetCharacterId"), TargetId) && Channel == TEXT("WHISPER");
+			const FString Line = ChatLine(Channel, Sender, M->GetStringField(TEXT("message")));
+			for (const TPair<TObjectKey<APlayerController>, FPlayerSession>& Pair : Self->Sessions)
+			{
+				APlayerController* PC = Pair.Key.ResolveObjectPtr();
+				if (!bWhisper || Pair.Value.CharacterId == static_cast<int64>(TargetId))
+				{
+					Self->DeliverChat(PC, Pair.Value, static_cast<int64>(SenderId), Line);
+				}
+			}
+		}
+		Self->LastChatId = static_cast<int64>(Last);
+	});
+}
+
+void AVCGameMode::HandleChat(APlayerController* Player, const FString& Channel, const FString& Target, const FString& Message)
+{
+	FPlayerSession* Session = Player ? Sessions.Find(Player) : nullptr;
+	if (!Session || !Session->bAuthenticated || !Session->bClaimed)
+	{
+		return;
+	}
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(Player);
+	const int64 SenderId = Session->CharacterId;
+	FVCServerBackend::SendChat(Session->CharacterId, Session->AccountId, Channel, Message, Target,
+		[WeakThis, WeakPC, SenderId](const FVCHttpResult& Result)
+		{
+			AVCGameMode* Self = WeakThis.Get();
+			APlayerController* PC = WeakPC.Get();
+			if (!Self || !PC)
+			{
+				return;
+			}
+			if (!Result.IsOk() || !Result.Json.IsValid())
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Nicht gesendet: %s"), *Result.ErrorMessage()));
+				return;
+			}
+			const FString Channel = Result.Json->GetStringField(TEXT("channel"));
+			const FString Text = Result.Json->GetStringField(TEXT("message")); // bereinigt vom Backend
+			if (Channel == TEXT("WHISPER"))
+			{
+				FString Target;
+				Result.Json->TryGetStringField(TEXT("targetName"), Target);
+				PC->ClientMessage(FString::Printf(TEXT("[An %s] %s"), *Target, *Text));
+			}
+			else if (Channel == TEXT("LOCAL"))
+			{
+				// Lokal = Umkreis um den Sprecher [DESIGN]; der Server stellt sofort zu, die Abfrage liefert LOCAL nicht.
+				constexpr double LocalRangeCm = 5000.0;
+				const APawn* Speaker = PC->GetPawn();
+				const FString Line = ChatLine(Channel, Result.Json->GetStringField(TEXT("senderName")), Text);
+				for (const TPair<TObjectKey<APlayerController>, FPlayerSession>& Pair : Self->Sessions)
+				{
+					APlayerController* Other = Pair.Key.ResolveObjectPtr();
+					const APawn* Listener = Other ? Other->GetPawn() : nullptr;
+					if (Speaker && Listener && FVector::Dist(Speaker->GetActorLocation(), Listener->GetActorLocation()) <= LocalRangeCm)
+					{
+						Self->DeliverChat(Other, Pair.Value, SenderId, Line);
+					}
+				}
+			}
+			// WORLD und TRADE kommen über die Abfrage zurück, auch zum Sprecher.
+		});
+}
+
+void AVCGameMode::HandleSocialCommand(APlayerController* Player, const FString& Command, const FString& Argument)
+{
+	FPlayerSession* Session = Player ? Sessions.Find(Player) : nullptr;
+	if (!Session || !Session->bAuthenticated || !Session->bClaimed)
+	{
+		return;
+	}
+	FString Name, Rest;
+	if (!Argument.TrimStartAndEnd().Split(TEXT(" "), &Name, &Rest))
+	{
+		Name = Argument.TrimStartAndEnd();
+	}
+	const int64 CharacterId = Session->CharacterId;
+	const int64 AccountId = Session->AccountId;
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	TWeakObjectPtr<APlayerController> WeakPC(Player);
+
+	if (Command == TEXT("report"))
+	{
+		if (Name.IsEmpty() || Rest.TrimStartAndEnd().IsEmpty())
+		{
+			Player->ClientMessage(TEXT("VCReport <name> \"grund\""));
+			return;
+		}
+		FVCServerBackend::ReportPlayer(CharacterId, AccountId, Name, Rest.TrimStartAndEnd(), [WeakPC](const FVCHttpResult& Result)
+		{
+			if (APlayerController* PC = WeakPC.Get())
+			{
+				PC->ClientMessage(Result.IsOk() ? FString(TEXT("Meldung eingegangen, danke.")) : FString::Printf(TEXT("Nicht gemeldet: %s"), *Result.ErrorMessage()));
+			}
+		});
+		return;
+	}
+
+	const bool bFriends = Command.StartsWith(TEXT("friend"));
+	const FString List = bFriends ? TEXT("friends") : TEXT("ignores");
+	// Antwort ist immer die aktuelle Liste: anzeigen und (für Ignorieren) die Zustellfilter des Servers nachziehen.
+	auto Show = [WeakThis, WeakPC, bFriends](const FVCHttpResult& Result)
+	{
+		AVCGameMode* Self = WeakThis.Get();
+		APlayerController* PC = WeakPC.Get();
+		FPlayerSession* S = Self && PC ? Self->Sessions.Find(PC) : nullptr;
+		TArray<TSharedPtr<FJsonValue>> Entries;
+		if (!S)
+		{
+			return;
+		}
+		if (!Result.IsOk() || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Result.Body), Entries))
+		{
+			PC->ClientMessage(FString::Printf(TEXT("Abgelehnt: %s"), *Result.ErrorMessage()));
+			return;
+		}
+		if (!bFriends)
+		{
+			S->Ignores.Reset();
+		}
+		PC->ClientMessage(FString::Printf(TEXT("%s (%d):"), bFriends ? TEXT("Freunde") : TEXT("Ignoriert"), Entries.Num()));
+		for (const TSharedPtr<FJsonValue>& Value : Entries)
+		{
+			const TSharedPtr<FJsonObject> E = Value->AsObject();
+			if (!bFriends)
+			{
+				S->Ignores.Add(static_cast<int64>(E->GetNumberField(TEXT("characterId"))));
+			}
+			FString Zone;
+			const bool bOnline = E->GetBoolField(TEXT("online"));
+			E->TryGetStringField(TEXT("zoneId"), Zone);
+			PC->ClientMessage(FString::Printf(TEXT("  %s – %s"), *E->GetStringField(TEXT("name")),
+				bOnline ? *FString::Printf(TEXT("online (%s)"), *Zone) : TEXT("offline")));
+		}
+	};
+	if (Command == TEXT("friends") || Command == TEXT("ignores"))
+	{
+		FVCServerBackend::SocialList(CharacterId, AccountId, TEXT("GET"), List, FString(), 0, MoveTemp(Show));
+	}
+	else if ((Command == TEXT("friendadd") || Command == TEXT("ignore")) && !Name.IsEmpty())
+	{
+		FVCServerBackend::SocialList(CharacterId, AccountId, TEXT("POST"), List, Name, 0, MoveTemp(Show));
+	}
+	else if ((Command == TEXT("friendremove") || Command == TEXT("unignore")) && !Name.IsEmpty())
+	{
+		// Entfernen geht über die ID: erst die Liste holen, dann den Eintrag mit diesem Namen löschen.
+		FVCServerBackend::SocialList(CharacterId, AccountId, TEXT("GET"), List, FString(), 0,
+			[CharacterId, AccountId, List, Name, WeakPC, Show = MoveTemp(Show)](const FVCHttpResult& Result) mutable
+			{
+				TArray<TSharedPtr<FJsonValue>> Entries;
+				int64 OtherId = 0;
+				if (Result.IsOk() && FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Result.Body), Entries))
+				{
+					for (const TSharedPtr<FJsonValue>& Value : Entries)
+					{
+						if (Value->AsObject()->GetStringField(TEXT("name")).Equals(Name, ESearchCase::IgnoreCase))
+						{
+							OtherId = static_cast<int64>(Value->AsObject()->GetNumberField(TEXT("characterId")));
+						}
+					}
+				}
+				if (OtherId == 0)
+				{
+					if (APlayerController* PC = WeakPC.Get())
+					{
+						PC->ClientMessage(FString::Printf(TEXT("%s steht nicht auf der Liste."), *Name));
+					}
+					return;
+				}
+				FVCServerBackend::SocialList(CharacterId, AccountId, TEXT("DELETE"), List, FString(), OtherId, MoveTemp(Show));
+			});
+	}
+	else
+	{
+		Player->ClientMessage(TEXT("VCFriends | VCFriendAdd <name> | VCFriendRemove <name> | VCIgnores | VCIgnore <name> | VCUnignore <name> | VCReport <name> \"grund\""));
+	}
 }
 
 void AVCGameMode::SendHeartbeat()
