@@ -90,6 +90,8 @@ private:
 
 	/** Inventar-Antwort des Backends anzeigen und die ausgerüstete Waffe übernehmen (nur was das Backend bestätigt). */
 	void ApplyInventory(APlayerController* PC, const TSharedPtr<FJsonObject>& Inventory, bool bPrint);
+	/** Tod eines Spielers ans Backend (Abnutzung der getragenen Ausrüstung) und neues Inventar übernehmen. */
+	void ReportDeath(APlayerController* VictimPC);
 
 	/** Antwort von Sammeln/Herstellen melden: Ausbeute, Verlust, Gebühr, Skill-Fortschritt, Inventar. */
 	void ApplyCraftResult(APlayerController* PC, const FVCHttpResult& Result, bool bCrafted);

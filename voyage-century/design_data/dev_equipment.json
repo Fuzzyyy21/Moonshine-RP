@@ -1,10 +1,19 @@
 {
-  "_comment": "DESIGNENTSCHEIDUNG (Priorität 6). Belegt sind Ausrüstungssets mit Stufe (SET-KING-148, SET-SIDONIA-150, SET-THOMAS-155, SET-TALOS-168; Werte UNKNOWN) und dass Sets per Ausrüstungs-Synthese aus Synthese-Materialien entstehen (SYS-EQUIP-SYNTHESIS; Rezepte UNKNOWN). Ausrüstungsplätze, Werte, Setboni und Rezepte des Originals sind UNKNOWN. Alles hier ist Entwicklungsinhalt (DEV_, is_dev), damit Plätze, Stufenanforderung, Setboni und Synthese testbar sind. Sockeln (SYS-SOCKETING, LIKELY: bis 3 Sockel beobachtet, ein Attribut je Edelstein, verschiedene Steine je Teil) und Verfeinern (SYS-REFINEMENT, UNCERTAIN: Steinstufe = bisherige Verfeinerungen + 1, Edelstein höher als der zuletzt verwendete, beide aus Synthese) sind als Regeln umgesetzt; Kosten, Höchststufe, Wirkung, Sockelzahl je Teil, Edelsteine und Steine sind Entwicklungswerte. Werte-Schlüssel: maxHealth, attackPower, defense.",
+  "_comment": "DESIGNENTSCHEIDUNG (Priorität 6). Belegt sind Ausrüstungssets mit Stufe (SET-KING-148, SET-SIDONIA-150, SET-THOMAS-155, SET-TALOS-168; Werte UNKNOWN) und dass Sets per Ausrüstungs-Synthese aus Synthese-Materialien entstehen (SYS-EQUIP-SYNTHESIS; Rezepte UNKNOWN). Ausrüstungsplätze, Werte, Setboni und Rezepte des Originals sind UNKNOWN. Alles hier ist Entwicklungsinhalt (DEV_, is_dev), damit Plätze, Stufenanforderung, Setboni und Synthese testbar sind. Sockeln (SYS-SOCKETING, LIKELY: bis 3 Sockel beobachtet, ein Attribut je Edelstein, verschiedene Steine je Teil) und Verfeinern (SYS-REFINEMENT, UNCERTAIN: Steinstufe = bisherige Verfeinerungen + 1, Edelstein höher als der zuletzt verwendete, beide aus Synthese) sind als Regeln umgesetzt; Kosten, Höchststufe, Wirkung, Sockelzahl je Teil, Edelsteine und Steine sind Entwicklungswerte. Haltbarkeit, Abnutzung und Reparatur (GDD 15) sowie die Seltenheitsstufen (SYS-RARITY UNKNOWN; Common … Endgame ist eine Vorgabe des Master-Prompts) sind Entwicklungswerte. Werte-Schlüssel: maxHealth, attackPower, defense.",
   "source": "SRC-DESIGN",
   "slots": ["HEAD", "BODY", "HANDS", "FEET"],
   "upgrade": { "socket_drill_gold": 50, "refine_gold_per_level": 100, "refine_max": 10, "refine_weapon_attack": 3,
                "refine_armor_defense": 2 },
   "weapon_socket_max": 3,
+  "durability": { "weapon_wear_per_kill": 1, "death_wear_permille": 100, "repair_gold_per_point": 1 },
+  "rarities": [
+    { "code": "COMMON", "name_de": "Gewöhnlich", "repair_factor_permille": 1000 },
+    { "code": "UNCOMMON", "name_de": "Ungewöhnlich", "repair_factor_permille": 1250 },
+    { "code": "RARE", "name_de": "Selten", "repair_factor_permille": 1500 },
+    { "code": "EPIC", "name_de": "Episch", "repair_factor_permille": 2000 },
+    { "code": "ENDGAME", "name_de": "Endgame", "repair_factor_permille": 3000 }
+  ],
+  "weapon_rarity": "COMMON",
   "gems": [
     { "code": "DEV_GEM_ATTACK_1", "name_de": "Angriffsstein I (Test)", "tier": 1, "stats": { "attackPower": 3 }, "npc_price": 20 },
     { "code": "DEV_GEM_DEFENSE_1", "name_de": "Schutzstein I (Test)", "tier": 1, "stats": { "defense": 3 }, "npc_price": 20 },
@@ -25,15 +34,15 @@
       ] }
   ],
   "items": [
-    { "code": "DEV_ARMOR_HAT", "name_de": "Übungshut (Test)", "item_type": "ARMOR", "slot": "HEAD", "level_req": 1, "sockets": 1,
+    { "code": "DEV_ARMOR_HAT", "name_de": "Übungshut (Test)", "item_type": "ARMOR", "slot": "HEAD", "level_req": 1, "sockets": 1, "durability": 60, "rarity": "UNCOMMON",
       "set": "DEV_SET_TRAINING", "stats": { "defense": 2 }, "npc_price": 20 },
-    { "code": "DEV_ARMOR_COAT", "name_de": "Übungsmantel (Test)", "item_type": "ARMOR", "slot": "BODY", "level_req": 1, "sockets": 2,
+    { "code": "DEV_ARMOR_COAT", "name_de": "Übungsmantel (Test)", "item_type": "ARMOR", "slot": "BODY", "level_req": 1, "sockets": 2, "durability": 80, "rarity": "UNCOMMON",
       "set": "DEV_SET_TRAINING", "stats": { "defense": 4, "maxHealth": 20 }, "npc_price": 30 },
-    { "code": "DEV_ARMOR_GLOVES", "name_de": "Übungshandschuhe (Test)", "item_type": "ARMOR", "slot": "HANDS", "level_req": 1, "sockets": 1,
+    { "code": "DEV_ARMOR_GLOVES", "name_de": "Übungshandschuhe (Test)", "item_type": "ARMOR", "slot": "HANDS", "level_req": 1, "sockets": 1, "durability": 40, "rarity": "UNCOMMON",
       "set": "DEV_SET_TRAINING", "stats": { "defense": 1, "attackPower": 1 }, "npc_price": 15 },
-    { "code": "DEV_ARMOR_BOOTS", "name_de": "Übungsstiefel (Test)", "item_type": "ARMOR", "slot": "FEET", "level_req": 1, "sockets": 1,
+    { "code": "DEV_ARMOR_BOOTS", "name_de": "Übungsstiefel (Test)", "item_type": "ARMOR", "slot": "FEET", "level_req": 1, "sockets": 1, "durability": 40, "rarity": "UNCOMMON",
       "set": "DEV_SET_TRAINING", "stats": { "defense": 1 }, "npc_price": 15 },
-    { "code": "DEV_ARMOR_ELITE_HAT", "name_de": "Elitehut (Test)", "item_type": "ARMOR", "slot": "HEAD", "level_req": 160, "sockets": 3,
+    { "code": "DEV_ARMOR_ELITE_HAT", "name_de": "Elitehut (Test)", "item_type": "ARMOR", "slot": "HEAD", "level_req": 160, "sockets": 3, "durability": 120, "rarity": "EPIC",
       "set": null, "stats": { "defense": 30 }, "npc_price": 500 }
   ],
   "recipes": [

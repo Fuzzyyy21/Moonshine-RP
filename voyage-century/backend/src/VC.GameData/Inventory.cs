@@ -8,11 +8,13 @@ namespace VC.GameData;
 
 /// <summary>
 /// Location INVENTORY (Slot = Platznummer) oder EQUIPMENT (Slot = z. B. WEAPON). Refinement: Verfeinerungsstufe; Sockets: Code
-/// des Edelsteins je gebohrtem Sockel (null = leer); SocketMax: höchstens bohrbar (null = keine Sockel).
+/// des Edelsteins je gebohrtem Sockel (null = leer); SocketMax: höchstens bohrbar (null = keine Sockel). Durability/DurabilityMax:
+/// aktuelle und höchste Haltbarkeit (null = keine; 0 = kaputt); Rarity: Seltenheitsstufe (item_rarities).
 /// </summary>
 public sealed record InventoryItem(
     long InstanceId, string Code, string? NameDe, string ItemType, string? WeaponClass, int Quantity, string Location, string? Slot,
-    long? NpcPrice, int Refinement = 0, List<string?>? Sockets = null, int? SocketMax = null);
+    long? NpcPrice, int Refinement = 0, List<string?>? Sockets = null, int? SocketMax = null, int? Durability = null,
+    int? DurabilityMax = null, string? Rarity = null);
 /// <summary>
 /// Capacity 0 = Inventargröße unbekannt (kein Inventar, nie Ersatzwerte). Bonus: Werte aus Ausrüstung und Setboni,
 /// Sets: getragene Sets mit erreichten Bonusstufen.
@@ -339,13 +341,14 @@ public static class InventoryEndpoints
         return plan.Placed(quantity);
     }
 
-    /// <summary>Code der ausgerüsteten Waffe (für den Zustand beim Login); null = unbewaffnet.</summary>
+    /// <summary>Code der ausgerüsteten Waffe (für den Zustand beim Login); null = unbewaffnet oder die Waffe ist kaputt.</summary>
     internal static async Task<string?> EquippedWeapon(NpgsqlConnection conn, long characterId, CancellationToken ct)
     {
         await using var cmd = new NpgsqlCommand(
             """
             SELECT i.code FROM item_instances ii JOIN items i USING (item_id)
             WHERE ii.owner_character_id = @chr AND ii.location_type = 'EQUIPMENT' AND ii.slot = 'WEAPON'
+              AND NOT (i.durability_max IS NOT NULL AND coalesce(ii.durability, i.durability_max) = 0)
             """, conn);
         cmd.Parameters.AddWithValue("chr", characterId);
         return await cmd.ExecuteScalarAsync(ct) as string;
@@ -414,7 +417,8 @@ public static class InventoryEndpoints
                    i.npc_price, ii.refinement_level, i.socket_max,
                    (SELECT coalesce(jsonb_agg(g.code ORDER BY x.o), '[]'::jsonb)
                     FROM jsonb_array_elements(ii.sockets) WITH ORDINALITY AS x(e, o)
-                    LEFT JOIN items g ON g.item_id = (x.e ->> 'gem_item_id')::int)::text
+                    LEFT JOIN items g ON g.item_id = (x.e ->> 'gem_item_id')::int)::text,
+                   ii.durability, i.durability_max, i.rarity
             FROM item_instances ii JOIN items i USING (item_id)
             WHERE ii.owner_character_id = @chr AND ii.location_type IN ('INVENTORY', 'EQUIPMENT')
             ORDER BY ii.location_type, length(ii.slot), ii.slot
@@ -429,7 +433,9 @@ public static class InventoryEndpoints
                 items.Add(new InventoryItem(r.GetInt64(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.GetString(3),
                     r.IsDBNull(4) ? null : r.GetString(4), r.GetInt32(5), r.GetString(6), r.IsDBNull(7) ? null : r.GetString(7),
                     r.IsDBNull(8) ? null : r.GetInt64(8), r.GetInt16(9), sockets.Count > 0 ? sockets : null,
-                    r.IsDBNull(10) ? null : r.GetInt16(10)));
+                    r.IsDBNull(10) ? null : r.GetInt16(10),
+                    DurabilityRules.Current(r.IsDBNull(12) ? null : r.GetInt32(12), r.IsDBNull(13) ? null : r.GetInt32(13)),
+                    r.IsDBNull(13) ? null : r.GetInt32(13), r.IsDBNull(14) ? null : r.GetString(14)));
             }
         }
         var (bonus, sets) = await Equipment(conn, tx, characterId, allowDev, ct);
@@ -457,6 +463,7 @@ public static class InventoryEndpoints
             FROM item_instances ii JOIN items i USING (item_id)
             LEFT JOIN item_sets s ON s.set_id = i.set_id AND (NOT s.is_dev OR @dev)
             WHERE ii.owner_character_id = @chr AND ii.location_type = 'EQUIPMENT' AND ii.slot IS NOT NULL
+              AND NOT (i.durability_max IS NOT NULL AND coalesce(ii.durability, i.durability_max) = 0) -- kaputt: keine Werte
             """, conn, tx))
         {
             cmd.Parameters.AddWithValue("chr", characterId);

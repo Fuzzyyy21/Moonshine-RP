@@ -185,6 +185,17 @@ VCShipService HIRE 5            → Matrosen anheuern (50 je Matrose, bis zur Ka
 VCShipService PROVISIONS 100    → Proviant (1 je Einheit, bis zum Maximum)
 ```
 
+## Haltbarkeit und Reparatur (Phase 8, Iteration 3)
+
+```
+VCInventory                         → je Teil Seltenheit und Haltbarkeit (z. B. "(COMMON) 99/100", "KAPUTT")
+VCRepair                            → beim Händler alles Getragene reparieren (Kosten nach Seltenheit)
+VCRepair <nr>                       → ein Teil reparieren (Inventar oder getragen)
+```
+
+Jeder Kill nutzt die getragene Waffe ab, jeder Tod alle getragenen Teile (der Server meldet jeden Spielertod an das Backend).
+Kaputte Teile geben keine Werte; mit kaputter Waffe kämpft man unbewaffnet.
+
 ## Sockeln und Verfeinern (Phase 8, Iteration 2)
 
 ```

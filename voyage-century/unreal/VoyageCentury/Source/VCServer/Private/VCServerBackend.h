@@ -68,6 +68,10 @@ public:
 
 	/** Kill melden; das Backend vergibt XP aus den Gegnerdaten und führt die PvP-Statistik. */
 	static void ReportKill(const TSharedRef<FJsonObject>& Kill, FVCHttpCallback Callback);
+	/** Tod eines Spielercharakters (Abnutzung der getragenen Ausrüstung). Antwort: gold, inventory. */
+	static void ReportDeath(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback);
+	/** Reparatur beim Händler: InstanceId 0 = alles Getragene. Antwort: gold, total, inventory. */
+	static void Repair(int64 CharacterId, int64 AccountId, int64 InstanceId, const FString& NpcCode, FVCHttpCallback Callback);
 
 	/** Inventar (Plätze, Stapel, Ausrüstung). Antwort: capacity, items[], bonus {maxHealth, attackPower, defense}, sets[]. */
 	static void LoadInventory(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback);

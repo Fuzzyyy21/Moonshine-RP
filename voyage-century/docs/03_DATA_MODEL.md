@@ -99,6 +99,7 @@ Die im Master-Prompt geforderten Tabellen sind **fett**.
 | `V0019__city_sieges.sql` | `territory_wars` mit Ansage-Schlüssel, Ende, Punkten und Auswertung; höchstens eine offene Belagerung je Stadt; `combat_kills.war_id` |
 | `V0020__equipment_sets.sql` | `item_sets.is_dev`, Boni als Objekt je Teilezahl; Prüfungen für `items.equip_slot` (nie WEAPON) und `level_req`; Index auf `items.set_id` |
 | `V0021__sockets_refinement.sql` | `items.tier` (Stufe von Edelstein und Verfeinerungsstein), `socket_max` ≤ 3, `item_instances.refine_gem_tier`, Sockel als JSON-Array, Inventar-Aktionen DRILL/SOCKET/REFINE |
+| `V0022__durability_rarity.sql` | `item_rarities` (Reihenfolge, Reparaturfaktor), `items.rarity` als Fremdschlüssel, Inventar-Aktionen REPAIR/DEATH |
 | `seed/R__content.sql` | **generiert** aus der Reconstruction Database (Berufe, Skills, Skillstufen, Schiffsklassen, Städte, Häfen, Sets) und den Designdaten (Entwicklungskurven, Waffen, Gegner, Fähigkeiten, Zonen und Übergänge, Schiffe, Waren, Märkte, Händler) |
 
 Regeln: Eine angewendete `V`-Datei wird nie mehr geändert (der Migrator bricht sonst ab);

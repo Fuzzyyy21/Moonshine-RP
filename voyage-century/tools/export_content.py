@@ -459,16 +459,20 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
         upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
                [{"rule_key": "INVENTORY_SLOTS", "int_value": loot["inventory_slots"], "is_dev": True, "confidence": "UNKNOWN"}]),
         "-- Ausrüstung, Sets und Synthese (design_data/dev_equipment.json, is_dev = TRUE).\n",
+        upsert("item_rarities", "code", ["code", "sort_order", "name_de", "repair_factor_permille", "is_dev", "confidence"],
+               [{"code": r["code"], "sort_order": i, "name_de": r["name_de"], "repair_factor_permille": r["repair_factor_permille"],
+                 "is_dev": True, "confidence": "UNKNOWN"} for i, r in enumerate(equipment["rarities"])]),
         upsert("item_sets", "code", ["code", "name_de", "level", "bonuses", "is_dev", "confidence"],
                [{"code": st["code"], "name_de": st["name_de"], "level": st["level"],
                  "bonuses": {str(b["pieces"]): b["stats"] for b in st["bonuses"]}, "is_dev": True, "confidence": "UNKNOWN"}
                 for st in sorted(equipment["sets"], key=lambda st: st["code"])]),
         upsert("items", "code", ["code", "item_type", "equip_slot", "name_de", "level_req", "base_stats", "set_id", "socket_max",
-                                 "npc_price", "is_dev", "confidence"],
+                                 "durability_max", "rarity", "npc_price", "is_dev", "confidence"],
                [{"code": i["code"], "item_type": i["item_type"], "equip_slot": i["slot"], "name_de": i["name_de"],
                  "level_req": i["level_req"], "base_stats": i["stats"],
                  "set_id": SqlExpr(f"(SELECT set_id FROM item_sets WHERE code = {sql_literal(i['set'])})") if i["set"] else None,
-                 "socket_max": i["sockets"], "npc_price": i["npc_price"], "is_dev": True, "confidence": "UNKNOWN"}
+                 "socket_max": i["sockets"], "durability_max": i["durability"], "rarity": i["rarity"], "npc_price": i["npc_price"],
+                 "is_dev": True, "confidence": "UNKNOWN"}
                 for i in sorted(equipment["items"], key=lambda i: i["code"])]),
         upsert("items", "code", ["code", "item_type", "name_de", "tier", "base_stats", "stackable", "max_stack", "npc_price", "is_dev",
                                  "confidence"],
@@ -476,11 +480,14 @@ def render_sql(rows: dict[str, list[dict]], curves: dict, appearance: dict, comb
                  "stackable": True, "max_stack": 99, "npc_price": g["npc_price"], "is_dev": True, "confidence": "UNKNOWN"}
                 for kind, g in sorted([("GEM", g) for g in equipment["gems"]] + [("REFINE_STONE", st) for st in equipment["refine_stones"]],
                                       key=lambda e: e[1]["code"])]),
-        "".join(f"UPDATE items SET socket_max = {sql_literal(equipment['weapon_socket_max'])} WHERE code = {sql_literal(w['code'])};\n"
+        "".join(f"UPDATE items SET socket_max = {sql_literal(equipment['weapon_socket_max'])}, "
+                f"rarity = {sql_literal(equipment['weapon_rarity'])} WHERE code = {sql_literal(w['code'])};\n"
                 for w in combat["weapons"] if w["class"] != "UNARMED"),
         upsert("game_rules", "rule_key", ["rule_key", "int_value", "is_dev", "confidence"],
                [{"rule_key": key, "int_value": equipment["upgrade"][field], "is_dev": True, "confidence": "UNKNOWN"}
-                for key, field in sorted(UPGRADE_RULES.items())]),
+                for key, field in sorted(UPGRADE_RULES.items())]
+               + [{"rule_key": key, "int_value": equipment["durability"][field], "is_dev": True, "confidence": "UNKNOWN"}
+                  for key, field in sorted(DURABILITY_RULES.items())]),
         "-- Herstellen und Sammeln (design_data/dev_crafting.json, is_dev = TRUE).\n",
         upsert("recipes", "code", ["code", "name_de", "required_skill_id", "required_level", "craft_time_seconds", "result_item_id",
                                    "result_quantity", "gold_cost", "skill_xp", "is_dev", "confidence"],
@@ -607,6 +614,8 @@ UPGRADE_RULES = {"SOCKET_DRILL_GOLD": "socket_drill_gold", "REFINE_GOLD_PER_LEVE
                  "REFINE_MAX": "refine_max", "REFINE_WEAPON_ATTACK": "refine_weapon_attack",
                  "REFINE_ARMOR_DEFENSE": "refine_armor_defense"}
 MAX_SOCKETS_OBSERVED = 3  # SYS-SOCKETING
+DURABILITY_RULES = {"WEAR_WEAPON_PER_KILL": "weapon_wear_per_kill", "WEAR_ON_DEATH_PERMILLE": "death_wear_permille",
+                    "REPAIR_GOLD_PER_POINT": "repair_gold_per_point"}
 
 
 def check_equipment(equipment: dict, item_codes: set[str], skill_categories: dict[str, str | None]) -> None:
@@ -644,6 +653,19 @@ def check_equipment(equipment: dict, item_codes: set[str], skill_categories: dic
             problems.append(f"{i['code']}: Sockel 0 … {MAX_SOCKETS_OBSERVED}")
     if not 0 <= equipment["weapon_socket_max"] <= MAX_SOCKETS_OBSERVED:
         problems.append(f"weapon_socket_max: 0 … {MAX_SOCKETS_OBSERVED}")
+    du = equipment["durability"]
+    if set(du) != set(DURABILITY_RULES.values()) or not all(isinstance(v, int) and v >= 0 for v in du.values()) \
+            or du["death_wear_permille"] > 1000:
+        problems.append(f"durability: genau {sorted(DURABILITY_RULES.values())} als Ganzzahlen ≥ 0, Tod ≤ 1000 ‰")
+    rarities = [r["code"] for r in equipment["rarities"]]
+    if not rarities or len(rarities) != len(set(rarities)) or any(not TAG_RE.match(c) for c in rarities) \
+            or any(r["repair_factor_permille"] < 0 for r in equipment["rarities"]):
+        problems.append("rarities: eindeutige Codes, Faktor ≥ 0")
+    if equipment["weapon_rarity"] not in rarities:
+        problems.append("weapon_rarity: unbekannte Seltenheit")
+    for i in equipment["items"]:
+        if i["durability"] < 1 or i["rarity"] not in rarities:
+            problems.append(f"{i['code']}: Haltbarkeit ≥ 1 und bekannte Seltenheit")
     for g in equipment["gems"]:
         if not g["code"].startswith("DEV_") or not TAG_RE.match(g["code"]) or g["tier"] < 1 or g["npc_price"] < 0 \
                 or not stats_ok(g["stats"]) or sum(1 for v in g["stats"].values() if v) != 1:

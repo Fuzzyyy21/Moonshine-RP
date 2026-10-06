@@ -310,6 +310,11 @@ void AVCPlayerController::VCUnequip(const FString& Slot)
 	ServerInventoryCommand(TEXT("unequip"), Slot);
 }
 
+void AVCPlayerController::VCRepair(const FString& InstanceId)
+{
+	ServerInventoryCommand(TEXT("repair"), InstanceId);
+}
+
 void AVCPlayerController::VCDrill(const FString& InstanceId)
 {
 	ServerInventoryCommand(TEXT("drill"), InstanceId);
@@ -344,7 +349,7 @@ void AVCPlayerController::ServerInventoryCommand_Implementation(const FString& C
 {
 	// Nur bekannte Befehle weiterreichen; Besitz, Art und Menge prüft das Backend.
 	static const TSet<FString> Allowed = { TEXT("list"), TEXT("equip"), TEXT("unequip"), TEXT("discard"), TEXT("sell"), TEXT("recipes"),
-		TEXT("craft"), TEXT("auction"), TEXT("drill"), TEXT("socket"), TEXT("refine") };
+		TEXT("craft"), TEXT("auction"), TEXT("drill"), TEXT("socket"), TEXT("refine"), TEXT("repair") };
 	UWorld* World = GetWorld();
 	IVCServerHooks* Hooks = Cast<IVCServerHooks>(World ? World->GetAuthGameMode() : nullptr);
 	if (Hooks && Allowed.Contains(Command))

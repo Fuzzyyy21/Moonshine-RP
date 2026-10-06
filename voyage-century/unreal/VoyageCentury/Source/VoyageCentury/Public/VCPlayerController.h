@@ -30,6 +30,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVCDiscovered, FName /*DiscoveryCode*/, i
  *   VCInventory | VCEquip <nr> | VCUnequip [PLATZ]       Inventar, Waffe/Rüstung ausrüsten, Platz ablegen (ohne = Waffe)
  *   VCDrill <teil> | VCSocket <teil> <edelstein>         Sockel bohren, Edelstein einsetzen (Nummern aus VCInventory)
  *   VCRefine <teil> <stein> <edelstein>                  verfeinern
+ *   VCRepair [nr]                                        beim Händler reparieren (ohne Nummer: alles Getragene)
  *   VCDiscard <nr> <menge> | VCSellItem <nr> <menge>     wegwerfen; an den Händler verkaufen
  *   VCAdmin "giveitem <ITEM> [menge]"
  *   VCRecipes | VCCraft <REZEPT> [anzahl]                Rezepte; herstellen (Material, Gebühr, Skill prüft das Backend)
@@ -134,6 +135,9 @@ public:
 
 	UFUNCTION(Exec)
 	void VCUnequip(const FString& Slot = TEXT(""));
+
+	UFUNCTION(Exec)
+	void VCRepair(const FString& InstanceId = TEXT(""));
 
 	UFUNCTION(Exec)
 	void VCDrill(const FString& InstanceId);

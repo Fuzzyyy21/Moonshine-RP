@@ -1145,8 +1145,34 @@ void AVCGameMode::HandleKill(AActor* Killer, AActor* Victim)
 	}
 	if (VictimPC)
 	{
+		ReportDeath(VictimPC);
 		ScheduleRespawn(VictimPC);
 	}
+}
+
+void AVCGameMode::ReportDeath(APlayerController* VictimPC)
+{
+	// Jeder Tod (Gegner oder Spieler) nutzt die getragene Ausrüstung ab; der Betrag kommt aus dem Backend. [DESIGN]
+	const FPlayerSession* Session = VictimPC ? Sessions.Find(VictimPC) : nullptr;
+	if (!Session || !Session->bAuthenticated || !Session->bClaimed)
+	{
+		return;
+	}
+	TWeakObjectPtr<APlayerController> WeakPC(VictimPC);
+	TWeakObjectPtr<AVCGameMode> WeakThis(this);
+	FVCServerBackend::ReportDeath(Session->CharacterId, Session->AccountId, [WeakPC, WeakThis](const FVCHttpResult& Result)
+	{
+		const TSharedPtr<FJsonObject>* Inventory = nullptr;
+		if (!Result.IsOk() || !Result.Json.IsValid())
+		{
+			UE_LOG(LogVC, Warning, TEXT("Todesmeldung abgelehnt: %s"), *Result.ErrorMessage());
+			return;
+		}
+		if (WeakThis.IsValid() && WeakPC.IsValid() && Result.Json->TryGetObjectField(TEXT("inventory"), Inventory) && Inventory)
+		{
+			WeakThis->ApplyInventory(WeakPC.Get(), *Inventory, false);
+		}
+	});
 }
 
 void AVCGameMode::ReportKill(APlayerController* KillerPC, const FPlayerSession& Killer, const TSharedRef<FJsonObject>& Kill)
@@ -1174,6 +1200,12 @@ void AVCGameMode::ReportKill(APlayerController* KillerPC, const FPlayerSession& 
 		if (!PC || !Result.Json.IsValid())
 		{
 			return;
+		}
+		// Waffe abgenutzt: neues Inventar übernehmen (eine kaputte Waffe gilt dann als keine).
+		const TSharedPtr<FJsonObject>* WornInventory = nullptr;
+		if (WeakThis.IsValid() && Result.Json->TryGetObjectField(TEXT("inventory"), WornInventory) && WornInventory)
+		{
+			WeakThis->ApplyInventory(PC, *WornInventory, false);
 		}
 		double LootGold = 0.0;
 		if (Result.Json->TryGetNumberField(TEXT("lootGold"), LootGold) && LootGold > 0.0)
@@ -1230,7 +1262,8 @@ void AVCGameMode::RespawnPlayer(APlayerController* PC)
 	{
 		return;
 	}
-	// Todesstrafen des Originals sind UNKNOWN: Respawn am PlayerStart mit vollem Leben, ohne Verlust. [DESIGN]
+	// Todesstrafen des Originals sind UNKNOWN: Respawn am PlayerStart mit vollem Leben; einziger Verlust ist die Abnutzung
+	// der getragenen Ausrüstung (ReportDeath). [DESIGN]
 	if (APawn* Old = PC->GetPawn())
 	{
 		PC->UnPossess();
@@ -2040,12 +2073,13 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 	const bool bHasId = Parts.Num() >= 1 && LexTryParseString(InstanceId, *Parts[0]) && InstanceId > 0;
 	const bool bHasAmount = Parts.Num() == 2 && LexTryParseString(Quantity, *Parts[1]) && Quantity > 0;
 	FString NpcCode;
-	if (Command == TEXT("sell"))
+	if (Command == TEXT("sell") || Command == TEXT("repair"))
 	{
 		const FName Merchant = FindNpcInRange(Player, EVCNpcRole::Merchant);
 		if (Merchant.IsNone())
 		{
-			Player->ClientMessage(TEXT("Verkaufen geht beim Händler (in Reichweite stehen)."));
+			Player->ClientMessage(Command == TEXT("sell") ? TEXT("Verkaufen geht beim Händler (in Reichweite stehen).")
+				: TEXT("Reparieren geht beim Händler (in Reichweite stehen)."));
 			return;
 		}
 		NpcCode = Merchant.ToString();
@@ -2060,6 +2094,15 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 			|| (Needed == 3 && (!LexTryParseString(ThirdId, *Parts[2]) || ThirdId <= 0)))
 		{
 			Player->ClientMessage(TEXT("VCDrill <teil> | VCSocket <teil> <edelstein> | VCRefine <teil> <stein> <edelstein> (Nummern aus VCInventory)"));
+			return;
+		}
+	}
+	else if (Command == TEXT("repair"))
+	{
+		// "" = alles Getragene, sonst eine Nummer aus VCInventory.
+		if (Parts.Num() > 1 || (Parts.Num() == 1 && !bHasId))
+		{
+			Player->ClientMessage(TEXT("VCRepair [nr] (ohne Nummer: alles Getragene; beim Händler)"));
 			return;
 		}
 	}
@@ -2183,6 +2226,10 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 			{
 				PC->ClientMessage(TEXT("Weggeworfen."));
 			}
+			else if (Command == TEXT("repair"))
+			{
+				PC->ClientMessage(FString::Printf(TEXT("Repariert für %lld Gold. Gold: %lld"), static_cast<int64>(Total), S->Gold));
+			}
 			else
 			{
 				const TCHAR* What = Command == TEXT("drill") ? TEXT("Sockel gebohrt") : Command == TEXT("socket") ? TEXT("Edelstein eingesetzt") : TEXT("Verfeinert");
@@ -2194,6 +2241,10 @@ void AVCGameMode::HandleInventoryCommand(APlayerController* Player, const FStrin
 	if (Command == TEXT("list"))
 	{
 		FVCServerBackend::LoadInventory(Session->CharacterId, Session->AccountId, MoveTemp(Done));
+	}
+	else if (Command == TEXT("repair"))
+	{
+		FVCServerBackend::Repair(Session->CharacterId, Session->AccountId, bHasId ? InstanceId : 0, NpcCode, MoveTemp(Done));
 	}
 	else if (bUpgrade)
 	{
@@ -2420,13 +2471,27 @@ void AVCGameMode::ApplyInventory(APlayerController* PC, const TSharedPtr<FJsonOb
 			Name = Item->GetStringField(TEXT("code"));
 		}
 		const bool bEquipped = Location == TEXT("EQUIPMENT");
-		if (bEquipped && Slot == TEXT("WEAPON"))
+		double Durability = -1.0, DurabilityMax = 0.0;
+		const bool bHasDurability = Item->TryGetNumberField(TEXT("durabilityMax"), DurabilityMax)
+			&& Item->TryGetNumberField(TEXT("durability"), Durability);
+		const bool bBroken = bHasDurability && Durability <= 0.0;
+		if (bEquipped && Slot == TEXT("WEAPON") && !bBroken)
 		{
 			Weapon = FName(*Item->GetStringField(TEXT("code")));
 		}
 		Used += bEquipped ? 0 : 1;
-		// Verfeinerung "+N" und Sockel "[Stein|leer]" (gebohrt/höchstens).
+		// Verfeinerung "+N", Sockel "[Stein|leer]" (gebohrt/höchstens), Haltbarkeit und Seltenheit.
 		FString Extra;
+		FString Rarity;
+		if (Item->TryGetStringField(TEXT("rarity"), Rarity) && !Rarity.IsEmpty())
+		{
+			Extra += FString::Printf(TEXT(" (%s)"), *Rarity);
+		}
+		if (bHasDurability)
+		{
+			Extra += bBroken ? FString(TEXT(" KAPUTT")) : FString::Printf(TEXT(" %d/%d"), static_cast<int32>(Durability),
+				static_cast<int32>(DurabilityMax));
+		}
 		double Refinement = 0.0, SocketMax = 0.0;
 		if (Item->TryGetNumberField(TEXT("refinement"), Refinement) && Refinement > 0.0)
 		{

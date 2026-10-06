@@ -418,6 +418,19 @@ ON CONFLICT (rule_key) DO UPDATE SET
 
 -- Ausrüstung, Sets und Synthese (design_data/dev_equipment.json, is_dev = TRUE).
 
+INSERT INTO item_rarities (code, sort_order, name_de, repair_factor_permille, is_dev, confidence) VALUES
+    ('COMMON', 0, 'Gewöhnlich', 1000, TRUE, 'UNKNOWN'::confidence_level),
+    ('UNCOMMON', 1, 'Ungewöhnlich', 1250, TRUE, 'UNKNOWN'::confidence_level),
+    ('RARE', 2, 'Selten', 1500, TRUE, 'UNKNOWN'::confidence_level),
+    ('EPIC', 3, 'Episch', 2000, TRUE, 'UNKNOWN'::confidence_level),
+    ('ENDGAME', 4, 'Endgame', 3000, TRUE, 'UNKNOWN'::confidence_level)
+ON CONFLICT (code) DO UPDATE SET
+    sort_order = EXCLUDED.sort_order,
+    name_de = EXCLUDED.name_de,
+    repair_factor_permille = EXCLUDED.repair_factor_permille,
+    is_dev = EXCLUDED.is_dev,
+    confidence = EXCLUDED.confidence;
+
 INSERT INTO item_sets (code, name_de, level, bonuses, is_dev, confidence) VALUES
     ('DEV_SET_TRAINING', 'Übungsset (Test)', 1, '{"2": {"defense": 5}, "4": {"attackPower": 5, "maxHealth": 50}}'::jsonb, TRUE, 'UNKNOWN'::confidence_level)
 ON CONFLICT (code) DO UPDATE SET
@@ -427,12 +440,12 @@ ON CONFLICT (code) DO UPDATE SET
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 
-INSERT INTO items (code, item_type, equip_slot, name_de, level_req, base_stats, set_id, socket_max, npc_price, is_dev, confidence) VALUES
-    ('DEV_ARMOR_BOOTS', 'ARMOR', 'FEET', 'Übungsstiefel (Test)', 1, '{"defense": 1}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 1, 15, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_ARMOR_COAT', 'ARMOR', 'BODY', 'Übungsmantel (Test)', 1, '{"defense": 4, "maxHealth": 20}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 2, 30, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_ARMOR_ELITE_HAT', 'ARMOR', 'HEAD', 'Elitehut (Test)', 160, '{"defense": 30}'::jsonb, NULL, 3, 500, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_ARMOR_GLOVES', 'ARMOR', 'HANDS', 'Übungshandschuhe (Test)', 1, '{"attackPower": 1, "defense": 1}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 1, 15, TRUE, 'UNKNOWN'::confidence_level),
-    ('DEV_ARMOR_HAT', 'ARMOR', 'HEAD', 'Übungshut (Test)', 1, '{"defense": 2}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 1, 20, TRUE, 'UNKNOWN'::confidence_level)
+INSERT INTO items (code, item_type, equip_slot, name_de, level_req, base_stats, set_id, socket_max, durability_max, rarity, npc_price, is_dev, confidence) VALUES
+    ('DEV_ARMOR_BOOTS', 'ARMOR', 'FEET', 'Übungsstiefel (Test)', 1, '{"defense": 1}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 1, 40, 'UNCOMMON', 15, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_ARMOR_COAT', 'ARMOR', 'BODY', 'Übungsmantel (Test)', 1, '{"defense": 4, "maxHealth": 20}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 2, 80, 'UNCOMMON', 30, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_ARMOR_ELITE_HAT', 'ARMOR', 'HEAD', 'Elitehut (Test)', 160, '{"defense": 30}'::jsonb, NULL, 3, 120, 'EPIC', 500, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_ARMOR_GLOVES', 'ARMOR', 'HANDS', 'Übungshandschuhe (Test)', 1, '{"attackPower": 1, "defense": 1}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 1, 40, 'UNCOMMON', 15, TRUE, 'UNKNOWN'::confidence_level),
+    ('DEV_ARMOR_HAT', 'ARMOR', 'HEAD', 'Übungshut (Test)', 1, '{"defense": 2}'::jsonb, (SELECT set_id FROM item_sets WHERE code = 'DEV_SET_TRAINING'), 1, 60, 'UNCOMMON', 20, TRUE, 'UNKNOWN'::confidence_level)
 ON CONFLICT (code) DO UPDATE SET
     item_type = EXCLUDED.item_type,
     equip_slot = EXCLUDED.equip_slot,
@@ -441,6 +454,8 @@ ON CONFLICT (code) DO UPDATE SET
     base_stats = EXCLUDED.base_stats,
     set_id = EXCLUDED.set_id,
     socket_max = EXCLUDED.socket_max,
+    durability_max = EXCLUDED.durability_max,
+    rarity = EXCLUDED.rarity,
     npc_price = EXCLUDED.npc_price,
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
@@ -465,17 +480,20 @@ ON CONFLICT (code) DO UPDATE SET
     is_dev = EXCLUDED.is_dev,
     confidence = EXCLUDED.confidence;
 
-UPDATE items SET socket_max = 3 WHERE code = 'DEV_SWORD';
-UPDATE items SET socket_max = 3 WHERE code = 'DEV_BLADE';
-UPDATE items SET socket_max = 3 WHERE code = 'DEV_AXE';
-UPDATE items SET socket_max = 3 WHERE code = 'DEV_PISTOL';
+UPDATE items SET socket_max = 3, rarity = 'COMMON' WHERE code = 'DEV_SWORD';
+UPDATE items SET socket_max = 3, rarity = 'COMMON' WHERE code = 'DEV_BLADE';
+UPDATE items SET socket_max = 3, rarity = 'COMMON' WHERE code = 'DEV_AXE';
+UPDATE items SET socket_max = 3, rarity = 'COMMON' WHERE code = 'DEV_PISTOL';
 
 INSERT INTO game_rules (rule_key, int_value, is_dev, confidence) VALUES
     ('REFINE_ARMOR_DEFENSE', 2, TRUE, 'UNKNOWN'::confidence_level),
     ('REFINE_GOLD_PER_LEVEL', 100, TRUE, 'UNKNOWN'::confidence_level),
     ('REFINE_MAX', 10, TRUE, 'UNKNOWN'::confidence_level),
     ('REFINE_WEAPON_ATTACK', 3, TRUE, 'UNKNOWN'::confidence_level),
-    ('SOCKET_DRILL_GOLD', 50, TRUE, 'UNKNOWN'::confidence_level)
+    ('SOCKET_DRILL_GOLD', 50, TRUE, 'UNKNOWN'::confidence_level),
+    ('REPAIR_GOLD_PER_POINT', 1, TRUE, 'UNKNOWN'::confidence_level),
+    ('WEAR_ON_DEATH_PERMILLE', 100, TRUE, 'UNKNOWN'::confidence_level),
+    ('WEAR_WEAPON_PER_KILL', 1, TRUE, 'UNKNOWN'::confidence_level)
 ON CONFLICT (rule_key) DO UPDATE SET
     int_value = EXCLUDED.int_value,
     is_dev = EXCLUDED.is_dev,

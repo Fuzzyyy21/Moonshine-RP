@@ -527,6 +527,22 @@ void FVCServerBackend::LoadZone(const FString& ZoneId, FVCHttpCallback Callback)
 		*FGenericPlatformHttp::UrlEncode(ZoneId)), nullptr, Headers(), MoveTemp(Callback));
 }
 
+void FVCServerBackend::ReportDeath(int64 CharacterId, int64 AccountId, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/death"), Body, Headers(), MoveTemp(Callback));
+}
+
+void FVCServerBackend::Repair(int64 CharacterId, int64 AccountId, int64 InstanceId, const FString& NpcCode, FVCHttpCallback Callback)
+{
+	const TSharedRef<FJsonObject> Body = OwnerBody(AccountId);
+	Body->SetNumberField(TEXT("instanceId"), static_cast<double>(InstanceId));
+	Body->SetStringField(TEXT("npcCode"), NpcCode);
+	Body->SetStringField(TEXT("key"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
+	FVCHttp::Send(TEXT("POST"), CharacterUrl(CharacterId) + TEXT("/inventory/repair"), Body, Headers(), MoveTemp(Callback));
+}
+
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>& Kill, FVCHttpCallback Callback)
 {
 	Kill->SetStringField(TEXT("idempotencyKey"), FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens));
@@ -618,6 +634,8 @@ void FVCServerBackend::AdminGrantItem(int64, const FString&, int32, const TShare
 void FVCServerBackend::Trade(int64, int64, const FString&, const FString&, const FString&, int32, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::LoadZone(const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::ReportKill(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::ReportDeath(int64, int64, FVCHttpCallback Callback) { Refuse(Callback); }
+void FVCServerBackend::Repair(int64, int64, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::WriteAdminAudit(const TSharedRef<FJsonObject>&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::GrantExperience(int64, int64, const FString&, int64, const FString&, FVCHttpCallback Callback) { Refuse(Callback); }
 void FVCServerBackend::SaveHotbar(int64, int64, const TArray<FName>&, FVCHttpCallback Callback) { Refuse(Callback); }

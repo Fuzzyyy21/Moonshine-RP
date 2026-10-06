@@ -210,7 +210,7 @@ Freunde, Chat, Gilden, Gildenlager, Gildenmissionen, Städtebesitz, Belagerung.
 
 **Abnahme Iteration 1 (Vorschlag)**: Zwei Spieler auf verschiedenen Servern (Testzone und Athen): `VCWorld "Hallo"` erscheint bei beiden innerhalb von etwa einer Sekunde, `VCSay` nur in 50 m Umkreis; `VCWhisper` erreicht den anderen Server, nach `VCIgnore` nicht mehr; ein dritter WORLD-Satz in 10 s wird abgelehnt; `VCFriends` zeigt den anderen online mit Zone; ein Admin schaltet per `mute` stumm (Audit-Eintrag), `announce` erscheint bei allen als [System].
 
-## Phase 8 – Endgame (Iteration 2 fertig)
+## Phase 8 – Endgame (Iteration 3 fertig)
 
 Stufenbänder 180+ bis zum belegten Cap; Inhalte erst nach Klärung des aktuellen Caps (`CONTRA-002`). Belegt und ohne Cap umsetzbar:
 Ausrüstungssets mit Stufe (148/150/155/168) und Ausrüstungs-Synthese; Werte, Boni und Rezepte des Originals sind UNKNOWN.
@@ -225,12 +225,18 @@ Ausrüstungssets mit Stufe (148/150/155/168) und Ausrüstungs-Synthese; Werte, B
 | Daten (`dev_equipment.json`): Sockel je Teil (Waffen 3, beobachtetes Maximum), 5 Edelsteine (Stufe 1–2), Verfeinerungssteine 1–3, Gebühren, Höchststufe 10, +3 Angriff (Waffe) / +2 Verteidigung (sonst) je Stufe, Synthese von Edelstein und Stein; `V0021` (`items.tier`, `refine_gem_tier`, Sockel als Array, Aktionen DRILL/SOCKET/REFINE) | ✅ It. 2 | Export `--check` (prüft Sockelzahl ≤ 3, ein Attribut je Edelstein, Steinstufen lückenlos), Schematest |
 | Backend: bohren, sockeln, verfeinern (Teil im Inventar oder getragen; Steine verbraucht; Gebühr als Senke `SOCKET_DRILL`/`ITEM_REFINE`; genau einmal; Fehlschlag verbraucht nichts); Edelsteine und Verfeinerung zählen im Ausrüstungsbonus; Inventar zeigt Stufe und Sockel | ✅ It. 2 | `ItemUpgradeTests` (2 Tests) |
 | UE: `VCDrill`, `VCSocket`, `VCRefine` (nur an Land), `VCInventory` zeigt `+N` und Sockel | ⚠️ It. 2, geschrieben, nicht kompiliert | lokal |
-| Echte Sets (Königs-, Sidonia-, Thomas-, Talos-Set) mit Teilen und Boni, Seltenheit, Haltbarkeit, echte Edelsteine (z. B. 伤增之石), Fehlschlag beim Verfeinern | ❌ | Werte UNKNOWN |
+| Regeln (`DurabilityRules`, Backend): unbenutzt = voll, Abnutzung bis 0, Verlust beim Tod als Anteil des Maximums (mindestens 1), kaputt bei 0, Reparaturkosten nach fehlenden Punkten und Seltenheit | ✅ It. 3 | `DurabilityRulesTests` (4 Fälle) |
+| Daten (`dev_equipment.json`): Seltenheiten COMMON … ENDGAME mit Reparaturfaktor, Haltbarkeit der Rüstung, Waffe −1 je Kill, Tod −10 %, 1 Gold je Punkt; `V0022` (`item_rarities`, `items.rarity` nur bekannte Stufen, Aktionen REPAIR/DEATH) | ✅ It. 3 | Export `--check`, Schematest |
+| Backend: Kill nutzt die getragene Waffe ab (Antwort mit neuem Inventar), Todesmeldung nutzt alles Getragene ab (genau einmal), kaputte Teile ohne Werte und nicht im Set, kaputte Waffe gilt als keine, Reparatur beim Händler (eins oder alles Getragene, Senke `ITEM_REPAIR`) | ✅ It. 3 | `DurabilityTests` (2 Tests) |
+| UE: Todesmeldung bei jedem Spielertod, Inventar nach Kill/Tod übernehmen, kaputte Waffe = unbewaffnet, `VCRepair [nr]` beim Händler, `VCInventory` zeigt Seltenheit und Haltbarkeit | ⚠️ It. 3, geschrieben, nicht kompiliert | lokal |
+| Echte Sets (Königs-, Sidonia-, Thomas-, Talos-Set) mit Teilen und Boni, echte Seltenheitsstufen, echte Edelsteine (z. B. 伤增之石), Fehlschlag beim Verfeinern | ❌ | Werte UNKNOWN |
 | Stufenbänder über 160, Endgame-Dungeons (Sturminsel, Goldener Turm), Militärrang | ❌ | Cap und Inhalte UNKNOWN (`CONTRA-002`) |
 
 **Abnahme Iteration 1 (Vorschlag)**: Mit `giveitem` die vier Übungsteile holen und ausrüsten; nach zwei Teilen +5 Verteidigung aus dem Set, nach vier zusätzlich +50 Leben und +5 Angriff (Kampfwerte steigen); `VCUnequip HEAD` nimmt die Stufe wieder weg; der Elitehut wird unter Stufe 160 abgelehnt; mit Segeltuch und Synthesestein entsteht per `VCCraft DEV_SYNTH_HAT` ein Übungshut.
 
 **Abnahme Iteration 2 (Vorschlag)**: `VCDrill` am Übungsschwert bohrt Sockel für 50, 100, 150 Gold, ein vierter wird abgelehnt; `VCSocket` setzt Angriffsstein I ein, ein zweiter Angriffsstein wird abgelehnt (gleiches Attribut), ein Lebensstein passt; `VCRefine` am Übungshut verlangt erst Stein I, dann Stein II mit einem Edelstein über Stufe 1; getragen steigen Angriff, Leben bzw. Verteidigung; abgelehnte Versuche verbrauchen nichts.
+
+**Abnahme Iteration 3 (Vorschlag)**: Mit Übungsschwert eine Puppe besiegen → Haltbarkeit 99/100; sterben → Schwert und getragene Rüstung verlieren 10 % ihres Maximums; bei 0 zeigt `VCInventory` KAPUTT, die Werte fallen weg und man kämpft unbewaffnet; `VCRepair` beim Händler in Athen stellt alles Getragene her (Kosten nach Seltenheit), ohne genug Gold wird abgelehnt.
 
 ## Arbeitsweise je System
 

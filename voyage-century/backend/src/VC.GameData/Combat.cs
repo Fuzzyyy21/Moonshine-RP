@@ -21,7 +21,9 @@ public sealed record KillRequest(
     string? VictimType, string? MonsterCode, long? VictimCharacterId, long? VictimAccountId);
 
 /// <summary>Loot: was der Gegner fallen ließ (Lost = passte nicht ins Inventar); LootGold: gutgeschriebenes Gold.</summary>
-public sealed record KillResponse(bool Duplicate, long? XpAwarded, CharacterProgress? Progress, List<LootDrop>? Loot = null, long LootGold = 0);
+/// <summary>Inventory: neuer Stand des Töters, wenn sich etwas daran geändert hat (Waffe abgenutzt); sonst null.</summary>
+public sealed record KillResponse(bool Duplicate, long? XpAwarded, CharacterProgress? Progress, List<LootDrop>? Loot = null, long LootGold = 0,
+    InventoryResponse? Inventory = null);
 
 /// <summary>
 /// Kampfergebnisse, die der Zonen-Server meldet. Der Server entscheidet über Treffer und Tod; das Backend
@@ -174,12 +176,16 @@ public static class CombatEndpoints
                 ON CONFLICT (character_id) DO UPDATE SET land_deaths = pvp_statistics.land_deaths + 1
                 """, ("v", req.VictimCharacterId!.Value), ct);
         }
+        // Abnutzung der getragenen Waffe des Töters (DurabilityRules); der Zonen-Server übernimmt dann das neue Inventar.
+        var inventory = await DurabilityEndpoints.WearWeapon(conn, tx, req.KillerCharacterId, content.Value.AllowDevContent, ct)
+            ? await InventoryEndpoints.Load(conn, tx, req.KillerCharacterId, content.Value.AllowDevContent, ct)
+            : null;
         await GameEventLog.WriteAsync(conn, tx, new GameEvent("KILL", req.KillerAccountId, req.KillerCharacterId,
             NewValue: new { victimType = req.VictimType, monster = req.MonsterCode, victim = req.VictimCharacterId, zone = req.ZoneId, xp = xpReward,
                 loot, gold = lootGold }),
             req.ServerId, ct);
         await tx.CommitAsync(ct);
-        return Results.Ok(new KillResponse(Duplicate: false, xpReward, progress, loot, lootGold));
+        return Results.Ok(new KillResponse(Duplicate: false, xpReward, progress, loot, lootGold, inventory));
     }
 
     /// <summary>

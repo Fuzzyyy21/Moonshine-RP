@@ -352,6 +352,14 @@ Original: `SKILL-TOTAL-CAP` LIKELY, `SHIP-SKILLS` LIKELY, `SHIPMOD-SYSTEM` LIKEL
 * `[DESIGN]`: Bohren kostet 50 Gold × Nummer des Sockels, Verfeinern 100 Gold × Zielstufe (Senken `SOCKET_DRILL`, `ITEM_REFINE`); Höchststufe 10; je Stufe +3 Angriff bei Waffen, sonst +2 Verteidigung; kein Fehlschlag (Erfolgsrate UNKNOWN); Edelsteine lassen sich nicht wieder entfernen (UNKNOWN). Bearbeitet werden Teile im Inventar oder getragen, nur an Land.
 * Werte von Edelsteinen und Verfeinerung zählen im Ausrüstungsbonus des Backends.
 
+**Umgesetzt (Phase 8, Iteration 3)**, Regeln in `backend/src/VC.GameData/DurabilityRules.cs` (getestet), Werte in `design_data/dev_equipment.json`
+* Original: Haltbarkeit, Reparatur und Seltenheitsstufen UNKNOWN (SYS-RARITY). Alles hier ist `[DESIGN]`.
+* Seltenheit: COMMON, UNCOMMON, RARE, EPIC, ENDGAME (Vorgabe des Master-Prompts) als Tabelle `item_rarities`; sie gewichtet die Reparaturkosten (1,0 … 3,0).
+* Abnutzung: Jeder Kill kostet die getragene Waffe 1 Punkt; jeder Tod (durch Gegner oder Spieler) kostet jedes getragene Teil 10 % seines Maximums, mindestens 1. Teile ohne Höchstwert nutzen sich nie ab.
+* Bei 0 ist ein Teil kaputt: keine Werte, zählt nicht zum Set; eine kaputte Waffe gilt als keine (unbewaffnet). Es geht nicht verloren.
+* Reparatur beim Händler: ein Teil (Inventar oder getragen) oder alles Getragene, 1 Gold je fehlendem Punkt × Seltenheit, Senke `ITEM_REPAIR`.
+* Der Tod ist damit die einzige Todesstrafe; weitere Strafen des Originals UNKNOWN.
+
 ---
 
 ## 16. Quests, Exploration, Dungeons

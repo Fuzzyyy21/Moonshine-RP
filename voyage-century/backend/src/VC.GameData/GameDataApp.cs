@@ -104,6 +104,7 @@ public static partial class GameDataApp
         GuildCityEndpoints.Map(internalApi);
         SiegeEndpoints.Map(internalApi);
         ItemUpgradeEndpoints.Map(internalApi);
+        DurabilityEndpoints.Map(internalApi);
         return app;
     }
 
